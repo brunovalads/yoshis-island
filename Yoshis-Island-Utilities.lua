@@ -53,7 +53,11 @@ local DEFAULT_OPTIONS = {
     miscellaneous_sprite_table_number = {[1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [6] = true, [7] = true, [8] = true, [9] = true,
                     [10] = true, [11] = true, [12] = true, [13] = true, [14] = true, [15] = true, [16] = true, [17] = true, [18] = true, [19] = true
     },
-	display_mouse_coordinates = true,
+	display_mouse_coordinates = false,
+	draw_tile_map_grid = false,
+	draw_tile_map_type = false,
+	draw_tile_map_gfx_type = false,
+	draw_tile_map_phy_type = false,
 	
 	-- Memory edit function
 	address = 0x7E0000,
@@ -468,7 +472,7 @@ local NTSC_FRAMERATE = 60.0
 local SMW2 = {
     -- Game Modes
     game_mode_overworld = 0x0022,
-    game_mode_level = 0x0007,
+    game_mode_level = 0x000F,
     
     -- Sprites
     sprite_max = 24,
@@ -485,6 +489,7 @@ local SMW2 = {
 SFXRAM = {  -- 700000~701FFF
     -- General
 	level_timer = 0x701974, -- 2 bytes
+	screen_number_to_id = 0x700CAA, -- 128 bytes table
 
 	-- Player
     x = 0x70008C, -- 2 bytes
@@ -525,6 +530,7 @@ SFXRAM = {  -- 700000~701FFF
 	
 	
     -- Timer
+	invincibility_timer = 0x7001D6,
 	eat_timer = 0x7001EE,
 	transform_timer = 0x7001F4,
 	star_timer = 0x701E04,
@@ -571,6 +577,7 @@ WRAM = {  -- 7E0000~7FFFFF
 	star_counter = 0x03B6,
 	flower_counter = 0x03B8,
 	coin_counter = 0x037b,
+	Map16_data = 0x18000, -- 32768 bytes table, in words
     
     -- Cheats
     frozen = 0x13fb,
@@ -908,6 +915,7 @@ local UNINTERESTING_EXTENDED_SPRITES = make_set{1, 7, 8, 0x0e, 0x10, 0x12}
 local Cheat = {}  -- family of cheat functions and variables
 local Previous = {}
 local User_input = INPUT_KEYNAMES -- Snes9x
+local Tiletable = {}
 local Joypad = {}
 local Layer1_tiles = {}
 local Layer2_tiles = {}
@@ -1493,7 +1501,7 @@ function Options_menu.display()
         gui.text(x_pos + delta_x + 3, y_pos, "Draw tiles with left click?")
         y_pos = y_pos + delta_y
         
-        create_button(x_pos, y_pos, "Erase Tiles", function() Layer1_tiles = {}; Layer2_tiles = {} end)
+        create_button(x_pos, y_pos, "Erase Tiles", function() Tiletable = {}; Layer1_tiles = {}; Layer2_tiles = {} end)
         y_pos = y_pos + delta_y
         
         -- Manage opacity / filter
@@ -1572,6 +1580,38 @@ function Options_menu.display()
         create_button(x_pos, y_pos, tmp, function() OPTIONS.display_debug_controller_data = not OPTIONS.display_debug_controller_data end)
         gui.text(x_pos + delta_x + 3, y_pos, "Controller data (might cause desyncs!)", COLOUR.warning)
         y_pos = y_pos + delta_y
+		
+		local x_temp = 0
+		-- Tile Map
+		tmp_str = "Tile Map:"
+        gui.text(x_pos, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 4
+		
+        tmp = OPTIONS.draw_tile_map_grid and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.draw_tile_map_grid = not OPTIONS.draw_tile_map_grid end)
+		tmp_str = "Grid"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 12
+		
+		tmp = OPTIONS.draw_tile_map_type and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.draw_tile_map_type = not OPTIONS.draw_tile_map_type end)
+		tmp_str = "Tile type"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 12
+		
+		--[[
+        tmp = OPTIONS.draw_tile_map_gfx_type and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.draw_tile_map_gfx_type = not OPTIONS.draw_tile_map_gfx_type end)
+		tmp_str = "Graphical type"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 12
+		
+        tmp = OPTIONS.draw_tile_map_phy_type and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.draw_tile_map_phy_type = not OPTIONS.draw_tile_map_phy_type end)
+		tmp_str = "Physical type"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 12
+        y_pos = y_pos + delta_y]]
         
     elseif Options_menu.current_tab == "Sprite miscellaneous tables" then
         
@@ -2002,7 +2042,7 @@ local function scan_smw2()
     Previous_real_frame = Real_frame or u8(WRAM.real_frame)
     Real_frame = u8(WRAM.real_frame)
     Effective_frame = u8(WRAM.effective_frame)]]
-    Game_mode = u8(WRAM.game_mode)
+    Game_mode = u16(WRAM.game_mode)
     --[[Level_index = u8(WRAM.level_index)
     Level_flag = u8(WRAM.level_flag_table + Level_index)
     Is_paused = u8(WRAM.level_paused) == 1
@@ -2167,7 +2207,7 @@ local function draw_layer1_tiles(camera_x, camera_y)
             
             -- Drawings
             Text_opacity = 1.0 -- Snes9x
-            local num_x, num_y, kind = get_map16_value(x_game, y_game)
+            --[[cal num_x, num_y, kind = get_map16_value(x_game, y_game)
             if kind then
                 if kind >= 0x111 and kind <= 0x16d or kind == 0x2b then
                     -- default solid blocks, don't know how to include custom blocks
@@ -2185,7 +2225,9 @@ local function draw_layer1_tiles(camera_x, camera_y)
                     draw_text(AR_x*(left + 4), AR_y*top - SNES9X_FONT_HEIGHT, fmt("Map16 (%d, %d), %x", num_x, num_y, kind),
                     false, false, 0.5, 1.0)
                 end
-            end
+            end]]
+			
+            draw_rectangle(left, top, 15, 15, COLOUR.blank_tile, 0) -- REMOVE
             
         end
         
@@ -2204,11 +2246,204 @@ local function draw_layer2_tiles()
 end
 
 
+local function draw_tilesets(camera_x, camera_y)
+	if Game_mode ~= SMW2.game_mode_level then return end
+	
+    local x_origin, y_origin = screen_coordinates(0, 0, camera_x, camera_y)
+	
+	--##############################################
+	-- Tile grid
+	
+	Text_opacity = 1.0
+    
+    local width = 256 --u16(WRAM.level_width) or LEVEL[Level_index].width
+	local height = 128 --u16(WRAM.level_height) or LEVEL[Level_index].height
+	local block_x, block_y
+	local x_pos, y_pos
+	local x_screen, y_screen
+	local screen_number, screen_id
+	local block_id
+	local kind_low, kind_high
+	for screen_region_y = 0, 7 do
+		--y_pos = y_origin + 16*screen_region_y
+		
+		for screen_region_x = 0, 15 do
+			--x_pos = x_origin + 16*screen_region_x
+			--x_screen, y_screen = screen_coordinates(x_pos, y_pos, camera_x, camera_y)
+			--x_screen = x_screen + camera_x
+			--y_screen = y_screen + camera_y
+			
+			screen_number = screen_region_y*16 + screen_region_x
+			screen_id = u8(SFXRAM.screen_number_to_id + screen_number)
+			
+			for block_y = 0, 15 do
+				y_pos = y_origin + 256*screen_region_y + 16*block_y
+				
+				
+				for block_x = 0, 15 do
+					x_pos = x_origin + 256*screen_region_x + 16*block_x
+					x_screen, y_screen = screen_coordinates(x_pos, y_pos, camera_x, camera_y)
+			        x_screen = x_screen + camera_x
+			        y_screen = y_screen + camera_y
+					
+					block_id = 256*screen_id + 16*block_y + block_x
+					
+					if x_screen >= -256 and x_screen <= 256+16 and y_screen >= -256 and y_screen <= 224+16 then -- to not print the whole level, it's too laggy
+						
+						--local num_x, num_y, kind_low, kind_high, address_low, address_high = get_map16_value(x_game, y_game)
+			
+						kind_low = u8(0x7E0000 + WRAM.Map16_data + 2*block_id) -- 
+						kind_high = u8(0x7E0000 + WRAM.Map16_data + 2*block_id + 1) --
+						
+						-- Tile type
+						if OPTIONS.draw_tile_map_type then
+							draw_text(x_pos + 5, y_pos + 1, fmt("%02x\n%02x", kind_high, kind_low), COLOUR.blank_tile)
+						end
+						
+						-- Grid
+						if OPTIONS.draw_tile_map_grid then
+							--draw_rectangle(x_pos, y_pos, 15, 15, kind_low == FLINT.blank_tile_map16 and COLOUR.blank_tile or COLOUR.block, 0)
+							if kind_high == 0x01 or kind_high == 0x08 or kind_high == 0x0A or kind_high == 0x0C or kind_high == 0x0D or kind_high == 0x0F
+							or kind_high == 0x10 or kind_high == 0x11 or kind_high == 0x15 or kind_high == 0x1A or kind_high == 0x1B 
+							or kind_high == 0x29 or kind_high == 0x38
+							or kind_high == 0x39 or kind_high == 0x3E or kind_high == 0x3F
+							or kind_high == 0x50 or kind_high == 0x55 or kind_high == 0x5B
+							or kind_high == 0x66 or kind_high == 0x67 or kind_high == 0x6B or kind_high == 0x6E
+							or kind_high == 0x79 or kind_high == 0x7D
+							or kind_high == 0x90 or kind_high == 0x9D then
+								draw_rectangle(x_pos, y_pos, 15, 15, COLOUR.block, 0)
+							else
+								draw_rectangle(x_pos, y_pos, 15, 15, COLOUR.blank_tile, 0)					
+							end
+							--draw_rectangle(x_pos, y_pos, 15, 15, COLOUR.blank_tile, 0) -- REMOVE
+							--draw_text(x_pos, y_pos + 1, fmt("%x", num_id), COLOUR.blank_tile) -- REMOVE
+							
+							if block_y == 0 and block_x == 0 then -- REMOVE
+								--screen_number = floor(num_id/256) + (num_id/16)%256
+								--screen_id = u8(0x700CAA + screen_number)
+								
+								draw_rectangle(x_pos, y_pos, 22, 16, COLOUR.warning, COLOUR.warning)
+								draw_text(x_pos + 2, y_pos + 1, fmt("#:%02x\nID:%02x", screen_number, screen_id), COLOUR.text)
+								
+								draw_rectangle(x_pos, y_pos, 255, 255, COLOUR.warning, 0)
+							end
+						end
+						
+						--[[
+						-- Tile type graphicaly
+						if OPTIONS.draw_tile_map_gfx_type then
+							if OPTIONS.draw_tile_map_phy_type then
+								draw_text(x_pos + 5, y_pos + 1, fmt("%02x", kind_low), COLOUR.blank_tile)
+							else
+								draw_text(x_pos + 5, y_pos + 4, fmt("%02x", kind_low), COLOUR.blank_tile)					
+							end
+						end
+						
+						-- Tile type physicaly
+						if OPTIONS.draw_tile_map_phy_type then
+							if OPTIONS.draw_tile_map_gfx_type then
+								draw_text(x_pos + 5, y_pos + 8, fmt("%02x", kind_high), COLOUR.blank_tile)
+							else
+								draw_text(x_pos + 5, y_pos + 4, fmt("%02x", kind_high), COLOUR.blank_tile)					
+							end
+						
+						end]]
+					end
+				
+				end
+			
+			end
+		end
+	end	
+	
+	--##############################################
+	-- Tiles from click
+	
+    local x_mouse, y_mouse = game_coordinates(User_input.xmouse, User_input.ymouse, camera_x, camera_y)
+    x_mouse = 16*math.floor(x_mouse/16)
+    y_mouse = 16*math.floor(y_mouse/16)
+    
+    for number, positions in ipairs(Tiletable) do
+        -- Calculate the Snes9x coordinates
+        local left = positions[1] + x_origin
+        local top = positions[2] + y_origin
+        local right = left + 15
+        local bottom = top + 15
+        local x_game, y_game = game_coordinates(left, top, camera_x, camera_y)
+        
+        -- Returns if block is way too outside the screen
+        if left > - Border_left - 32 and top  > - Border_top - 32 and -- Snes9x: w/ 2*
+        right < Screen_width  + Border_right + 32 and bottom < Screen_height + Border_bottom + 32 then
+            
+			--draw_rectangle(left, top, 15, 15, COLOUR.block, 0)
+			
+            -- Drawings
+            local num_x, num_y, kind_low, kind_high, address_low, address_high = get_map16_value(x_game, y_game) -- REMOVE addresses
+			
+			if OPTIONS.draw_tile_map_grid then -- to make it easier to see when grid is activated
+				draw_rectangle(left, top, 15, 15, COLOUR.Fred, 0) -- this color fits well
+			elseif kind_high >= 0 and kind_high <= 3 then -- non solid blocks
+				draw_rectangle(left, top, 15, 15, COLOUR.blank_tile, 0)
+            else
+				draw_rectangle(left, top, 15, 15, COLOUR.block, 0)
+			end			
+			
+            if Tiletable[number][3] then
+                display_boundaries(x_game, y_game, 16, 16, camera_x, camera_y)  -- the text around it
+            end
+                
+            -- Draw Map16 id
+            if x_mouse == positions[1] and y_mouse == positions[2] then
+				Text_opacity = 0.8
+				
+				local y_pos
+				if num_y < 2 then y_pos = bottom + 2*SNES9X_FONT_HEIGHT + 1 else y_pos = top - SNES9X_FONT_HEIGHT end
+				
+                draw_text(left + 6, y_pos, fmt("Map16 (%d, %d), %02x(%02x)", num_x, num_y, kind_low, kind_high),
+                false, true, 0.5, 1.0)
+				
+                --draw_text(left + 6, y_pos + SNES9X_FONT_HEIGHT, fmt("%04x (%04x)", address_low, address_high), false, true, 0.5, 1.0) -- REMOVE
+            end
+        end
+    end	
+end
+
+
 -- if the user clicks in a tile, it will be be drawn
 -- if click is onto drawn region, it'll be erased
 -- there's a max of possible tiles
 -- layer_table[n] is an array {x, y, [draw info?]}
-local function select_tile(x, y, layer_table)
+local function select_tile()
+    if not OPTIONS.draw_tiles_with_click then return end
+    if Game_mode ~= SMW2.game_mode_level then return end
+    
+    local x_mouse, y_mouse = game_coordinates(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
+    x_mouse = 16*floor(x_mouse/16)
+    y_mouse = 16*floor(y_mouse/16)
+    
+    for number, positions in ipairs(Tiletable) do  -- if mouse points a drawn tile, erase it
+        if x_mouse == positions[1] and y_mouse == positions[2] then
+            if Tiletable[number][3] == false then
+                Tiletable[number][3] = true
+            else
+                table.remove(Tiletable, number)
+            end
+            
+            return
+        end
+    end
+    
+    -- otherwise, draw a new tile
+    if #Tiletable == OPTIONS.max_tiles_drawn then
+        table.remove(Tiletable, 1)
+        Tiletable[OPTIONS.max_tiles_drawn] = {x_mouse, y_mouse, false}
+    else
+        table.insert(Tiletable, {x_mouse, y_mouse, false})
+    end
+    
+end
+
+--[[local function select_tile(x, y, layer_table)
     if not OPTIONS.draw_tiles_with_click then return end
     --if Game_mode ~= SMW2.game_mode_level then return end
     
@@ -2238,7 +2473,7 @@ local function select_tile(x, y, layer_table)
         table.insert(layer_table, {x, y, false})
     end
     
-end
+end]]
 
 
 -- uses the mouse to select an object
@@ -2289,7 +2524,7 @@ end
 local function right_click()
     local id = select_object(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
     
-    if tostring(id) == "Mario" then
+    if tostring(id) == "Yoshi" then
         
         if OPTIONS.display_player_hitbox and OPTIONS.display_interaction_points then
             OPTIONS.display_interaction_points = false
@@ -2325,11 +2560,11 @@ local function right_click()
     end
     if id then return end
     
-    -- Select layer 2 tiles
-    local layer2x = s16(WRAM.layer2_x_nextframe)
+    -- Select layer 2 tiles -- TODO
+    --[[local layer2x = s16(WRAM.layer2_x_nextframe)
     local layer2y = s16(WRAM.layer2_y_nextframe)
     local x_mouse, y_mouse = User_input.xmouse + layer2x, User_input.ymouse + layer2y
-    select_tile(16*floor(x_mouse/16), 16*floor(y_mouse/16) - Y_CAMERA_OFF, Layer2_tiles)
+    select_tile(16*floor(x_mouse/16), 16*floor(y_mouse/16) - Y_CAMERA_OFF, Layer2_tiles)]]
 end
 
 
@@ -2624,7 +2859,8 @@ end
 
 local function player()
     if not OPTIONS.display_player_info then return end
-    
+    if Game_mode ~= SMW2.game_mode_level then return end
+	
     -- Font
     Text_opacity = 1.0
     
@@ -2972,7 +3208,11 @@ local function sprite_info(id, counter, table_position)
     
     local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
     
-	if Game_mode == 0x0007 then x_screen = x_screen + 256 -- adjustment for the intro "glitched" sprite positions
+	if Game_mode == 0x0007 then -- adjustment for the intro "glitched" sprite positions
+		x_screen = x_screen + Camera_x
+		if Camera_y ~= 0 then
+			y_screen = y_screen + Camera_y
+		end
 	--elseif Game_mode == 0x002C then y_screen = y_screen - 256
 	end 
 	
@@ -3123,6 +3363,11 @@ end
 
 local function sprites()
     if not OPTIONS.display_sprite_info then return end
+	
+	local valid_game_mode = false
+	if Game_mode == SMW2.game_mode_level then valid_game_mode = true
+	elseif Game_mode == 0x0007 then valid_game_mode = true end -- Intro (0x0007) too
+	if valid_game_mode == false then return end
     
     local counter = 0
     local table_position = AR_y*22
@@ -3287,9 +3532,11 @@ local function level_mode()
     --if Game_mode == SMW2.game_mode_level then
         
         -- Draws/Erases the tiles if user clicked
-        draw_layer1_tiles(Camera_x, Camera_y)
+	    draw_tilesets(Camera_x, Camera_y)
+		
+        --draw_layer1_tiles(Camera_x, Camera_y)
         
-        draw_layer2_tiles()
+        --draw_layer2_tiles()
         
         sprites()
         
@@ -3360,13 +3607,17 @@ local function left_click()
         end
     end
     
-    -- Layer 1 tiles
-    local x_mouse, y_mouse = game_coordinates(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
+    if not Options_menu.show_menu then
+        --select_tile()
+    end    
+	
+	-- Layer 1 tiles
+    --[[local x_mouse, y_mouse = game_coordinates(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
     x_mouse = 16*floor(x_mouse/16)
     y_mouse = 16*floor(y_mouse/16)
     if not Options_menu.show_menu then
         select_tile(x_mouse, y_mouse, Layer1_tiles)
-    end
+    end]]
 end
 
 
