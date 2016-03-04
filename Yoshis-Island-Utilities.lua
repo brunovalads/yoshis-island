@@ -26,6 +26,8 @@ local DEFAULT_OPTIONS = {
     display_player_info = true,
     display_player_hitbox = true,  -- can be changed by right-clicking on player
     display_interaction_points = true,  -- can be changed by right-clicking on player
+	display_throw_info = true,
+	display_blocked_status = true,
     display_sprite_info = true,
     display_sprite_hitbox = true,  -- you still have to select the sprite with the mouse
     display_extended_sprite_info = false,
@@ -167,7 +169,7 @@ local SNES9X_FONT_WIDTH = 4
 
 -- GD images dumps (encoded)
 local GD_IMAGES_DUMPS = {}
-GD_IMAGES_DUMPS.player_blocked_status = {255, 254, 0, 7, 0, 10, 1, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 248, 64, 112, 0, 248, 216, 112, 0, 80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 40, 96, 0, 176, 40, 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 248, 112, 104, 0, 248, 208, 192, 0, 0, 0, 0, 0, 248, 208, 192, 0, 248, 208, 192, 0, 248, 208, 192, 0, 136, 88, 24, 0, 0, 0, 0, 0, 248, 112, 104, 0, 248, 208, 192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 136, 88, 24, 0, 136, 88, 24, 0, 32, 48, 136, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 136, 88, 24, 0, 136, 88, 24, 0, 248, 248, 248, 0, 128, 216, 200, 0, 32, 48, 136, 0, 0, 0, 0, 0, 0, 0, 0, 0, 248, 248, 248, 0, 136, 88, 24, 0, 64, 128, 152, 0, 128, 216, 200, 0, 32, 48, 136, 0, 0, 0, 0, 0, 0, 0, 0, 0, 136, 88, 24, 0, 136, 88, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+GD_IMAGES_DUMPS.player_blocked_status = {255, 254, 0, 25, 0, 30, 1, 255, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 255, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 66, 33, 0, 255, 148, 0, 0, 255, 148, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 148, 49, 33, 0, 255, 66, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 99, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 99, 0, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 2, 0, 0, 0, 0, 255, 148, 0, 0, 0, 0, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 255, 255, 255, 0, 0, 255, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 255, 0, 0, 0, 99, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 255, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 148, 49, 33, 0, 255, 66, 33, 0, 0, 0, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 255, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 148, 49, 33, 0, 148, 49, 33, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 255, 198, 173, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 198, 173, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 173, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 66, 33, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 255, 198, 173, 0, 255, 198, 173, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 255, 198, 173, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 66, 33, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 255, 198, 173, 0, 255, 198, 173, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 99, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 173, 0, 0, 255, 198, 173, 0, 255, 198, 173, 0, 255, 198, 173, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 66, 33, 0, 255, 255, 255, 0, 255, 66, 33, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 173, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 66, 33, 0, 255, 66, 33, 0, 255, 66, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 173, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 231, 214, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 173, 0, 0, 0, 173, 0, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 255, 231, 214, 0, 255, 231, 214, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 231, 214, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 173, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 231, 214, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 198, 173, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 148, 49, 33, 0, 255, 66, 33, 0, 255, 148, 0, 0, 255, 148, 0, 0, 0, 0, 0, 0, 255, 198, 173, 0, 255, 198, 173, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 148, 49, 33, 0, 255, 66, 33, 0, 255, 148, 0, 0, 255, 148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 148, 49, 33, 0, 148, 49, 33, 0, 148, 49, 33, 0, 255, 66, 33, 0, 255, 255, 255, 0, 255, 148, 0, 0, 0, 0, 0, 0, 148, 49, 33, 0, 255, 66, 33, 0, 255, 148, 0, 0, 255, 148, 0, 0, 255, 255, 255, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 148, 49, 33, 0, 148, 49, 33, 0, 255, 66, 33, 0, 255, 148, 0, 0, 255, 148, 0, 0, 255, 148, 0, 0, 0, 0, 0, 0, 148, 49, 33, 0, 148, 49, 33, 0, 255, 66, 33, 0, 255, 66, 33, 0, 255, 148, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255, 127, 255, 255, 255}
 GD_IMAGES_DUMPS.goal_tape = {255, 254, 0, 18, 0, 6, 1, 255, 255, 255, 255, 107, 153, 153, 153, 38, 75, 75, 75, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 0, 63, 63, 63, 32, 84, 84, 84, 0, 186, 186, 186, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 62, 62, 62, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 248, 248, 248, 0, 55, 55, 55, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 0, 216, 216, 216, 33, 75, 75, 75, 0, 136, 136, 136, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 0, 176, 176, 176, 106, 160, 160, 160, 40, 60, 60, 60, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40, 0, 40, 40, 40}
 
 -- Symbols
@@ -429,6 +431,10 @@ local Bg_opacity = 1
 
 local fmt = string.format
 local floor = math.floor
+local sqrt = math.sqrt
+local sin = math.sin
+local cos = math.cos
+local pi = math.pi
 
 -- unsigned to signed (based in <bits> bits)
 local function signed(num, bits)
@@ -503,13 +509,17 @@ SFXRAM = {  -- 700000~701FFF
     y_speed = 0x7000AB,
     y_subspeed = 0x7000AA,
     direction = 0x7000C4,
+	ground_pound = 0x7000D6,
 	egg_target_x = 0x7000E4, -- 2 bytes
-	egg_target_y = 0x7000E6, -- 2 bytes
-	egg_target_radial_pos = 0x7000EE, -- 2 bytes
+	egg_target_y = 0x7000E6, -- 2 bytes	
+	egg_target_radial_pos = 0x7000EF,
+	egg_target_radial_subpos = 0x7000EE,
+	egg_throw_state = 0x7000DE,
+	egg_throw_state_timer = 0x7001E2,
     x_centered = 0x70011C, -- 2 bytes
     y_centered = 0x70011E, -- 2 bytes
-    tongue_x = 0x700154, -- 2 bytes
-    tongue_y = 0x700152, -- 2 bytes
+    tongue_x = 0x700152, -- 2 bytes
+    tongue_y = 0x700154, -- 2 bytes
     --is_ducking = 0x700073,
     --p_meter = 0x7013e4,
     --take_off = 0x70149f,
@@ -577,12 +587,13 @@ WRAM = {  -- 7E0000~7FFFFF
 	star_counter = 0x03B6,
 	flower_counter = 0x03B8,
 	coin_counter = 0x037b,
+	is_paused = 0x0B10,
 	Map16_data = 0x18000, -- 32768 bytes table, in words
     
     -- Cheats
     frozen = 0x13fb,
     level_paused = 0x13d4,
-    level_index = 0x13bf,
+    level_index = 0x021A, -- 2 bytes
     room_index = 0x00ce,
     level_flag_table = 0x1ea2,
     level_exit_type = 0x0dd5,
@@ -1092,6 +1103,39 @@ local function draw_line(x1, y1, x2, y2, scale, color)
 end
 
 
+-- draw an arrow given (x,y) and (x',y')
+local function draw_arrow(x1, y1, x2, y2, color, head)
+	
+	local angle = math.atan((y2-y1)/(x2-x1)) -- in radians
+	
+	-- Arrow head
+	local head_size = head or 10
+	local angle1, angle2 = angle + math.pi/4, angle - math.pi/4 --0.785398163398, angle - 0.785398163398 -- 45° in radians
+	local delta_x1, delta_y1 = floor(head_size*math.cos(angle1)), floor(head_size*math.sin(angle1))
+	local delta_x2, delta_y2 = floor(head_size*math.cos(angle2)), floor(head_size*math.sin(angle2))
+	local head1_x1, head1_y1 = x2, y2 
+	local head1_x2, head1_y2 
+	local head2_x1, head2_y1 = x2, y2
+	local head2_x2, head2_y2
+	
+	if x1 < x2 then -- 1st and 4th quadrant
+		head1_x2, head1_y2 = head1_x1 - delta_x1, head1_y1 - delta_y1
+		head2_x2, head2_y2 = head2_x1 - delta_x2, head2_y1 - delta_y2
+	elseif x1 == x2 then -- vertical arrow
+		head1_x2, head1_y2 = head1_x1 - delta_x1, head1_y1 - delta_y1
+		head2_x2, head2_y2 = head2_x1 - delta_x2, head2_y1 - delta_y2
+	else
+		head1_x2, head1_y2 = head1_x1 + delta_x1, head1_y1 + delta_y1
+		head2_x2, head2_y2 = head2_x1 + delta_x2, head2_y1 + delta_y2
+	end
+	
+	-- Draw
+	gui.line(x1, y1, x2, y2, color)
+	gui.line(head1_x1, head1_y1, head1_x2, head1_y2, color)
+	gui.line(head2_x1, head2_y1, head2_x2, head2_y2, color)
+end
+
+
 -- draws a box given (x,y) and (x',y') with SNES' pixel sizes
 local draw_box = function(x1, y1, x2, y2, line, fill)
     gui.box(x1, y1, x2, y2, fill, line)
@@ -1383,7 +1427,72 @@ function Options_menu.display()
     
     x_pos, y_pos = 4, y_pos + delta_y + 4
     if Options_menu.current_tab == "Show/hide options" then
+		local x_temp = 0
+		
+		-- Player
+		tmp_str = "Player:"
+        gui.text(x_pos, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 4
+		
+        tmp = OPTIONS.display_player_info and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.display_player_info = not OPTIONS.display_player_info end)
+		tmp_str = "Info"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 12
+		
+        tmp = OPTIONS.display_player_hitbox and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.display_player_hitbox = not OPTIONS.display_player_hitbox end)
+		tmp_str = "Hitbox"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 12
+		
+        tmp = OPTIONS.display_interaction_points and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.display_interaction_points = not OPTIONS.display_interaction_points end)
+		tmp_str = "Interaction points"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		x_temp = x_temp + 4*string.len(tmp_str) + 12
+		
+        tmp = OPTIONS.display_tongue_hitbox and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.display_tongue_hitbox = not OPTIONS.display_tongue_hitbox end)
+		tmp_str = "Tongue hitbox"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		x_temp = 0 + 4*string.len("Player:") + 4
+        y_pos = y_pos + delta_y
+		
+        tmp = OPTIONS.display_throw_info and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.display_throw_info = not OPTIONS.display_throw_info end)
+		tmp_str = "Throw info"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+        x_temp = x_temp + 4*string.len(tmp_str) + 12
+		
+        tmp = OPTIONS.display_blocked_status and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.display_blocked_status = not OPTIONS.display_blocked_status end)
+		tmp_str = "Blocked status"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+        x_temp = x_temp + 4*string.len(tmp_str) + 12
+		
+		y_pos = y_pos + delta_y + 4
         
+		
+		-- Sprites
+		x_temp = 0
+		tmp_str = "Sprites:"
+        gui.text(x_pos, y_pos, tmp_str)
+		
+		x_temp = x_temp + 4*string.len(tmp_str) + 4
+        tmp = OPTIONS.display_sprite_info and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.display_sprite_info = not OPTIONS.display_sprite_info end)
+		tmp_str = "Info"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+		
+		x_temp = x_temp + 4*string.len(tmp_str) + 12
+        tmp = OPTIONS.display_sprite_hitbox and true or " "
+        create_button(x_pos + x_temp, y_pos, tmp, function() OPTIONS.display_sprite_hitbox = not OPTIONS.display_sprite_hitbox end)
+		tmp_str = "Hitboxes"
+        gui.text(x_pos + x_temp + delta_x + 3, y_pos, tmp_str)
+        y_pos = y_pos + delta_y + 4
+        
+		
         tmp = OPTIONS.display_debug_info and true or " "
         create_button(x_pos, y_pos, tmp, function() OPTIONS.display_debug_info = not OPTIONS.display_debug_info end)
         gui.text(x_pos + delta_x + 3, y_pos, "Show Some Debug Info?")
@@ -1399,19 +1508,14 @@ function Options_menu.display()
         gui.text(x_pos + delta_x + 3, y_pos, "Display Misc Info?")
         y_pos = y_pos + delta_y
         
-        tmp = OPTIONS.display_player_info and true or " "
-        create_button(x_pos, y_pos, tmp, function() OPTIONS.display_player_info = not OPTIONS.display_player_info end)
-        gui.text(x_pos + delta_x + 3, y_pos, "Show Player Info?")
+        tmp = OPTIONS.display_level_info and true or " "
+        create_button(x_pos, y_pos, tmp, function() OPTIONS.display_level_info = not OPTIONS.display_level_info end)
+        gui.text(x_pos + delta_x + 3, y_pos, "Show Level Info?")
         y_pos = y_pos + delta_y
         
-        tmp = OPTIONS.display_sprite_info and true or " "
-        create_button(x_pos, y_pos, tmp, function() OPTIONS.display_sprite_info = not OPTIONS.display_sprite_info end)
-        gui.text(x_pos + delta_x + 3, y_pos, "Show Sprite Info?")
-        y_pos = y_pos + delta_y
-        
-        tmp = OPTIONS.display_sprite_hitbox and true or " "
-        create_button(x_pos, y_pos, tmp, function() OPTIONS.display_sprite_hitbox = not OPTIONS.display_sprite_hitbox end)
-        gui.text(x_pos + delta_x + 3, y_pos, "Show Sprite Hitbox?")
+        --[[tmp = OPTIONS.display_yoshi_info and true or " "
+        create_button(x_pos, y_pos, tmp, function() OPTIONS.display_yoshi_info = not OPTIONS.display_yoshi_info end)
+        gui.text(x_pos + delta_x + 3, y_pos, "Show Yoshi Info?")
         y_pos = y_pos + delta_y
         
         tmp = OPTIONS.display_extended_sprite_info and true or " "
@@ -1434,25 +1538,10 @@ function Options_menu.display()
         gui.text(x_pos + delta_x + 3, y_pos, "Show Bounce Sprite Info?")
         y_pos = y_pos + delta_y
         
-        tmp = OPTIONS.display_level_info and true or " "
-        create_button(x_pos, y_pos, tmp, function() OPTIONS.display_level_info = not OPTIONS.display_level_info end)
-        gui.text(x_pos + delta_x + 3, y_pos, "Show Level Info?")
-        y_pos = y_pos + delta_y
-        
-        tmp = OPTIONS.display_yoshi_info and true or " "
-        create_button(x_pos, y_pos, tmp, function() OPTIONS.display_yoshi_info = not OPTIONS.display_yoshi_info end)
-        gui.text(x_pos + delta_x + 3, y_pos, "Show Yoshi Info?")
-        y_pos = y_pos + delta_y
-        
-        tmp = OPTIONS.display_counters and true or " "
-        create_button(x_pos, y_pos, tmp, function() OPTIONS.display_counters = not OPTIONS.display_counters end)
-        gui.text(x_pos + delta_x + 3, y_pos, "Show Counters Info?")
-        y_pos = y_pos + delta_y
-        
         tmp = OPTIONS.display_static_camera_region and true or " "
         create_button(x_pos, y_pos, tmp, function() OPTIONS.display_static_camera_region = not OPTIONS.display_static_camera_region end)
         gui.text(x_pos + delta_x + 3, y_pos, "Show Static Camera Region?")
-        y_pos = y_pos + delta_y
+        y_pos = y_pos + delta_y]]
         
     elseif Options_menu.current_tab == "Cheats" then
         
@@ -2043,9 +2132,9 @@ local function scan_smw2()
     Real_frame = u8(WRAM.real_frame)
     Effective_frame = u8(WRAM.effective_frame)]]
     Game_mode = u16(WRAM.game_mode)
-    --[[Level_index = u8(WRAM.level_index)
-    Level_flag = u8(WRAM.level_flag_table + Level_index)
-    Is_paused = u8(WRAM.level_paused) == 1
+    Is_paused = u8(WRAM.is_paused) == 1
+    Level_index = u16(WRAM.level_index)
+    --[[Level_flag = u8(WRAM.level_flag_table + Level_index)
     Lock_animation_flag = u8(WRAM.lock_animation_flag)
     Room_index = u24(WRAM.room_index)
     
@@ -2303,8 +2392,8 @@ local function draw_tilesets(camera_x, camera_y)
 						-- Grid
 						if OPTIONS.draw_tile_map_grid then
 							--draw_rectangle(x_pos, y_pos, 15, 15, kind_low == FLINT.blank_tile_map16 and COLOUR.blank_tile or COLOUR.block, 0)
-							if kind_high == 0x01 or kind_high == 0x08 or kind_high == 0x0A or kind_high == 0x0C or kind_high == 0x0D or kind_high == 0x0F
-							or kind_high == 0x10 or kind_high == 0x11 or kind_high == 0x15 or kind_high == 0x1A or kind_high == 0x1B 
+							if kind_high == 0x01 or kind_high == 0x02 or kind_high == 0x03 or kind_high == 0x05 or kind_high == 0x06 or kind_high == 0x08 or kind_high == 0x0A or kind_high == 0x0C or kind_high == 0x0D or kind_high == 0x0F
+							or kind_high == 0x10 or kind_high == 0x15 or kind_high == 0x1A or kind_high == 0x1B 
 							or kind_high == 0x29 or kind_high == 0x38
 							or kind_high == 0x39 or kind_high == 0x3E or kind_high == 0x3F
 							or kind_high == 0x50 or kind_high == 0x55 or kind_high == 0x5B
@@ -2700,25 +2789,31 @@ end
 
 local function level_info()
     if not OPTIONS.display_level_info then return end
+	if Game_mode ~= SMW2.game_mode_level then return end
     
     -- Font
     Text_opacity = 0.2 -- Snes9x
     Bg_opacity = 1.0
-    local x_pos = 134
-    local y_pos = 200
+    local x_pos = 68
+    local y_pos = 216
     local color = COLOUR.text
     Text_opacity = 1.0
     Bg_opacity = 1.0
     
     
-    -- converts the level number to the Lunar Magic number; should not be used outside here
-    local lm_level_number = Level_index
-    if Level_index > 0x24 then lm_level_number = Level_index + 0xdc end
+	local level_index_str = string.upper(fmt("%02x", Level_index))
+	
+    -- converts the level index to the game level number
+	local world_number = floor(Level_index/12) + 1
+    local level_number = fmt("%d", Level_index%12 + 1)
+	if level_number == "9" then level_number = "E" end -- Extra levels
     
+	draw_text(x_pos, y_pos, fmt("Level:%s (%d - %s)", level_index_str, world_number, level_number), color)
+	--[[
     -- Number of screens within the level
     local level_type, screens_number, hscreen_current, hscreen_number, vscreen_current, vscreen_number = read_screens()
     
-    draw_text(x_pos, y_pos, fmt("%.1sLevel(%.2x)%s", level_type, lm_level_number, sprite_buoyancy),
+    draw_text(x_pos, y_pos, fmt("%.1sLevel(%.2x)%s", level_type, level_number, sprite_buoyancy),
                     color, true, false)
 	;
     
@@ -2726,66 +2821,91 @@ local function level_info()
     
     draw_text(x_pos, y_pos + 2*SNES9X_FONT_HEIGHT, fmt("(%d/%d, %d/%d)", hscreen_current, hscreen_number,
                 vscreen_current, vscreen_number), true)
-    ;
+    ;]]
 end
 
 
 function draw_blocked_status(x_text, y_text, player_blocked_status, x_speed, y_speed)
-    local bitmap_width  = 7 -- Snes9x
-    local bitmap_height = 10 -- Snes9x
+    local bitmap_width  = 25 -- Snes9x
+    local bitmap_height = 30 -- Snes9x
     local block_str = "Block:"
     local str_len = string.len(block_str)
     local xoffset = x_text + str_len*SNES9X_FONT_WIDTH
-    local yoffset = y_text + 1
+    local yoffset = y_text + 2
     local color_line = COLOUR.warning
     
-    --gui.gdoverlay(xoffset, yoffset, IMAGES.player_blocked_status, Background_max_opacity * Bg_opacity) -- Snes9x
+    gui.gdoverlay(xoffset + 3, yoffset, IMAGES.player_blocked_status, Background_max_opacity * Bg_opacity * 0.5) -- Snes9x
     
     gui.opacity(Text_max_opacity*Text_opacity) -- Snes9x
     local blocked_status = {}
     local was_boosted = false
 	
-	for i = 0, 15 do
-		if i == 8 then
-			xoffset = xoffset - 8*7
-			yoffset = yoffset + 7
-		end
 	
-		if bit.test(player_blocked_status, i) then
-			draw_rectangle(xoffset + i*7, yoffset, 5, 5, color_line)			
-		else
-			draw_rectangle(xoffset + i*7, yoffset, 5, 5, "white")
-		end
-	end
+    
+	-- Bottom right
+	draw_rectangle(xoffset + 19, yoffset + bitmap_height, 8, 2, COLOUR.text)
+    if bit.test(player_blocked_status, 0) then  
+        draw_line(xoffset + 20, yoffset + bitmap_height + 1, xoffset + bitmap_width + 1, yoffset + bitmap_height + 1, 1, color_line)
+    end
 	
+    -- Bottom middle
+	draw_rectangle(xoffset + 11, yoffset + bitmap_height, 8, 2, COLOUR.text)
+    if bit.test(player_blocked_status, 1) then
+        draw_line(xoffset + 12, yoffset + bitmap_height + 1, xoffset + 18, yoffset + bitmap_height + 1, 1, color_line)
+        --if x_speed > 0 then was_boosted = true end
+    end
 	
-    --[[
-    if bit.test(player_blocked_status, 0) then  -- Right
-        draw_line(xoffset + bitmap_width - 1, yoffset, xoffset + bitmap_width - 1, yoffset + bitmap_height - 1, 1, color_line)
-        if x_speed < 0 then was_boosted = true end
+	-- Bottom left	
+	draw_rectangle(xoffset + 3, yoffset + bitmap_height, 8, 2, COLOUR.text)
+    if bit.test(player_blocked_status, 2) then
+        draw_line(xoffset + 4, yoffset + bitmap_height + 1, xoffset + 10, yoffset + bitmap_height + 1, 1, color_line)
+        --if x_speed < 0 then was_boosted = true end
     end
     
-    if bit.test(player_blocked_status, 1) then  -- Left
-        draw_line(xoffset, yoffset, xoffset, yoffset + bitmap_height - 1, 1, color_line)
-        if x_speed > 0 then was_boosted = true end
+	-- Top right
+	draw_rectangle(xoffset + 15, yoffset - 3, 12, 2, COLOUR.text)
+    if bit.test(player_blocked_status, 3) then
+        draw_line(xoffset + 16, yoffset - 2, xoffset + bitmap_width + 1, yoffset - 2, 1, color_line)
+        --if y_speed > 6 then was_boosted = true end
     end
     
-    if bit.test(player_blocked_status, 2) then  -- Down
-        draw_line(xoffset, yoffset + bitmap_height - 1, xoffset + bitmap_width - 1, yoffset + bitmap_height - 1, 1, color_line)
+	-- Top left
+	draw_rectangle(xoffset + 3, yoffset - 3, 12, 2, COLOUR.text)
+    if bit.test(player_blocked_status, 4) then  
+        draw_line(xoffset + 4, yoffset - 2, xoffset + 14, yoffset - 2, 1, color_line)
     end
     
-    if bit.test(player_blocked_status, 3) then  -- Up
-        draw_line(xoffset, yoffset, xoffset + bitmap_width - 1, yoffset, 1, color_line)
-        if y_speed > 6 then was_boosted = true end
+	-- Right body
+	draw_rectangle(xoffset + bitmap_width + 3, yoffset + 14, 2, 15, COLOUR.text)
+    if bit.test(player_blocked_status, 5) then  
+        draw_line(xoffset + bitmap_width + 4, yoffset + 15, xoffset + bitmap_width + 4, yoffset + bitmap_height - 2, 1, color_line)
     end
     
-    if bit.test(player_blocked_status, 4) then  -- Middle
-        gui.crosshair(xoffset + floor(bitmap_width/2), yoffset + floor(bitmap_height/2),
-        math.min(bitmap_width/2, bitmap_height/2), color_line)
-    end]]
+	-- Right head
+	draw_rectangle(xoffset + bitmap_width + 3, yoffset, 2, 14, COLOUR.text)
+    if bit.test(player_blocked_status, 6) then  
+        draw_line(xoffset + bitmap_width + 4, yoffset + 1, xoffset + bitmap_width + 4, yoffset + 13, 1, color_line)
+    end
     
-    draw_text(x_text, y_text, block_str, COLOUR.text, was_boosted and COLOUR.warning_bg or nil)
+	-- Left body
+	draw_rectangle(xoffset, yoffset + 14, 2, 15, COLOUR.text)
+    if bit.test(player_blocked_status, 7) then  
+        draw_line(xoffset + 1, yoffset + 15, xoffset + 1, yoffset + bitmap_height - 2, 1, color_line)
+    end
     
+	-- Left head
+	draw_rectangle(xoffset, yoffset, 2, 14, COLOUR.text)
+    if bit.test(player_blocked_status, 8) then  
+        draw_line(xoffset + 1, yoffset + 1, xoffset + 1, yoffset + 13, 1, color_line)
+    end
+    
+	-- Fully inside the ground
+    if player_blocked_status == 0x1ff then  
+        draw_line(xoffset + 3, yoffset + floor(bitmap_height/2) - 1, xoffset + bitmap_width + 2, yoffset + floor(bitmap_height/2) - 1, 1, color_line)
+        draw_line(xoffset + floor(bitmap_width/2) + 3, yoffset, xoffset + floor(bitmap_width/2) + 3, yoffset + bitmap_height - 1, 1, color_line)
+    end
+    
+    draw_text(x_text, y_text, block_str, COLOUR.text, was_boosted and COLOUR.warning_bg or nil)	
 end
 
 
@@ -2855,11 +2975,89 @@ local function player_hitbox(x, y, is_ducking, powerup, transparency_level)
 end
 
 
+local function egg_throw_info(egg_target_x, egg_target_y, direction, x_centered, y_centered, x_screen, y_screen)
+	if Is_paused then return end
+	
+	--- Memory reading
+	local egg_target_radial_pos = u8(SFXRAM.egg_target_radial_pos)
+	local egg_target_radial_subpos = u8(SFXRAM.egg_target_radial_subpos)
+	local egg_throw_state = u8(SFXRAM.egg_throw_state)
+	local egg_throw_state_timer = u8(SFXRAM.egg_throw_state_timer)
+	
+	--- Transformations
+	local egg_throw_origin_x, egg_throw_origin_y -- found with tests
+	if direction == RIGHT_ARROW then
+		egg_throw_origin_x = x_centered - 2
+		egg_throw_origin_y = y_centered - 20
+	else
+		egg_throw_origin_x = x_centered - 14
+		egg_throw_origin_y = y_centered - 20
+	end	
+	
+	local target_delta_x, target_delta_y = egg_target_x - egg_throw_origin_x, egg_target_y - egg_throw_origin_y
+	local extended_target_x, extended_target_y =  egg_target_x + target_delta_x, egg_target_y - target_delta_y
+	
+	local egg_throw_effective_timer -- found with tests and math
+	if egg_throw_state == 10 then egg_throw_effective_timer = 27
+	elseif egg_throw_state == 9 then egg_throw_effective_timer = 26
+	elseif egg_throw_state == 8 then egg_throw_effective_timer = 3*egg_throw_state + egg_throw_state_timer - 1
+	elseif egg_throw_state == 7 then egg_throw_effective_timer = 23
+	elseif egg_throw_state == 6 then egg_throw_effective_timer = 3*egg_throw_state + egg_throw_state_timer
+	elseif egg_throw_state == 5 then egg_throw_effective_timer = 3*egg_throw_state + egg_throw_state_timer
+	elseif egg_throw_state == 4 then egg_throw_effective_timer = 15
+	elseif egg_throw_state == 3 then egg_throw_effective_timer = 14
+	elseif egg_throw_state == 2 then egg_throw_effective_timer = 13
+	elseif egg_throw_state == 1 then egg_throw_effective_timer = egg_throw_state_timer
+	elseif egg_throw_state == 0 then egg_throw_effective_timer = egg_throw_state_timer -- or egg_throw_state
+	end
+
+	local egg_target_x_screen, egg_target_y_screen = screen_coordinates(egg_target_x, egg_target_y, Camera_x, Camera_y)
+	local egg_throw_origin_x_screen, egg_throw_origin_y_screen = screen_coordinates(egg_throw_origin_x, egg_throw_origin_y, Camera_x, Camera_y)
+
+	local radius = floor(sqrt(target_delta_x^2 + target_delta_y^2))
+	
+	--- Prints
+	
+	-- Target
+	if egg_throw_effective_timer == 18 then
+		draw_arrow(egg_throw_origin_x_screen, egg_throw_origin_y_screen, egg_target_x_screen, egg_target_y_screen, COLOUR.warning_soft)
+		gui.crosshair(egg_target_x_screen, egg_target_y_screen, 2, "blue")
+		draw_text(egg_target_x_screen, egg_target_y_screen + 16, fmt("%02d.%02x", egg_target_radial_pos, egg_target_radial_subpos), COLOUR.positive)
+    end
+    
+	-- Radius
+	if egg_throw_effective_timer == 18 then
+		--draw_text(egg_target_x_screen + 8, egg_target_y_screen, fmt("%d", radius), COLOUR.positive) -- REMOVE
+		if direction == RIGHT_ARROW then
+			for i = -pi/2, 5*pi/18, pi/80 do
+				draw_pixel(egg_throw_origin_x_screen + cos(i)*(68) , egg_throw_origin_y_screen + sin(i)*(68), COLOUR.text)
+			--draw_text(0, 150 + i*10*SNES9X_FONT_HEIGHT, fmt("sin:%f cos:%f", sin(i), cos(i)), COLOUR.text) -- REMOVE
+			end
+		else
+			for i = 13*pi/18, 3*pi/2, pi/80 do
+				draw_pixel(egg_throw_origin_x_screen + cos(i)*(68) , egg_throw_origin_y_screen + sin(i)*(68), COLOUR.text)
+			--draw_text(0, 150 + i*10*SNES9X_FONT_HEIGHT, fmt("sin:%f cos:%f", sin(i), cos(i)), COLOUR.text) -- REMOVE
+			end		
+		end
+	end
+	
+	-- Extended target
+	if egg_throw_effective_timer == 18 then
+		draw_arrow(egg_target_x_screen, egg_target_y_screen,
+					egg_target_x_screen + 2*target_delta_x, egg_target_y_screen + 2*target_delta_y, COLOUR.blank_tile)
+    end
+	
+	-- Timer
+	if egg_throw_effective_timer ~= 0 then
+		alert_text(x_screen + 4, y_screen - 16, fmt(" %d ", egg_throw_effective_timer), COLOUR.positive, COLOUR.warning_bg)
+	end
+end
 
 
 local function player()
     if not OPTIONS.display_player_info then return end
     if Game_mode ~= SMW2.game_mode_level then return end
+	if Is_paused then return end
 	
     -- Font
     Text_opacity = 1.0
@@ -2874,48 +3072,85 @@ local function player()
     local y_speed = s8(SFXRAM.y_speed)
 	local y_subspeed = u8(SFXRAM.y_subspeed)
     local direction = u8(SFXRAM.direction)
+	local ground_pound = u8(SFXRAM.ground_pound)
     local player_blocked_status = u16(SFXRAM.player_blocked_status)
+	local x_centered = u16(SFXRAM.x_centered)
+	local y_centered = u16(SFXRAM.y_centered)
+	local tongue_x = s16(SFXRAM.tongue_x)
+	local tongue_y = s16(SFXRAM.tongue_y)
+	local egg_target_x = s16(SFXRAM.egg_target_x)
+	local egg_target_y = s16(SFXRAM.egg_target_y)
     --local diving_status = s8(SFXRAM.diving_status)
     --local player_item = u8(SFXRAM.player_item)
     --local is_ducking = u8(SFXRAM.is_ducking)
     --local on_ground = u8(SFXRAM.on_ground)
     --local can_jump_from_water = u8(SFXRAM.can_jump_from_water)
     --local carrying_item = u8(SFXRAM.carrying_item)
-    
+	
     -- Transformations
     if direction == 0 then direction = RIGHT_ARROW else direction = LEFT_ARROW end
+	local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
+	local x_centered_screen, y_centered_screen = screen_coordinates(x_centered, y_centered, Camera_x, Camera_y)
+	local tongue_x_screen, tongue_y_screen = screen_coordinates(tongue_x + x_centered, tongue_y + y_centered, Camera_x, Camera_y)
+	
     
     -- Display info
     local i = 0
     local delta_x = SNES9X_FONT_WIDTH
     local delta_y = SNES9X_FONT_HEIGHT
     local table_x = 0
-    local table_y = AR_y*32
+    local table_y = AR_y*22
     
     draw_text(table_x, table_y + i*delta_y, fmt("Pos (%+d.%02x, %+d.%02x) %s", x, x_sub, y, y_sub, direction))
+	gui.crosshair(x_screen, y_screen, 2, COLOUR.text)
+	gui.crosshair(x_centered_screen, y_centered_screen, 2, COLOUR.text)
     i = i + 1
     
     draw_text(table_x, table_y + i*delta_y, fmt("Speed (%+d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed))
     i = i + 1
     
-    if OPTIONS.display_static_camera_region then
-        Show_player_point_position = true
-        local left_cam, right_cam = u16(0x07142c), u16(0x07142e)  -- unlisted WRAM / Snes9x memory bank
-        draw_box(left_cam, 0, right_cam, 224, COLOUR.static_camera_region, COLOUR.static_camera_region)
-    end
+    draw_text(table_x, table_y + i*delta_y, fmt("Tongue (%+d, %+d)", tongue_x, tongue_y))
+	gui.crosshair(tongue_x_screen, tongue_y_screen, 2, COLOUR.positive)
+    i = i + 1
     
-    draw_blocked_status(table_x, table_y + i*delta_y, player_blocked_status, x_speed, y_speed)
+    draw_text(table_x, table_y + i*delta_y, fmt("Target (%+d, %+d)", egg_target_x, egg_target_y))
+	i = i + 1
     
+    draw_text(table_x, table_y + i*delta_y, fmt("Center (%+d, %+d)", x_centered, y_centered)) -- REMOVE maybe
+	i = i + 1
+	
+	if OPTIONS.display_blocked_status then
+		draw_blocked_status(table_x, table_y + i*delta_y, player_blocked_status, x_speed, y_speed)
+	end
+	
+	if ground_pound ~= 0 and ground_pound ~= 255 then
+		alert_text(x_screen + 4, y_screen + 40, fmt(" %d ", ground_pound), COLOUR.positive, COLOUR.warning_bg)
+	end
+	
     -- shows hitbox and interaction points for player
     if not (OPTIONS.display_player_hitbox or OPTIONS.display_interaction_points) then return end
     
-    --player_hitbox(x, y, is_ducking, powerup, 1.0)
+    --player_hitbox(x, y, is_ducking, powerup, 1.0) -- TODO
     
+    --[[if OPTIONS.display_static_camera_region then -- TODO
+        Show_player_point_position = true
+        local left_cam, right_cam = u16(0x07142c), u16(0x07142e)  -- unlisted WRAM / Snes9x memory bank
+        draw_box(left_cam, 0, right_cam, 224, COLOUR.static_camera_region, COLOUR.static_camera_region)
+    end]]
+	
+	-- Egg throw info
+    if OPTIONS.display_throw_info then
+		egg_throw_info(egg_target_x, egg_target_y, direction, x_centered, y_centered, x_screen, y_screen)
+	end
+	
+	
+	
 end
 
 
 local function extended_sprites()
     if not OPTIONS.display_extended_sprite_info then return end
+	if Is_paused then return end
     
     -- Font
     Text_opacity = 1.0
@@ -3317,8 +3552,7 @@ local function sprite_info(id, counter, table_position)
     --local sprite_str = fmt("#%02d %02x %s%d.%1x(%+.2d%s) %d.%1x(%+.2d)", 
                     --id, sprite_type, special, x, floor(x_sub/16), x_speed, x_speed_water, y, floor(y_sub/16), y_speed)
 	
-	local x_spd_str = string.upper(fmt("%x ", SFXRAM.sprite_x_speed + id_off)) -- REMOVE
-	--special = x_spd_str -- REMOVE
+	--special = fmt("%x",SFXRAM.sprite_x + id_off + 2) -- REMOVE
 	
 	local sprite_str = fmt("<%02d> %s %s%d(%+d.%02x), %d(%+d.%02x)", id, sprite_type, special, x, x_speed, x_subspeed, y, y_speed, y_subspeed)        
 	
@@ -3363,6 +3597,7 @@ end
 
 local function sprites()
     if not OPTIONS.display_sprite_info then return end
+	if Is_paused then return end
 	
 	local valid_game_mode = false
 	if Game_mode == SMW2.game_mode_level then valid_game_mode = true
@@ -3497,6 +3732,7 @@ local function show_counters()
     local height = SNES9X_FONT_HEIGHT
     local text_counter = 0
     
+	local invincibility_timer = u16(SFXRAM.invincibility_timer)
     local eat_timer = u16(SFXRAM.eat_timer)
     local transform_timer = u16(SFXRAM.transform_timer)
     local star_timer = u16(SFXRAM.star_timer)
@@ -3514,6 +3750,7 @@ local function show_counters()
     if Player_animation_trigger == 5 or Player_animation_trigger == 6 then
         display_counter("Pipe", pipe_entrance_timer, -1, 1, 0, COLOUR.counter_pipe)
     end
+	display_counter("Invincibility", invincibility_timer, 0, 1, 0, COLOUR.counter_pballoon)
     display_counter("Swallow", eat_timer, 0, 1, 0, COLOUR.counter_multicoin)
     display_counter("Transform", transform_timer, 0, 1, 0, COLOUR.counter_gray_pow)
     display_counter("Star", star_timer, 0, 1, 0, COLOUR.counter_blue_pow)
@@ -3548,7 +3785,7 @@ local function level_mode()
         
         --bounce_sprite_info()
         
-        --level_info()
+        level_info()
         
         player()
         
