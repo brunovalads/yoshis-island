@@ -482,7 +482,7 @@ local SMW2 = {
     
     -- Sprites
     sprite_max = 24,
-    extended_sprite_max = 10,
+    extended_sprite_max = 16,
     cluster_sprite_max = 20,
     minor_extended_sprite_max = 12,
     bounce_sprite_max = 4,
@@ -496,6 +496,7 @@ SFXRAM = {  -- 700000~701FFF
     -- General
 	level_timer = 0x701974, -- 2 bytes
 	screen_number_to_id = 0x700CAA, -- 128 bytes table
+	RNG = 0x701970, -- 2 bytes
 
 	-- Player
     x = 0x70008C, -- 2 bytes
@@ -509,17 +510,23 @@ SFXRAM = {  -- 700000~701FFF
     y_speed = 0x7000AB,
     y_subspeed = 0x7000AA,
     direction = 0x7000C4,
-	ground_pound = 0x7000D6,
+	ground_pound_state = 0x7000D4,
+	ground_pound_timer = 0x7000D6,
 	egg_target_x = 0x7000E4, -- 2 bytes
 	egg_target_y = 0x7000E6, -- 2 bytes	
 	egg_target_radial_pos = 0x7000EF,
 	egg_target_radial_subpos = 0x7000EE,
 	egg_throw_state = 0x7000DE,
 	egg_throw_state_timer = 0x7001E2,
+    player_blocked_status = 0x7000FC,
     x_centered = 0x70011C, -- 2 bytes
     y_centered = 0x70011E, -- 2 bytes
     tongue_x = 0x700152, -- 2 bytes
     tongue_y = 0x700154, -- 2 bytes
+	tongue_state = 0x700150,
+	ammo_in_mouth = 0x70016A,
+	is_frozen = 0x7001AE, -- 2 bytes
+	on_sprite_platform = 0x7001B4,
     --is_ducking = 0x700073,
     --p_meter = 0x7013e4,
     --take_off = 0x70149f,
@@ -527,7 +534,7 @@ SFXRAM = {  -- 700000~701FFF
     --diving_status = 0x701409,
     --player_animation_trigger = 0x700071,
     --climbing_status = 0x700074,
-    player_blocked_status = 0x7000FC,
+
     --on_ground = 0x7013ef,
     --on_ground_delay = 0x70008d,
     --on_air = 0x700072,
@@ -556,6 +563,8 @@ SFXRAM = {  -- 700000~701FFF
     sprite_x_subspeed = 0x701220,
     sprite_y_speed = 0x701223,
     sprite_y_subspeed = 0x701222,
+	sprite_hitbox_half_width = 0x701B56, -- 2 bytes
+	sprite_hitbox_half_height = 0x701B58, -- 2 bytes
 	sprite_x_center = 0x701CD6, -- 2 bytes
 	sprite_y_center = 0x701CD8 -- 2 bytes
 	
@@ -652,6 +661,8 @@ WRAM = {  -- 7E0000~7FFFFF
     sprite_tongue_wait = 0x14a3,
     sprite_yoshi_squatting = 0x18af,
     sprite_buoyancy = 0x190e,
+	toadies_relative_x = 0x0E38,
+	toadies_relative_y = 0x0E4A,
     
     -- Extended sprites
     extspr_number = 0x170b,
@@ -745,7 +756,7 @@ WRAM = {  -- 7E0000~7FFFFF
     --pipe_entrance_timer = 0x0088,
     end_level_timer = 0x1493,
     --multicoin_block_timer = 0x186b,,
-	switch_timer = 0x0CEC,
+	switch_timer = 0x0CEC, -- 2 bytes
     
     -- Layers
     layer2_x_nextframe = 0x1466,
@@ -756,11 +767,24 @@ for name, address in pairs(WRAM) do
 end
 local WRAM = WRAM
 
-local X_INTERACTION_POINTS = {center = 0x8, left_side = 0x2 + 1, left_foot = 0x5, right_side = 0xe - 1, right_foot = 0xb}
+local SOLID_BLOCKS = { -- solid and one-way solid blocks, via tests
+	0x01, 0x02, 0x03, 0x05, 0x06, 0x08, 0x0A, 0x0C, 0x0D, 0x0F,
+	0x10, 0x15, 0x1A, 0x1B, 0x1C ,
+	0x29, 0x2C, 0x2F,
+	0x33, 0x38, 0x39, 0x3E, 0x3F,
+	0x40, 0x41, 0x44, 0x45, 0x48, 0x49, 0x4B, 0x4C, 0x4E,
+	0x50, 0x53, 0x55, 0x57, 0x59, 0x5B, 0x5D, 0x5F,
+	0x66, 0x67, 0x6B, 0x6E,
+	0x79, 0x7D,
+	0x90, 0x95, 0x9A, 0x9D, 0x9F,
+	0xA0, 0xA1, 0xA2
+}
+
+local X_INTERACTION_POINTS = {center = 0x8, left_side = 0x2 + 1, left_foot = 0x3, right_side = 0xe - 1, right_foot = 0xd}
 
 local Y_INTERACTION_POINTS = {
-    {head = 0x10, center = 0x18, shoulder = 0x16, side = 0x1a, foot = 0x20, sprite = 0x15},
-    {head = 0x08, center = 0x12, shoulder = 0x0f, side = 0x1a, foot = 0x20, sprite = 0x07},
+    {head = 0x10, center = 0x18, shoulder = 0x16, side = 0x1f, foot = 0x20, sprite = 0x15},
+    {head = 0x08, center = 0x12, shoulder = 0x0f, side = 0x1f, foot = 0x20, sprite = 0x07}, -- this one, for now
     {head = 0x13, center = 0x1d, shoulder = 0x19, side = 0x28, foot = 0x30, sprite = 0x19},
     {head = 0x10, center = 0x1a, shoulder = 0x16, side = 0x28, foot = 0x30, sprite = 0x11}
 }
@@ -876,20 +900,20 @@ local HITBOX_EXTENDED_SPRITE = {  -- extended sprites' hitbox
     [0x11] = { xoff = -0x1, yoff = -0x4, width = 11, height = 19},  -- Yoshi fireballs
 }
 
-local HITBOX_CLUSTER_SPRITE = {  -- got experimentally
-    --[0] -- Free slot
-    [0x01] = { xoff = 2, yoff = 0, width = 17, height = 21, oscillation = 2, phase = 1, color = COLOUR.awkward_hitbox, bg = COLOUR.awkward_hitbox_bg},  -- 1-Up from bonus game (glitched hitbox area)
-    [0x02] = { xoff = 4, yoff = 7, width = 7, height = 7, oscillation = 4},  -- Unused
-    [0x03] = { xoff = 4, yoff = 7, width = 7, height = 7, oscillation = 4},  -- Boo from Boo Ceiling
-    [0x04] = { xoff = 4, yoff = 7, width = 7, height = 7, oscillation = 4},  -- Boo from Boo Ring
-    [0x05] = { xoff = 4, yoff = 7, width = 7, height = 7, oscillation = 4},  -- Castle candle flame (meaningless hitbox)
-    [0x06] = { xoff = 2, yoff = 2, width = 12, height = 20, oscillation = 4, color = COLOUR.sumo_brother_flame},  -- Sumo Brother lightning flames
-    [0x07] = { xoff = 4, yoff = 7, width = 7, height = 7, oscillation = 4},  -- Reappearing Boo
-    [0x08] = { xoff = 4, yoff = 7, width = 7, height = 7, oscillation = 4},  -- Swooper bat from Swooper Death Bat Ceiling (untested)
-}
 
-;                              -- 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  10 11 12
-local SPRITE_MEMORY_MAX = {[0] = 10, 6, 7, 6, 7, 5, 8, 5, 7, 9, 9, 4, 8, 6, 8, 9, 10, 6, 6}  -- the max of sprites in a room
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- Creates a set from a list
 local function make_set(list)
@@ -915,8 +939,8 @@ local GOOD_SPRITES_CLIPPING = make_set{
 0xb4, 0xbb, 0xbc, 0xbd, 0xbf, 0xc3, 0xda, 0xdb, 0xdc, 0xdd, 0xdf
 }
 
--- Extended sprites that don't interact with the player
-local UNINTERESTING_EXTENDED_SPRITES = make_set{1, 7, 8, 0x0e, 0x10, 0x12}
+
+
 
 --#############################################################################
 -- SCRIPT UTILITIES:
@@ -2105,6 +2129,94 @@ function Options_menu.display()
 end
 
 
+-- Gets input of the 1st controller / Might be deprecated someday...
+local Joypad = {}
+local function get_joypad()
+    Joypad = joypad.get(1)
+    for button, status in pairs(Joypad) do
+        Joypad[button] = status and 1 or 0
+    end
+end
+
+-- ############################################################
+-- From gocha's
+
+local pad_max = 2
+local pad_press, pad_down, pad_up, pad_prev, pad_send = {}, {}, {}, {}, {}
+local pad_presstime = {}
+for player = 1, pad_max do
+    pad_press[player] = {}
+    pad_presstime[player] = { start=0, select=0, up=0, down=0, left=0, right=0, A=0, B=0, X=0, Y=0, L=0, R=0 }
+end
+
+local dev_press, dev_down, dev_up, dev_prev = input.get(), {}, {}, {}
+local dev_presstime = {
+    xmouse=0, ymouse=0, leftclick=0, rightclick=0, middleclick=0,
+    shift=0, control=0, alt=0, capslock=0, numlock=0, scrolllock=0,
+    ["0"]=0, ["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0, ["8"]=0, ["9"]=0,
+    A=0, B=0, C=0, D=0, E=0, F=0, G=0, H=0, I=0, J=0, K=0, L=0, M=0, N=0, O=0, P=0, Q=0, R=0, S=0, T=0, U=0, V=0, W=0, X=0, Y=0, Z=0,
+    F1=0, F2=0, F3=0, F4=0, F5=0, F6=0, F7=0, F8=0, F9=0, F10=0, F11=0, F12=0,
+    F13=0, F14=0, F15=0, F16=0, F17=0, F18=0, F19=0, F20=0, F21=0, F22=0, F23=0, F24=0,
+    backspace=0, tab=0, enter=0, pause=0, escape=0, space=0,
+    pageup=0, pagedown=0, ["end"]=0, home=0, insert=0, delete=0,
+    left=0, up=0, right=0, down=0,
+    numpad0=0, numpad1=0, numpad2=0, numpad3=0, numpad4=0, numpad5=0, numpad6=0, numpad7=0, numpad8=0, numpad9=0,
+    ["numpad*"]=0, ["numpad+"]=0, ["numpad-"]=0, ["numpad."]=0, ["numpad/"]=0,
+    tilde=0, plus=0, minus=0, leftbracket=0, rightbracket=0,
+    semicolon=0, quote=0, comma=0, period=0, slash=0, backslash=0
+}
+
+-- Scan button presses
+function scanJoypad()
+    for i = 1, pad_max do
+        pad_prev[i] = copytable(pad_press[i])
+        pad_press[i] = joypad.get(i)
+        pad_send[i] = copytable(pad_press[i])
+        -- scan keydowns, keyups
+        pad_down[i] = {}
+        pad_up[i] = {}
+        for k in pairs(pad_press[i]) do
+            pad_down[i][k] = (pad_press[i][k] and not pad_prev[i][k])
+            pad_up[i][k] = (pad_prev[i][k] and not pad_press[i][k])
+        end
+        -- count press length
+        for k in pairs(pad_press[i]) do
+            if not pad_press[i][k] then
+                pad_presstime[i][k] = 0
+            else
+                pad_presstime[i][k] = pad_presstime[i][k] + 1
+            end
+        end
+    end
+end
+-- Scan keyboard/mouse input
+local function scanInputDevs()
+    dev_prev = copytable(dev_press)
+    dev_press = input.get()
+    -- scan keydowns, keyups
+    dev_down = {}
+    dev_up = {}
+    for k in pairs(dev_presstime) do
+        dev_down[k] = (dev_press[k] and not dev_prev[k])
+        dev_up[k] = (dev_prev[k] and not dev_press[k])
+    end
+    -- count press length
+    for k in pairs(dev_presstime) do
+        if not dev_press[k] then
+            dev_presstime[k] = 0
+        else
+            dev_presstime[k] = dev_presstime[k] + 1
+        end
+    end
+end
+-- Send button presses
+function sendJoypad()
+    for i = 1, pad_max do
+        joypad.set(i, pad_send[i])
+    end
+end
+
+
 
 --#############################################################################
 -- SMW2 FUNCTIONS:
@@ -2175,7 +2287,7 @@ end
 -- Returns the extreme values that Mario needs to have in order to NOT touch a rectangular object
 local function display_boundaries(x_game, y_game, width, height, camera_x, camera_y)
     -- Font
-    Text_opacity = 0.5
+    Text_opacity = 0.8
     Bg_opacity = 0.4
     
     -- Coordinates around the rectangle
@@ -2191,30 +2303,31 @@ local function display_boundaries(x_game, y_game, width, height, camera_x, camer
     local is_small = is_ducking ~= 0 or powerup == 0
     
     -- Left
-    local left_text = string.format("%4d.0", width*floor(x_game/width) - 13)
+    local left_text = string.format("%4d.ff", width*floor(x_game/width) - 16)
     draw_text(AR_x*left, AR_y*(top+bottom)/2, left_text, false, false, 1.0, 0.5)
     
     -- Right
-    local right_text = string.format("%d.f", width*floor(x_game/width) + 12)
-    draw_text(AR_x*right, AR_y*(top+bottom)/2, right_text, false, false, 0.0, 0.5)
+    local right_text = string.format("%d.01", width*floor(x_game/width) + 15)
+    draw_text(AR_x*right + 2, AR_y*(top+bottom)/2, right_text, false, false, 0.0, 0.5)
     
     -- Top
     local value = (Yoshi_riding_flag and y_game - 16) or y_game
-    local top_text = fmt("%d.0", width*floor(value/width) - 32)
+    local top_text = fmt("%d.ff", width*floor(value/width) - 32)
     draw_text(AR_x*(left+right)/2, AR_y*top, top_text, false, false, 0.5, 1.0)
     
     -- Bottom
-    value = height*floor(y_game/height)
-    if not is_small and not Yoshi_riding_flag then
-        value = value + 0x07
-    elseif is_small and Yoshi_riding_flag then
-        value = value - 4
-    else
-        value = value - 1  -- the 2 remaining cases are equal
-    end
-    
-    local bottom_text = fmt("%d.f", value)
-    draw_text(AR_x*(left+right)/2, AR_y*bottom, bottom_text, false, false, 0.5, 0.0)
+
+
+
+
+
+
+
+
+
+    value = y_game + height - 4 --height*floor(y_game/height) - 3
+    local bottom_text = fmt("%d.ff", value)
+    draw_text(AR_x*(left+right)/2, AR_y*bottom + 1, bottom_text, false, false, 0.5, 0.0)
     
     return left, top
 end
@@ -2391,19 +2504,36 @@ local function draw_tilesets(camera_x, camera_y)
 						
 						-- Grid
 						if OPTIONS.draw_tile_map_grid then
-							--draw_rectangle(x_pos, y_pos, 15, 15, kind_low == FLINT.blank_tile_map16 and COLOUR.blank_tile or COLOUR.block, 0)
+
+							
+							local block_is_solid = false
+							for i = 1, #SOLID_BLOCKS do
+								if kind_high == SOLID_BLOCKS[i] then
+									block_is_solid = true
+									break
+								end
+							end
+							if block_is_solid then
+								draw_rectangle(x_pos, y_pos, 15, 15, COLOUR.block, 0)
+							else
+								draw_rectangle(x_pos, y_pos, 15, 15, COLOUR.blank_tile, 0)
+							end
+							
+							--[[
 							if kind_high == 0x01 or kind_high == 0x02 or kind_high == 0x03 or kind_high == 0x05 or kind_high == 0x06 or kind_high == 0x08 or kind_high == 0x0A or kind_high == 0x0C or kind_high == 0x0D or kind_high == 0x0F
-							or kind_high == 0x10 or kind_high == 0x15 or kind_high == 0x1A or kind_high == 0x1B 
-							or kind_high == 0x29 or kind_high == 0x38
-							or kind_high == 0x39 or kind_high == 0x3E or kind_high == 0x3F
-							or kind_high == 0x50 or kind_high == 0x55 or kind_high == 0x5B
+							or kind_high == 0x10 or kind_high == 0x15 or kind_high == 0x1A or kind_high == 0x1B or kind_high == 0x1C 
+							or kind_high == 0x29 or kind_high == 0x2C or kind_high == 0x2F
+							or kind_high == 0x38 or kind_high == 0x39 or kind_high == 0x3E or kind_high == 0x3F
+							or kind_high == 0x40 or kind_high == 0x41 or kind_high == 0x44 or kind_high == 0x45 or kind_high == 0x4E
+							or kind_high == 0x50 or kind_high == 0x53 or kind_high == 0x55 or kind_high == 0x57 or kind_high == 0x59 or kind_high == 0x5B or kind_high == 0x5D or kind_high == 0x5F
 							or kind_high == 0x66 or kind_high == 0x67 or kind_high == 0x6B or kind_high == 0x6E
 							or kind_high == 0x79 or kind_high == 0x7D
 							or kind_high == 0x90 or kind_high == 0x9D then
 								draw_rectangle(x_pos, y_pos, 15, 15, COLOUR.block, 0)
 							else
 								draw_rectangle(x_pos, y_pos, 15, 15, COLOUR.blank_tile, 0)					
-							end
+
+							end]]
 							--draw_rectangle(x_pos, y_pos, 15, 15, COLOUR.blank_tile, 0) -- REMOVE
 							--draw_text(x_pos, y_pos + 1, fmt("%x", num_id), COLOUR.blank_tile) -- REMOVE
 							
@@ -2449,8 +2579,8 @@ local function draw_tilesets(camera_x, camera_y)
 	-- Tiles from click
 	
     local x_mouse, y_mouse = game_coordinates(User_input.xmouse, User_input.ymouse, camera_x, camera_y)
-    x_mouse = 16*math.floor(x_mouse/16)
-    y_mouse = 16*math.floor(y_mouse/16)
+    x_mouse = 16*floor(x_mouse/16)
+    y_mouse = 16*floor(y_mouse/16)
     
     for number, positions in ipairs(Tiletable) do
         -- Calculate the Snes9x coordinates
@@ -2466,30 +2596,59 @@ local function draw_tilesets(camera_x, camera_y)
             
 			--draw_rectangle(left, top, 15, 15, COLOUR.block, 0)
 			
-            -- Drawings
-            local num_x, num_y, kind_low, kind_high, address_low, address_high = get_map16_value(x_game, y_game) -- REMOVE addresses
+
+            -- Math
+            local num_x, num_y, kind_low, kind_high, address_low, address_high = get_map16_value(x_game, y_game)
 			
+			screen_region_x = floor(x_game/256) 
+			screen_region_y = floor(y_game/256)
+			
+			screen_number = screen_region_y*16 + screen_region_x
+			screen_id = u8(SFXRAM.screen_number_to_id + screen_number)
+			
+			block_x = (x_game%256)/16
+			block_y = (y_game%256)/16
+			
+			block_id = 256*screen_id + 16*block_y + block_x
+			
+			kind_low = u8(0x7E0000 + WRAM.Map16_data + 2*block_id) -- 
+			kind_high = u8(0x7E0000 + WRAM.Map16_data + 2*block_id + 1) --
+			
+			-- Drawings
+			local block_is_solid = false
+			for i = 1, #SOLID_BLOCKS do
+				if kind_high == SOLID_BLOCKS[i] then
+					block_is_solid = true
+					break
+				end
+			end
 			if OPTIONS.draw_tile_map_grid then -- to make it easier to see when grid is activated
-				draw_rectangle(left, top, 15, 15, COLOUR.Fred, 0) -- this color fits well
-			elseif kind_high >= 0 and kind_high <= 3 then -- non solid blocks
-				draw_rectangle(left, top, 15, 15, COLOUR.blank_tile, 0)
-            else
+				draw_rectangle(left, top, 15, 15, COLOUR.warning_soft, 0) -- this color fits well
+
+
+
+			elseif block_is_solid then
 				draw_rectangle(left, top, 15, 15, COLOUR.block, 0)
-			end			
+
+			else
+				draw_rectangle(left, top, 15, 15, COLOUR.blank_tile, 0)
+			end
 			
             if Tiletable[number][3] then
                 display_boundaries(x_game, y_game, 16, 16, camera_x, camera_y)  -- the text around it
             end
-                
+
+            
             -- Draw Map16 id
             if x_mouse == positions[1] and y_mouse == positions[2] then
 				Text_opacity = 0.8
 				
 				local y_pos
-				if num_y < 2 then y_pos = bottom + 2*SNES9X_FONT_HEIGHT + 1 else y_pos = top - SNES9X_FONT_HEIGHT end
+				--if num_y < 2 then y_pos = bottom + 2*SNES9X_FONT_HEIGHT + 1 else y_pos = top - SNES9X_FONT_HEIGHT end
 				
-                draw_text(left + 6, y_pos, fmt("Map16 (%d, %d), %02x(%02x)", num_x, num_y, kind_low, kind_high),
-                false, true, 0.5, 1.0)
+
+                draw_text(left + 6, top - 16, fmt("block %03x", block_id), false, true, 0.5, 1.0)
+                draw_text(left + 6, top - 8, fmt("type: %02x %02x", kind_low, kind_high), false, true, 0.5, 1.0)
 				
                 --draw_text(left + 6, y_pos + SNES9X_FONT_HEIGHT, fmt("%04x (%04x)", address_low, address_high), false, true, 0.5, 1.0) -- REMOVE
             end
@@ -2717,7 +2876,12 @@ local function show_misc_info()
     local game_mode = string.upper(fmt("%04x", Game_mode))
 	draw_text(Buffer_width + Border_right - 20, -Border_top, fmt("Mode:%s", game_mode), true, false)
 	
-	draw_text(130, 0, fmt("Camera (%d, %d)", Camera_x, Camera_y))
+	local camera_str = fmt("Camera (%d, %d)", Camera_x, Camera_y)
+	draw_text(Buffer_middle_x - string.len(camera_str)*SNES9X_FONT_WIDTH/2, 208, camera_str)
+	
+	local RNG = u16(SFXRAM.RNG)
+	RNG = string.upper(fmt("%04x", RNG))
+	draw_text(180, 0, fmt("RNG:%s", RNG))
 	
 	local red_coin_counter = u8(WRAM.red_coin_counter)
 	local star_counter = u16(WRAM.star_counter)
@@ -2728,19 +2892,21 @@ local function show_misc_info()
 	local temp_str
 	local x_temp = 0
 	
-	temp_str = fmt("Stars: %d/30(%d)", star_effective, star_counter)
-	draw_text(x_temp, delta_y, temp_str, COLOUR.weak, true)
-	x_temp = x_temp + SNES9X_FONT_WIDTH*string.len(temp_str) + 12
+	if Game_mode ~= SMW2.game_mode_level then return end
 	
-	temp_str = fmt("Red coins: %d/20", red_coin_counter)
+	temp_str = fmt("Stars:%d/30(%d)", star_effective, star_counter)
 	draw_text(x_temp, delta_y, temp_str, COLOUR.weak, true)
-	x_temp = x_temp + SNES9X_FONT_WIDTH*string.len(temp_str) + 12
+	x_temp = x_temp + SNES9X_FONT_WIDTH*string.len(temp_str) + 8
 	
-	temp_str = fmt("Flowers: %d/5", flower_counter)
+	temp_str = fmt("Red coins:%d/20", red_coin_counter)
 	draw_text(x_temp, delta_y, temp_str, COLOUR.weak, true)
-	x_temp = x_temp + SNES9X_FONT_WIDTH*string.len(temp_str) + 12
+	x_temp = x_temp + SNES9X_FONT_WIDTH*string.len(temp_str) + 8
 	
-	temp_str = fmt("Coins: %d", coin_counter)
+	temp_str = fmt("Flowers:%d/5", flower_counter)
+	draw_text(x_temp, delta_y, temp_str, COLOUR.weak, true)
+	x_temp = x_temp + SNES9X_FONT_WIDTH*string.len(temp_str) + 8
+	
+	temp_str = fmt("Coins:%d", coin_counter)
 	draw_text(x_temp, delta_y, temp_str, COLOUR.weak, true)
 end
 
@@ -2910,14 +3076,14 @@ end
 
 
 -- displays player's hitbox
-local function player_hitbox(x, y, is_ducking, powerup, transparency_level)
+local function player_hitbox(x, y, tongue_x_screen, tongue_y_screen) --player_hitbox(x, y, is_ducking, powerup, transparency_level)
     local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
     local yoshi_hitbox = nil
-    local is_small = is_ducking ~= 0 or powerup == 0
+    --local is_small = is_ducking ~= 0 or powerup == 0
     
     local x_points = X_INTERACTION_POINTS
-    local y_points
-    if is_small and not Yoshi_riding_flag then
+    local y_points = Y_INTERACTION_POINTS[2]
+    --[[if is_small and not Yoshi_riding_flag then
         y_points = Y_INTERACTION_POINTS[1]
     elseif not is_small and not Yoshi_riding_flag then
         y_points = Y_INTERACTION_POINTS[2]
@@ -2925,10 +3091,12 @@ local function player_hitbox(x, y, is_ducking, powerup, transparency_level)
         y_points = Y_INTERACTION_POINTS[3]
     else
         y_points = Y_INTERACTION_POINTS[4]
-    end
+    end]]
     
-    draw_box(x_screen + x_points.left_side, y_screen + y_points.head, x_screen + x_points.right_side, y_screen + y_points.foot,
-            COLOUR.interaction_bg, COLOUR.interaction_bg)  -- background for block interaction
+	
+    --draw_box(x_screen + x_points.left_side, y_screen + y_points.head, x_screen + x_points.right_side, y_screen + y_points.foot,
+            --COLOUR.interaction_bg, COLOUR.interaction_bg) 
+			
     ;
     
     if OPTIONS.display_player_hitbox then
@@ -2942,34 +3110,87 @@ local function player_hitbox(x, y, is_ducking, powerup, transparency_level)
         
     end
     
-    -- interaction points (collision with blocks)
+    -- Interaction points (collision with blocks)
     if OPTIONS.display_interaction_points then
         
+		-- Background for block interaction
+		draw_box(x_screen - 1, y_screen + 2, x_screen + 17, y_screen + 33, COLOUR.interaction_nohitbox, COLOUR.interaction_nohitbox_bg)
+		
         local color = COLOUR.interaction
         
         if not SHOW_PLAYER_HITBOX then
-            draw_box(x_screen + x_points.left_side , y_screen + y_points.head,
-                     x_screen + x_points.right_side, y_screen + y_points.foot, COLOUR.interaction_nohitbox, COLOUR.interaction_nohitbox_bg)
+            --draw_box(x_screen + x_points.left_side , y_screen + y_points.head,
+                    -- x_screen + x_points.right_side, y_screen + y_points.foot, COLOUR.interaction_nohitbox, COLOUR.interaction_nohitbox_bg)
         end
         
-        gui.line(x_screen + x_points.left_side, y_screen + y_points.side, x_screen + x_points.left_foot, y_screen + y_points.side, color)  -- left side
-        gui.line(x_screen + x_points.right_side, y_screen + y_points.side, x_screen + x_points.right_foot, y_screen + y_points.side, color)  -- right side
-        gui.line(x_screen + x_points.left_foot, y_screen + y_points.foot - 2, x_screen + x_points.left_foot, y_screen + y_points.foot, color)  -- left foot bottom
-        gui.line(x_screen + x_points.right_foot, y_screen + y_points.foot - 2, x_screen + x_points.right_foot, y_screen + y_points.foot, color)  -- right foot bottom
-        gui.line(x_screen + x_points.left_side, y_screen + y_points.shoulder, x_screen + x_points.left_side + 2, y_screen + y_points.shoulder, color)  -- head left point
-        gui.line(x_screen + x_points.right_side - 2, y_screen + y_points.shoulder, x_screen + x_points.right_side, y_screen + y_points.shoulder, color)  -- head right point
-        gui.line(x_screen + x_points.center, y_screen + y_points.head, x_screen + x_points.center, y_screen + y_points.head + 2, color)  -- head point
-        gui.line(x_screen + x_points.center - 1, y_screen + y_points.center, x_screen + x_points.center + 1, y_screen + y_points.center, color)  -- center point
-        gui.line(x_screen + x_points.center, y_screen + y_points.center - 1, x_screen + x_points.center, y_screen + y_points.center + 1, color)  -- center point
-    end
+		--- Horizontal lines
+		
+		-- Feet
+		gui.line(x_screen + 3, y_screen + 31, x_screen + 13, y_screen + 31, color)
+		--gui.line(x_screen + 10, y_screen + 31, x_screen + 13, y_screen + 31, color)
+		
+		-- Shoulders
+		gui.line(x_screen + 1, y_screen + 9, x_screen + 3, y_screen + 9, color)
+
+
+
+
+
+
+		gui.line(x_screen + 13, y_screen + 9, x_screen + 15, y_screen + 9, color)
+		
+		-- "Knees"
+		gui.line(x_screen + 2, y_screen + 23, x_screen + 4, y_screen + 23, color)
+		gui.line(x_screen + 12, y_screen + 23, x_screen + 14, y_screen + 23, color)
+		
+		-- Head
+		gui.line(x_screen + 6, y_screen + 4, x_screen + 10, y_screen + 4, color)		
+		
+		
+		--- Vertical lines
+		
+		-- Body
+		gui.line(x_screen + 15, y_screen + 9, x_screen + 15, y_screen + 23, color)
+		gui.line(x_screen + 1, y_screen + 9, x_screen + 1, y_screen + 23, color)
+		
+		-- Feet
+		gui.line(x_screen + 3, y_screen + 31, x_screen + 3, y_screen + 29, color)
+		gui.line(x_screen + 8, y_screen + 31, x_screen + 8, y_screen + 29, color)
+		gui.line(x_screen + 13, y_screen + 31, x_screen + 13, y_screen + 29, color)
+		
+		-- Head (top)
+		gui.line(x_screen + 6, y_screen + 4, x_screen + 6, y_screen + 6, color)
+		gui.line(x_screen + 10, y_screen + 4, x_screen + 10, y_screen + 6, color)	
+		
+	end
     
+	--local x_test, y_test = s16(0x700156), s16(0x700158) -- REMOVE
+	--gui.line(x_test, y_test, 100, 100, "blue") -- REMOVE
+	--gui.crosshair(x_test, y_test, 2, "blue") -- REMOVE
+	
+	
+	-- Tongue hitbox
+	if OPTIONS.display_tongue_hitbox then
+		local tongue_state = u8(SFXRAM.tongue_state)
+		local ammo_in_mouth = u8(SFXRAM.ammo_in_mouth)
+		local sprite_in_mouth = false
+		for i = 0, SMW2.sprite_max - 1 do
+			if Sprites_info[i].sprite_status == 0x08 then sprite_in_mouth = true end
+		end
+		
+		if tongue_state ~= 0 and tongue_state < 5 and ammo_in_mouth == 0 and not sprite_in_mouth then
+			draw_box(tongue_x_screen - 14, tongue_y_screen - 10, tongue_x_screen + 13, tongue_y_screen + 9, COLOUR.positive)
+		end
+	end
+	
+	--[[
     -- That's the pixel that appears when Mario dies in the pit
     Show_player_point_position = Show_player_point_position or y_screen >= 200 or
         (OPTIONS.display_debug_info and OPTIONS.display_debug_player_extra)
     if Show_player_point_position then
         draw_rectangle(x_screen - 1, y_screen - 1, 2, 2, COLOUR.interaction_bg, COLOUR.text)
         Show_player_point_position = false
-    end
+    end]]
     
     return x_points, y_points
 end
@@ -3072,8 +3293,10 @@ local function player()
     local y_speed = s8(SFXRAM.y_speed)
 	local y_subspeed = u8(SFXRAM.y_subspeed)
     local direction = u8(SFXRAM.direction)
-	local ground_pound = u8(SFXRAM.ground_pound)
+	local ground_pound_timer = u8(SFXRAM.ground_pound_timer)
+	local ground_pound_state = u8(SFXRAM.ground_pound_state)
     local player_blocked_status = u16(SFXRAM.player_blocked_status)
+	local on_sprite_platform = u16(SFXRAM.on_sprite_platform)
 	local x_centered = u16(SFXRAM.x_centered)
 	local y_centered = u16(SFXRAM.y_centered)
 	local tongue_x = s16(SFXRAM.tongue_x)
@@ -3094,24 +3317,28 @@ local function player()
 	local tongue_x_screen, tongue_y_screen = screen_coordinates(tongue_x + x_centered, tongue_y + y_centered, Camera_x, Camera_y)
 	
     
-    -- Display info
+
+    --- Table
     local i = 0
     local delta_x = SNES9X_FONT_WIDTH
     local delta_y = SNES9X_FONT_HEIGHT
     local table_x = 0
     local table_y = AR_y*22
+	local temp_colour
     
     draw_text(table_x, table_y + i*delta_y, fmt("Pos (%+d.%02x, %+d.%02x) %s", x, x_sub, y, y_sub, direction))
-	gui.crosshair(x_screen, y_screen, 2, COLOUR.text)
-	gui.crosshair(x_centered_screen, y_centered_screen, 2, COLOUR.text)
+
+
     i = i + 1
     
     draw_text(table_x, table_y + i*delta_y, fmt("Speed (%+d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed))
     i = i + 1
     
     draw_text(table_x, table_y + i*delta_y, fmt("Tongue (%+d, %+d)", tongue_x, tongue_y))
-	gui.crosshair(tongue_x_screen, tongue_y_screen, 2, COLOUR.positive)
-    i = i + 1
+	if OPTIONS.display_tongue_hitbox then
+		gui.crosshair(tongue_x_screen, tongue_y_screen, 2, COLOUR.positive)
+    end
+	i = i + 1
     
     draw_text(table_x, table_y + i*delta_y, fmt("Target (%+d, %+d)", egg_target_x, egg_target_y))
 	i = i + 1
@@ -3119,19 +3346,38 @@ local function player()
     draw_text(table_x, table_y + i*delta_y, fmt("Center (%+d, %+d)", x_centered, y_centered)) -- REMOVE maybe
 	i = i + 1
 	
+	local can_jump -- block or sprite
+	if bit.test(player_blocked_status, 0) or bit.test(player_blocked_status, 1) or bit.test(player_blocked_status, 2) or on_sprite_platform == 1 then
+		can_jump = "yes"
+		temp_colour = COLOUR.positive
+	else
+		can_jump = "no"
+		temp_colour = COLOUR.warning
+	end
+	draw_text(table_x, table_y + i*delta_y, fmt("Can jump:"))
+	draw_text(table_x + 9*delta_x + 2, table_y + i*delta_y, fmt("%s", can_jump), temp_colour)
+	i = i + 1
+	
 	if OPTIONS.display_blocked_status then
-		draw_blocked_status(table_x, table_y + i*delta_y, player_blocked_status, x_speed, y_speed)
+		draw_blocked_status(table_x, table_y + i*delta_y + 2, player_blocked_status, x_speed, y_speed)
+		i = i + 1
 	end
 	
-	if ground_pound ~= 0 and ground_pound ~= 255 then
-		alert_text(x_screen + 4, y_screen + 40, fmt(" %d ", ground_pound), COLOUR.positive, COLOUR.warning_bg)
+	
+	
+	--- Other info
+	
+	if ground_pound_timer ~= 0 and ground_pound_timer ~= 255 and ground_pound_state == 0 then
+		alert_text(x_screen + 4, y_screen + 40, fmt(" %d ", ground_pound_timer), COLOUR.positive, COLOUR.warning_bg)
 	end
 	
-    -- shows hitbox and interaction points for player
-    if not (OPTIONS.display_player_hitbox or OPTIONS.display_interaction_points) then return end
-    
+    -- shows hitbox, interaction points, and tongue hitbox for player
+
+
+	player_hitbox(x, y, tongue_x_screen, tongue_y_screen)
     --player_hitbox(x, y, is_ducking, powerup, 1.0) -- TODO
     
+	
     --[[if OPTIONS.display_static_camera_region then -- TODO
         Show_player_point_position = true
         local left_cam, right_cam = u16(0x07142c), u16(0x07142e)  -- unlisted WRAM / Snes9x memory bank
@@ -3144,7 +3390,11 @@ local function player()
 	end
 	
 	
-	
+
+	if OPTIONS.display_debug_player_extra then
+		gui.crosshair(x_screen, y_screen, 2, COLOUR.text)
+		gui.crosshair(x_centered_screen, y_centered_screen, 2, COLOUR.text)
+	end
 end
 
 
@@ -3417,12 +3667,14 @@ local function sprite_info(id, counter, table_position)
     if sprite_status == 0 then return 0 end  -- returns if the slot is empty
     
     local sprite_type = u16(SFXRAM.sprite_type + id_off)
-    local x = u16(SFXRAM.sprite_x + id_off + 2)
-    local y = u16(SFXRAM.sprite_y + id_off + 2)
+    local x = s16(SFXRAM.sprite_x + id_off + 2)
+    local y = s16(SFXRAM.sprite_y + id_off + 2)
     local x_speed = s8(SFXRAM.sprite_x_speed + id_off)
 	local x_subspeed = u8(SFXRAM.sprite_x_subspeed + id_off)
     local y_speed = s8(SFXRAM.sprite_y_speed + id_off)
 	local y_subspeed = u8(SFXRAM.sprite_y_subspeed + id_off)
+	local x_centered = u16(SFXRAM.sprite_x_center + id_off)
+	local y_centered = u16(SFXRAM.sprite_y_center + id_off)
     --local x_sub = u8(WRAM.sprite_x_sub + id_off)
     --local y_sub = u8(WRAM.sprite_y_sub + id_off)
     --local stun = u8(WRAM.sprite_miscellaneous7 + id_off)
@@ -3442,6 +3694,7 @@ local function sprite_info(id, counter, table_position)
     -- Calculates the sprites dimensions and screen positions
     
     local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
+	local x_centered_screen, y_centered_screen = screen_coordinates(x_centered, y_centered, Camera_x, Camera_y)
     
 	if Game_mode == 0x0007 then -- adjustment for the intro "glitched" sprite positions
 		x_screen = x_screen + Camera_x
@@ -3455,8 +3708,8 @@ local function sprite_info(id, counter, table_position)
     local boxid = bit.band(u8(WRAM.sprite_2_tweaker + id_off), 0x3f)  -- This is the type of box of the sprite
     local xoff = HITBOX_SPRITE[boxid].xoff
     local yoff = HITBOX_SPRITE[boxid].yoff + Y_CAMERA_OFF
-    local sprite_width = HITBOX_SPRITE[boxid].width
-    local sprite_height = HITBOX_SPRITE[boxid].height
+    local sprite_half_width = u16(SFXRAM.sprite_hitbox_half_width + id_off)  --HITBOX_SPRITE[boxid].width
+    local sprite_half_height = u16(SFXRAM.sprite_hitbox_half_height + id_off)   --HITBOX_SPRITE[boxid].height
     
     -- Sprite clipping vs objects
     local clip_obj = bit.band(u8(WRAM.sprite_1_tweaker + id_off), 0xf)  -- type of hitbox for blocks
@@ -3491,8 +3744,14 @@ local function sprite_info(id, counter, table_position)
     
     
     ---**********************************************
-    --[[ Displays sprites hitboxes -- TODO
+    -- Displays sprites hitboxes -- TODO
     if OPTIONS.display_sprite_hitbox then
+	
+		gui.crosshair(x_centered_screen, y_centered_screen, 2, COLOUR.text)
+		
+		draw_box(x_centered_screen - sprite_half_width, y_centered_screen - sprite_half_height, x_centered_screen + sprite_half_width, y_centered_screen + sprite_half_height, info_color)
+		
+		--[[
         -- That's the pixel that appears when the sprite vanishes in the pit
         if y_screen >= 224 or (OPTIONS.display_debug_info and OPTIONS.display_debug_sprite_extra) then
             draw_pixel(x_screen, y_screen, info_color)
@@ -3513,14 +3772,32 @@ local function sprite_info(id, counter, table_position)
             draw_line(x_screen + xpt_left, y_screen + ypt_left, x_screen + xpt_left + size, y_screen + ypt_left, 1, color)  -- left
             draw_line(x_screen + xpt_down, y_screen + ypt_down, x_screen + xpt_down, y_screen + ypt_down - size, 1, color) -- down
             draw_line(x_screen + xpt_up, y_screen + ypt_up, x_screen + xpt_up, y_screen + ypt_up + size, 1, color)  -- up
-        end
-    end]]
+
+
+        end]]
+    end
     
     
     ---**********************************************
     -- Special sprites analysis:
     
-    
+	-- Toadies
+
+	if sprite_type == "091" then
+		for id = 0, 3 do
+			local toadies_x = s16(WRAM.toadies_relative_x + 4*id) + x
+			local toadies_y = s16(WRAM.toadies_relative_y + 4*id) + y
+			
+			-- Position
+			local toadies_x_screen, toadies_y_screen = screen_coordinates(toadies_x, toadies_y, Camera_x, Camera_y)
+			gui.crosshair(toadies_x_screen, toadies_y_screen, 2, "blue")
+			
+			-- Table
+			draw_text(Buffer_width + Border_right, 176, "Toadies:", "red", true)
+			local toadies_str = fmt("{%02d} %d, %d", id, toadies_x, toadies_y)
+			draw_text(Buffer_width + Border_right, 184 + id*SNES9X_FONT_HEIGHT, toadies_str, "red", true)
+		end
+	end
     
     ---**********************************************
     -- Prints those informations next to the sprite
@@ -3552,7 +3829,8 @@ local function sprite_info(id, counter, table_position)
     --local sprite_str = fmt("#%02d %02x %s%d.%1x(%+.2d%s) %d.%1x(%+.2d)", 
                     --id, sprite_type, special, x, floor(x_sub/16), x_speed, x_speed_water, y, floor(y_sub/16), y_speed)
 	
-	--special = fmt("%x",SFXRAM.sprite_x + id_off + 2) -- REMOVE
+
+	--special = string.upper(fmt("[%02x] ", sprite_status)) -- REMOVE
 	
 	local sprite_str = fmt("<%02d> %s %s%d(%+d.%02x), %d(%+d.%02x)", id, sprite_type, special, x, x_speed, x_subspeed, y, y_speed, y_subspeed)        
 	
@@ -3563,7 +3841,8 @@ local function sprite_info(id, counter, table_position)
 	else
 		Text_opacity = 0.5
 	end
-		
+
+	
     draw_text(Buffer_width + Border_right, table_position + counter*SNES9X_FONT_HEIGHT, sprite_str, info_color, true)
     
     -- Miscellaneous sprite table
@@ -3585,6 +3864,7 @@ local function sprite_info(id, counter, table_position)
 	---**********************************************
     -- Exporting some values
     Sprites_info[id].sprite_type = sprite_type
+    Sprites_info[id].sprite_status = sprite_status
     Sprites_info[id].x, Sprites_info[id].y = x, y
     Sprites_info[id].x_screen, Sprites_info[id].y_screen = x_screen, y_screen
     Sprites_info[id].boxid = boxid
@@ -3845,7 +4125,7 @@ local function left_click()
     end
     
     if not Options_menu.show_menu then
-        --select_tile()
+        select_tile()
     end    
 	
 	-- Layer 1 tiles
@@ -3870,9 +4150,10 @@ local function snes9x_buttons()
         create_button(-Border_left, Buffer_height - Border_bottom, Cheat.allow_cheats and "Cheats: allowed" or "Cheats: blocked",
             function() Cheat.allow_cheats = not Cheat.allow_cheats end, {always_on_client = true, ref_y = 1.0})
         ;
-        
+
+		
         create_button(Buffer_width + Border_right, Buffer_height + Border_bottom, "Erase Tiles",
-            function() Layer1_tiles = {}; Layer2_tiles = {} end, {always_on_client = true, ref_y = 1.0})
+            function() Tiletable = {} end, {always_on_client = true, ref_y = 1.0})
         ;
     else
         if Cheat.allow_cheats then  -- show cheat status anyway
@@ -3952,7 +4233,7 @@ function Cheat.free_movement()
     if (Joypad["L"] and Joypad["R"] and Joypad["up"]) then Cheat.under_free_move = true end
     if (Joypad["L"] and Joypad["R"] and Joypad["down"]) then Cheat.under_free_move = false end
     if not Cheat.under_free_move then
-        if Previous.under_free_move then end--w8(WRAM.frozen, 0) end
+        if Previous.under_free_move then return end -- w8(SFXRAM.is_frozen, 0) end
         return
     end
     
@@ -3960,11 +4241,24 @@ function Cheat.free_movement()
     --local movement_mode = u8(WRAM.player_animation_trigger)
     local pixels = (Joypad["Y"] and 7) or (Joypad["X"] and 4) or 1  -- how many pixels per frame
     
+	-- Math
     if Joypad["left"] then x_pos = x_pos - pixels end
     if Joypad["right"] then x_pos = x_pos + pixels end
     if Joypad["up"] then y_pos = y_pos - pixels end
     if Joypad["down"] then y_pos = y_pos + pixels end
     
+	-- Disable normal button behavior
+	if Joypad["down"] then pad_send[1].down = false end -- avoid ground pound
+	--if Joypad["down"] then gui.text(100, 100, "down", COLOUR.text) end
+	if Joypad["A"] then pad_send[1].A = false end -- avoid throwing egg
+	--if Joypad["A"] then gui.text(100, 100, "A", COLOUR.text) end
+	if Joypad["B"] then pad_send[1].B = false end -- avoid "jumping"
+	--if Joypad["B"] then gui.text(100, 100, "B", COLOUR.text) end
+	if Joypad["Y"] then pad_send[1].Y = false end -- avoid licking
+	--if Joypad["Y"] then gui.text(100, 100, "Y", COLOUR.text) end
+	joypad.set(1, pad_send[1]) -- set
+	
+	
     --[[ freeze player to avoid deaths
     if movement_mode == 0 then
         w8(WRAM.frozen, 1)
@@ -3980,6 +4274,12 @@ function Cheat.free_movement()
     -- manipulate some values
     w16(SFXRAM.x, x_pos)
     w16(SFXRAM.y, y_pos)
+    w8(SFXRAM.x_speed, 0)
+    w8(SFXRAM.x_subspeed, 0)
+    w8(SFXRAM.y_speed, -1)
+    w8(SFXRAM.y_subspeed, 96)
+    w8(SFXRAM.invincibility_timer, 120)
+	
     --w8(WRAM.invincibility_timer, 127)
     --[[w8(WRAM.vertical_scroll_flag_header, 1)  -- free vertical scrolling
     w8(WRAM.vertical_scroll_enabled, 1)]]
@@ -4135,12 +4435,17 @@ end)
 
 emu.registerbefore(function()
     Joypad = joypad.get(1)
+    --get_joypad()
+	scanInputDevs()
+	scanJoypad()
+	sendJoypad()
     
     if Cheat.allow_cheats then
         Cheat.is_cheating = false
         
-        Cheat.beat_level()
+
         Cheat.free_movement()
+        Cheat.beat_level()
     else
         -- Cancel any continuous cheat
         Cheat.under_free_move = false
