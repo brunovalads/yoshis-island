@@ -3331,7 +3331,15 @@ local function player()
 
     i = i + 1
     
-    draw_text(table_x, table_y + i*delta_y, fmt("Speed (%+d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed))
+    if x_speed < 0 then -- corretions for speed to the left
+		x_speed = x_speed + 1
+		x_subspeed = 0x100 - x_subspeed
+		if x_subspeed == 0x100 then x_subspeed = 0 ; x_speed = x_speed - 1 end
+		if x_speed == 0 then draw_text(table_x, table_y + i*delta_y, fmt("Speed (-%d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed))
+		else draw_text(table_x, table_y + i*delta_y, fmt("Speed (%d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed)) end
+	else
+		draw_text(table_x, table_y + i*delta_y, fmt("Speed (%+d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed))
+	end
     i = i + 1
     
     draw_text(table_x, table_y + i*delta_y, fmt("Tongue (%+d, %+d)", tongue_x, tongue_y))
