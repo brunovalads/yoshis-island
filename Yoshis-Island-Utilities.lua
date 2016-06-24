@@ -3324,22 +3324,30 @@ local function player()
     local delta_y = SNES9X_FONT_HEIGHT
     local table_x = 0
     local table_y = AR_y*22
-	local temp_colour
+	local temp_colour, x_spd_str, y_spd_str
     
     draw_text(table_x, table_y + i*delta_y, fmt("Pos (%+d.%02x, %+d.%02x) %s", x, x_sub, y, y_sub, direction))
-
-
     i = i + 1
     
-    if x_speed < 0 then -- corretions for speed to the left
+    if x_speed < 0 then -- corretions for negative horizontal speed
 		x_speed = x_speed + 1
 		x_subspeed = 0x100 - x_subspeed
 		if x_subspeed == 0x100 then x_subspeed = 0 ; x_speed = x_speed - 1 end
-		if x_speed == 0 then draw_text(table_x, table_y + i*delta_y, fmt("Speed (-%d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed))
-		else draw_text(table_x, table_y + i*delta_y, fmt("Speed (%d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed)) end
+		if x_speed == 0 then x_spd_str = fmt("-%d.%02x", x_speed, x_subspeed) -- force negative signal due to previous math
+		else x_spd_str = fmt("%d.%02x", x_speed, x_subspeed) end
 	else
-		draw_text(table_x, table_y + i*delta_y, fmt("Speed (%+d.%02x, %+d.%02x)", x_speed, x_subspeed, y_speed, y_subspeed))
+		x_spd_str = fmt("%+d.%02x", x_speed, x_subspeed)
 	end
+	if y_speed < 0 then -- corretions for negative vertical speed
+		y_speed = y_speed + 1
+		y_subspeed = 0x100 - y_subspeed
+		if y_subspeed == 0x100 then y_subspeed = 0 ; y_speed = y_speed - 1 end
+		if y_speed == 0 then y_spd_str = fmt("-%d.%02x", y_speed, y_subspeed) -- force negative signal due to previous math
+		else y_spd_str = fmt("%d.%02x", y_speed, y_subspeed) end
+	else
+		y_spd_str = fmt("%+d.%02x", y_speed, y_subspeed)
+	end
+	draw_text(table_x, table_y + i*delta_y, "Speed (" .. x_spd_str .. ", " .. y_spd_str .. ")")
     i = i + 1
     
     draw_text(table_x, table_y + i*delta_y, fmt("Tongue (%+d, %+d)", tongue_x, tongue_y))
