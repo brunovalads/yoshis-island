@@ -231,8 +231,8 @@ local string, math, table, next, ipairs, pairs, io, os, type = string, math, tab
 
 -- TEST: INI library for handling an ini configuration file
 function file_exists(name)
-   local f = io.open(name, "r")
-   if f ~= nil then io.close(f) return true else return false end
+  local f = io.open(name, "r")
+  if f ~= nil then io.close(f) return true else return false end
 end
 
 function copytable(orig)
@@ -251,25 +251,25 @@ function copytable(orig)
 end
 
 function mergetable(source, t2)
-    for key, value in pairs(t2) do
-    	if type(value) == "table" then
-    		if type(source[key] or false) == "table" then
-    			mergetable(source[key] or {}, t2[key] or {}) -- possible stack overflow
-    		else
-    			source[key] = value
-    		end
-    	else
-    		source[key] = value
-    	end
+  for key, value in pairs(t2) do
+    if type(value) == "table" then
+      if type(source[key] or false) == "table" then
+        mergetable(source[key] or {}, t2[key] or {}) -- possible stack overflow
+      else
+        source[key] = value
+      end
+    else
+      source[key] = value
     end
-    return source
+  end
+  return source
 end
 
 -- Creates a set from a list
 local function make_set(list)
-    local set = {}
-    for _, l in ipairs(list) do set[l] = true end
-    return set
+  local set = {}
+  for _, l in ipairs(list) do set[l] = true end
+  return set
 end
 
 local OPTIONS =  DEFAULT_OPTIONS
@@ -3759,9 +3759,21 @@ event.onexit(function()
   print("Finishing Yoshi's Island script.")
 end)
 
+-- Check if images files exist
+local error_str = "\nCouldn't find the script images! Make sure to download the whole 'BizHawk' folder on https://github.com/brunovalads/yoshis-island/tree/master/BizHawk"
+if not file_exists("images\\blocked_status_bits.png") then error(error_str) end
+if not file_exists("images\\coin_icon.png") then error(error_str) end
+if not file_exists("images\\egg_icons.png") then error(error_str) end
+if not file_exists("images\\flower_icon.png") then error(error_str) end
+if not file_exists("images\\red_coin_icon.png") then error(error_str) end
+if not file_exists("images\\star_icon.png") then error(error_str) end
+if not file_exists("images\\yoshi_blocked_status.png") then error(error_str) end
+if not file_exists("images\\yoshi_icon.png") then error(error_str) end
+
 
 print("Lua script loaded successfully.\n")
 
+-- Main script loop
 while true do
  
   Options_form.is_form_closed = forms.gettext(Options_form.form) == ""
