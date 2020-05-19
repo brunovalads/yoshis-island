@@ -465,6 +465,8 @@ local SRAM = {  -- 700000~707FFF
 	sprite_hitbox_half_height = 0x1BB8, -- 2 bytes
 	sprite_x_center = 0x1CD6, -- 2 bytes
 	sprite_y_center = 0x1CD8, -- 2 bytes
+  sprite_x_center_offset = 0x1B56, -- 2 bytes
+  sprite_y_center_offset = 0x1B58, -- 2 bytes
 	
   -- Sprite tables (each table consists of 24 groups of 4 bytes)
 	sprite_table1 = 0x0F00, -- sprite_status
@@ -989,7 +991,6 @@ local function alert_text(x, y, text, text_color, bg_color, always_on_game, ref_
   gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_color)
 end
 
-
 local function draw_over_text(x, y, value, base, color_base, color_value, color_bg, always_on_client, always_on_game, ref_x, ref_y)
   value = decode_bits(value, base)
   local x_end, y_end, length = draw_text(x, y, base,  color_base, color_bg, always_on_client, always_on_game, ref_x, ref_y)
@@ -999,7 +1000,6 @@ local function draw_over_text(x, y, value, base, color_base, color_value, color_
   
   return x_end, y_end, length
 end
-
 
 -- Returns frames-time conversion
 local function frame_time(frame)
@@ -1017,24 +1017,6 @@ local function frame_time(frame)
   local str = string.format("%s%.2d:%.2d.%03.0f", hours, minutes, seconds, miliseconds)
   return str
 end
-
-
--- Background opacity functions
-local function increase_opacity()
-  if Text_max_opacity <= 0.9 then Text_max_opacity = Text_max_opacity + 0.1
-  else
-    if Background_max_opacity <= 0.9 then Background_max_opacity = Background_max_opacity + 0.1 end
-  end
-end
-
-
-local function decrease_opacity()
-  if  Background_max_opacity >= 0.1 then Background_max_opacity = Background_max_opacity - 0.1
-  else
-    if Text_max_opacity >= 0.1 then Text_max_opacity = Text_max_opacity - 0.1 end
-  end
-end
-
 
 -- displays a button everytime in (x,y)
 -- object can be a text or a dbitmap
@@ -1773,7 +1755,8 @@ end
 local function draw_sprite_spawning_areas()
   if not OPTIONS.display_sprite_spawning_areas then return end
   if Game_mode ~= YI.game_mode_level or Is_paused then return end
-  
+
+  --- Spawning --- TODO: make it a square, since you have spawn/despawn vertically too
   local left_line, right_line = 63, 32
 
   -- Left area
@@ -1787,6 +1770,29 @@ local function draw_sprite_spawning_areas()
   draw_line(Border_right_start + right_line - 15, 0, Border_right_start + right_line - 15, Screen_height, COLOUR.very_weak)
 
   draw_text(Border_right_start + right_line + 2, Screen_height - 2*BIZHAWK_FONT_HEIGHT, fmt("Spawn \n%04X", Camera_x + 256 + right_line), COLOUR.weak)
+  
+  --[[- Despawning ---
+  left_line, right_line = 0xF0, 0xF0
+  
+  -- Left line
+  draw_line(OPTIONS.left_gap - left_line, 0, OPTIONS.left_gap - left_line, Screen_height, COLOUR.warning)
+  draw_line(OPTIONS.left_gap - left_line + 0x60, 0, OPTIONS.left_gap - left_line + 0x60, Screen_height, COLOUR.warning_transparent) -- REMOVE/TEST
+  draw_line(OPTIONS.left_gap - 0x60, 0, OPTIONS.left_gap - 0x60, Screen_height, COLOUR.warning_transparent) -- REMOVE/TEST
+  draw_line(OPTIONS.left_gap - 0x90, 0, OPTIONS.left_gap - 0x90, Screen_height, COLOUR.warning_soft) -- REMOVE/TEST
+  
+  -- Right line
+  draw_line(Border_right_start + right_line, 0, Border_right_start + right_line, Screen_height, COLOUR.warning)
+  draw_line(Border_right_start + 0x60, 0, Border_right_start + 0x60, Screen_height, COLOUR.warning_transparent) -- REMOVE/TEST
+  draw_line(Border_right_start + 0x90, 0, Border_right_start + 0x90, Screen_height, COLOUR.warning_soft) -- REMOVE/TEST
+  ]]
+  --[[
+  ; 8C83 in code (indexed by 4's, pairs of words)
+  ; x, y thresholds for despawning sprites
+  .despawn_thresholds
+    dw $0060, $0060                           ; $098C87 |
+    dw $0090, $0060                           ; $098C8B |
+    dw $0090, $00A0                           ; $098C8F |
+  ]]
 end
 
 -- Display Yoshi's blocked status
@@ -2422,6 +2428,8 @@ local function sprite_info(id, counter, table_position)
   local y_subspeed = u8_sram(SRAM.sprite_y_subspeed + id_off)
   local x_centered = s16_sram(SRAM.sprite_x_center + id_off)
   local y_centered = s16_sram(SRAM.sprite_y_center + id_off)
+  local x_center_offset = s16_sram(SRAM.sprite_x_center_offset + id_off)
+  local y_center_offset = s16_sram(SRAM.sprite_y_center_offset + id_off)
   local special_hitbox = false
   
   local special = ""
@@ -2855,9 +2863,10 @@ local function sprite_info(id, counter, table_position)
   -- The sprite table:
 	
 	local debug_str = ""
-	--local debug_address = SRAM.sprite_status -- TODO: CHECK sprite_table21 FOR BOSSES LOOKING FOR TIMERS
-  --debug_str = fmt("%02X ", u16_sram(debug_address + id_off))
-	--debug_str = fmt("[%02x,%02x,%02x,%02x] ", u8_sram(debug_address + id_off), u8_sram(debug_address + 1 + id_off), u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
+	local debug_address = SRAM.sprite_table13 -- TODO: CHECK sprite_table21 FOR BOSSES LOOKING FOR TIMERS
+  --debug_str = fmt("(%04X, %04X) ", x_center_offset, y_center_offset)
+  debug_str = fmt("[%04X, %d] ", u16_sram(debug_address + id_off), bit.band(u8_sram(0x1040 + id_off), 0xC)/4)
+	--debug_str = fmt("[%02X,%02X,%02X,%02X] ", u8_sram(debug_address + id_off), u8_sram(debug_address + 1 + id_off), u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
   --debug_str = decode_bits_new(u8_sram(debug_address + id_off), "00000000") -- REMOVE TESTS/DEBUG
 	--if sprite_type == 0x19A then w8_sram(debug_address + id_off, 0x75) end -- REMOVE TESTS/DEBUG
 	--if sprite_type == 0x056 then w8_sram(SRAM.sprite_table19 + 3 + id_off, 0) end -- REMOVE TESTS/DEBUG
@@ -2894,6 +2903,7 @@ local function sprite_info(id, counter, table_position)
   Sprites_info[id].x, Sprites_info[id].y = x, y
   Sprites_info[id].x_screen, Sprites_info[id].y_screen = x_screen, y_screen
   Sprites_info[id].x_centered, Sprites_info[id].y_centered = x_centered, y_centered
+  Sprites_info[id].x_center_offset, Sprites_info[id].y_center_offset = x_center_offset, y_center_offset
   Sprites_info[id].sprite_half_width, Sprites_info[id].sprite_half_height = sprite_half_width, sprite_half_height
   
   return 1
@@ -3369,12 +3379,11 @@ end
 function Cheat.drag_sprite(id)
   --if Game_mode ~= YI.game_mode_level then Cheat.is_dragging_sprite = false ; return end
   
-  --local xoff, yoff = Sprites_info[id].xoff, Sprites_info[id].yoff
-  --local xgame, ygame = game_coordinates(User_input.xmouse - xoff, User_input.ymouse - yoff, Camera_x, Camera_y)
+  local xoff, yoff = Sprites_info[id].x_center_offset, Sprites_info[id].y_center_offset
   local xgame, ygame = game_coordinates(User_input.xmouse + OPTIONS.left_gap, User_input.ymouse + OPTIONS.top_gap, Camera_x, Camera_y)
   
-  local sprite_x_pos = xgame
-  local sprite_y_pos = ygame
+  local sprite_x_pos = xgame - xoff -- including offset to move the sprite center
+  local sprite_y_pos = ygame - yoff -- including offset to move the sprite center
   
   --local sprite_xhigh = floor(xgame/256)
   --local sprite_xlow = xgame - 256*sprite_xhigh
@@ -3617,23 +3626,63 @@ function Options_form.create_window()
   forms.setproperty(Options_form.mouse_info, "Checked", OPTIONS.display_mouse_coordinates)
   yform = yform + 30
   
-  Options_form.text_opacity = forms.label(Options_form.form, ("Text opacity: (%.0f%%, %.0f%%)"):
-      format(100*Text_max_opacity, 100*Background_max_opacity), xform, yform, 135, 22)
-  ;
-  yform = yform - 4
-  forms.button(Options_form.form, "-", function() decrease_opacity()
-    forms.settext(Options_form.text_opacity, ("Text opacity: (%.0f%%, %.0f%%)"):format(100*Text_max_opacity, 100*Background_max_opacity))
-  end, xform + 135, yform, 14, 24)
-  forms.button(Options_form.form, "+", function() increase_opacity()
-    forms.settext(Options_form.text_opacity, ("Text opacity: (%.0f%%, %.0f%%)"):format(100*Text_max_opacity, 100*Background_max_opacity))
-  end, xform + 149, yform, 14, 24)
-  yform = yform + 25
-  
   Options_form.erase_tiles = forms.button(Options_form.form, "Erase tiles", function() Tiletable = {} end, xform, yform)
   xform = xform + 85
   
   Options_form.write_help_handle = forms.button(Options_form.form, "Help", Options_form.write_help, xform, yform)
   yform = yform + delta_y
+  
+  -- Emu gaps
+  xform, yform = xform - 37, yform + delta_y
+  -- top gap
+  forms.button(Options_form.form, "-", function()
+    if OPTIONS.top_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.top_gap = OPTIONS.top_gap - 10 end
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+  end, xform, yform, 24, 24)
+  xform = xform + 24
+  forms.button(Options_form.form, "+", function()
+    OPTIONS.top_gap = OPTIONS.top_gap + 10
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+  end, xform, yform, 24, 24)
+  -- left gap
+  xform, yform = xform - 3*24, yform + 24
+  forms.button(Options_form.form, "-", function()
+    if OPTIONS.left_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.left_gap = OPTIONS.left_gap - 10 end
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+  end, xform, yform, 24, 24)
+  xform = xform + 24
+  forms.button(Options_form.form, "+", function()
+    OPTIONS.left_gap = OPTIONS.left_gap + 10
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+  end, xform, yform, 24, 24)
+  if yform > y_bigger then y_bigger = yform end
+  -- right gap
+  xform = xform + 3*24
+  forms.button(Options_form.form, "-", function()
+    if OPTIONS.right_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.right_gap = OPTIONS.right_gap - 10 end
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+  end, xform, yform, 24, 24)
+  xform = xform + 24
+  forms.button(Options_form.form, "+", function()
+    OPTIONS.right_gap = OPTIONS.right_gap + 10
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+  end, xform, yform, 24, 24)
+  if yform > y_bigger then y_bigger = yform end
+  -- bottom gap
+  xform, yform = xform - 3*24, yform + 24
+  forms.button(Options_form.form, "-", function()
+    if OPTIONS.bottom_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.bottom_gap = OPTIONS.bottom_gap - 10 end
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+  end, xform, yform, 24, 24)
+  xform = xform + 24
+  Options_form.bottom_plus = forms.button(Options_form.form, "+", function()
+    OPTIONS.bottom_gap = OPTIONS.bottom_gap + 10
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+  end, xform, yform, 24, 24)
+  if yform > y_bigger then y_bigger = yform end
+  -- label
+  xform, yform = xform - 26, yform - 20
+  forms.label(Options_form.form, "Emu gaps", xform, yform, 70, 20)
   
   --- CHEATS ---------------------------------------------------------------------------------------
   
@@ -3672,9 +3721,6 @@ function Options_form.create_window()
   xform = xform + 33
   Options_form.player_y_sub = forms.textbox(Options_form.form, "", 28, 16, "HEX", xform, yform, false, false)
   ]]
-  
-  --- Tip
-  forms.label(Options_form.form, "You can close this menu at any time", form_width - 200, form_height - 60, 190, 20)
   
 end
 
@@ -3865,12 +3911,15 @@ end
 
 - Sprite editor on click: click sprite > form pop out > textboxes to edit every single table.
 - Import Arne's sprite spawn cheat.
-- Tile editor
-- Cheat to change the ID of selected sprite
+- Tile editor.
+- Cheat to change the ID of selected sprite.
+- Add gap values around the "Emu gaps" buttons in the menu, that dynamically change with forms.settext when you click them. Align text accordingly with forms.setproperty(label_handle, "TextAlign", "ALIGN") with "ALIGN" being one of these https://docs.microsoft.com/en-us/dotnet/api/system.drawing.contentalignment?view=netcore-3.1
+-
+-
+-
+-
+-
+
 
 
 ]]
-
-
-
-
