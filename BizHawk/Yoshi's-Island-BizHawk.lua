@@ -3667,51 +3667,65 @@ function Options_form.create_window()
   yform = yform + delta_y
   
   -- Emu gaps
+  
+  local function emu_gaps_update(side)
+    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    forms.settext(Options_form[side .. "_label"], fmt("%d", OPTIONS[side]))
+  end
+  
   xform, yform = xform - 37, yform + delta_y
   -- top gap
+  Options_form.top_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.top_gap), xform, yform - 20, 48, delta_y)
+  forms.setproperty(Options_form.top_gap_label, "TextAlign", "BottomCenter")
   forms.button(Options_form.form, "-", function()
     if OPTIONS.top_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.top_gap = OPTIONS.top_gap - 10 end
-    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    emu_gaps_update("top_gap")
   end, xform, yform, 24, 24)
   xform = xform + 24
   forms.button(Options_form.form, "+", function()
     OPTIONS.top_gap = OPTIONS.top_gap + 10
-    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    emu_gaps_update("top_gap")
   end, xform, yform, 24, 24)
   -- left gap
   xform, yform = xform - 3*24, yform + 24
+  Options_form.left_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.left_gap), xform, yform - 20, 48, delta_y)
+  forms.setproperty(Options_form.left_gap_label, "TextAlign", "BottomCenter")
   forms.button(Options_form.form, "-", function()
     if OPTIONS.left_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.left_gap = OPTIONS.left_gap - 10 end
-    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    emu_gaps_update("left_gap")
   end, xform, yform, 24, 24)
   xform = xform + 24
   forms.button(Options_form.form, "+", function()
     OPTIONS.left_gap = OPTIONS.left_gap + 10
-    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    emu_gaps_update("left_gap")
   end, xform, yform, 24, 24)
   if yform > y_bigger then y_bigger = yform end
   -- right gap
   xform = xform + 3*24
+  Options_form.right_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.right_gap), xform, yform - 20, 48, delta_y)
+  forms.setproperty(Options_form.right_gap_label, "TextAlign", "BottomCenter")
   forms.button(Options_form.form, "-", function()
     if OPTIONS.right_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.right_gap = OPTIONS.right_gap - 10 end
-    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    emu_gaps_update("right_gap")
   end, xform, yform, 24, 24)
   xform = xform + 24
   forms.button(Options_form.form, "+", function()
     OPTIONS.right_gap = OPTIONS.right_gap + 10
-    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    emu_gaps_update("right_gap")
   end, xform, yform, 24, 24)
   if yform > y_bigger then y_bigger = yform end
   -- bottom gap
   xform, yform = xform - 3*24, yform + 24
+  Options_form.bottom_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.bottom_gap), xform, yform + 24, 48, delta_y)
+  forms.setproperty(Options_form.bottom_gap_label, "TextAlign", "TopCenter")
   forms.button(Options_form.form, "-", function()
     if OPTIONS.bottom_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.bottom_gap = OPTIONS.bottom_gap - 10 end
-    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    emu_gaps_update("bottom_gap")
   end, xform, yform, 24, 24)
   xform = xform + 24
   Options_form.bottom_plus = forms.button(Options_form.form, "+", function()
     OPTIONS.bottom_gap = OPTIONS.bottom_gap + 10
-    client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    emu_gaps_update("bottom_gap")
   end, xform, yform, 24, 24)
   if yform > y_bigger then y_bigger = yform end
   -- label
@@ -3756,6 +3770,10 @@ function Options_form.create_window()
   Options_form.player_y_sub = forms.textbox(Options_form.form, "", 28, 16, "HEX", xform, yform, false, false)
   ]]
   
+  
+  -- Background for dev/debug tests
+  --Options_form.picture_box = forms.pictureBox(Options_form.form, 0, 0, form_width, tonumber(forms.getproperty(Options_form.form, "Height")))
+  --forms.clear(Options_form.picture_box, 0xffFF0000)
 end
 
 
@@ -3947,7 +3965,7 @@ end
 - Import Arne's sprite spawn cheat.
 - Tile editor.
 - Cheat to change the ID of selected sprite.
-- Add gap values around the "Emu gaps" buttons in the menu, that dynamically change with forms.settext when you click them. Align text accordingly with forms.setproperty(label_handle, "TextAlign", "ALIGN") with "ALIGN" being one of these https://docs.microsoft.com/en-us/dotnet/api/system.drawing.contentalignment?view=netcore-3.1
+- 
 - 
 -
 -
