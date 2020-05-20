@@ -38,9 +38,9 @@ local DEFAULT_OPTIONS = {
   display_ambient_sprite_info = false,
   display_ambient_sprite_table = true,
   display_ambient_sprite_slot_in_screen = true,
-  display_sprite_data = false,
+  display_sprite_data = true,
   display_sprite_load_status = false,
-  display_sprite_spawning_areas = false,
+  display_sprite_spawning_areas = true,
   display_level_info = true,
   display_level_help = true,
   display_counters = false,
@@ -76,10 +76,10 @@ local DEFAULT_OPTIONS = {
   },
   
   -- Script settings
-  left_gap = 130,
-  right_gap = 180,
-  top_gap = 45,
-  bottom_gap = 44,
+  left_gap = 230,
+  right_gap = 280,
+  top_gap = 145,
+  bottom_gap = 104,
   max_tiles_drawn = 40  -- the max number of tiles to be drawn/registered by the script
 }
 
@@ -467,6 +467,8 @@ local SRAM = {  -- 700000~707FFF
 	sprite_y_center = 0x1CD8, -- 2 bytes
   sprite_x_center_offset = 0x1B56, -- 2 bytes
   sprite_y_center_offset = 0x1B58, -- 2 bytes
+  sprite_x_relative_cam = 0x1680, -- 2 bytes
+  sprite_y_relative_cam = 0x1682, -- 2 bytes
 	
   -- Sprite tables (each table consists of 24 groups of 4 bytes)
 	sprite_table1 = 0x0F00, -- sprite_status
@@ -672,7 +674,7 @@ local Layer1_tiles = {}
 local Layer2_tiles = {}
 local Is_lagged = nil
 local Options_form = {}  -- BizHawk
-local Filter_opacity, Filter_color = 0, 0xff000000  -- Snes9x specifc / unlisted color
+local Filter_opacity, Filter_colour = 0, 0xff000000  -- Snes9x specifc / unlisted colour
 local Show_player_point_position = false
 local Sprites_info = {}  -- keeps track of useful sprite info that might be used outside the main sprite function
 local Memory = {} -- family of memory edit functions and variables
@@ -836,7 +838,7 @@ end
 
 
 -- Draw an arrow given (x1, y1) and (x2, y2)
-local function draw_arrow(x1, y1, x2, y2, color, head)
+local function draw_arrow(x1, y1, x2, y2, colour, head)
 	
 	local angle = math.atan((y2-y1)/(x2-x1)) -- in radians
 	
@@ -862,27 +864,27 @@ local function draw_arrow(x1, y1, x2, y2, color, head)
 	end
 	
 	-- Draw
-	draw_line(x1, y1, x2, y2, color)
-	draw_line(head1_x1, head1_y1, head1_x2, head1_y2, color)
-	draw_line(head2_x1, head2_y1, head2_x2, head2_y2, color)
+	draw_line(x1, y1, x2, y2, colour)
+	draw_line(head1_x1, head1_y1, head1_x2, head1_y2, colour)
+	draw_line(head2_x1, head2_y1, head2_x2, head2_y2, colour)
 end
 
 
--- Changes transparency of a color: result is opaque original * transparency level (0.0 to 1.0)
-local function change_transparency(color, transparency)
+-- Changes transparency of a colour: result is opaque original * transparency level (0.0 to 1.0)
+local function change_transparency(colour, transparency)
   -- Sane transparency
-  if transparency >= 1 then return color end  -- no transparency
+  if transparency >= 1 then return colour end  -- no transparency
   if transparency <= 0 then return 0 end   -- total transparency
 
   -- Sane colour
-  if color == 0 then return 0 end
-  if type(color) ~= "number" then
-    print(color)
-    error"Wrong color"
+  if colour == 0 then return 0 end
+  if type(colour) ~= "number" then
+    print(colour)
+    error"Wrong colour"
   end
 
-  local a = floor(color/0x1000000)
-  local rgb = color - a*0x1000000
+  local a = floor(colour/0x1000000)
+  local rgb = colour - a*0x1000000
   local new_a = floor(a*transparency)
   return new_a*0x1000000 + rgb
 end
@@ -942,60 +944,60 @@ local function draw_text(x, y, text, ...)
   -- Reads external variables
   local font_width  = BIZHAWK_FONT_WIDTH
   local font_height = BIZHAWK_FONT_HEIGHT
-  local bg_default_color = COLOUR.background
-  local text_color, bg_color, always_on_client, always_on_game, ref_x, ref_y
+  local bg_default_colour = COLOUR.background
+  local text_colour, bg_colour, always_on_client, always_on_game, ref_x, ref_y
   local arg1, arg2, arg3, arg4, arg5, arg6 = ...
   
   if not arg1 or arg1 == true then
     
-    text_color = COLOUR.text
-    bg_color = bg_default_color
+    text_colour = COLOUR.text
+    bg_colour = bg_default_colour
     always_on_client, always_on_game, ref_x, ref_y = arg1, arg2, arg3, arg4
     
   elseif not arg2 or arg2 == true then
     
-    text_color = arg1
-    bg_color = bg_default_color
+    text_colour = arg1
+    bg_colour = bg_default_colour
     always_on_client, always_on_game, ref_x, ref_y = arg2, arg3, arg4, arg5
     
   else
     
-    text_color, bg_color = arg1, arg2
+    text_colour, bg_colour = arg1, arg2
     always_on_client, always_on_game, ref_x, ref_y = arg3, arg4, arg5, arg6
     
   end
   
   local x_pos, y_pos, length = text_position(x, y, text, font_width, font_height, always_on_client, always_on_game, ref_x, ref_y)
 
-  text_color = change_transparency(text_color, Text_opacity)
+  text_colour = change_transparency(text_colour, Text_opacity)
   
-  --gui.drawText(x_pos, y_pos, text, text_color) --, bg_color) -- TODO FOR REAL
+  --gui.drawText(x_pos, y_pos, text, text_colour) --, bg_colour) -- TODO FOR REAL
   
-  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_color) --, bg_color) -- TODO FOR REAL
+  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_colour) --, bg_colour) -- TODO FOR REAL
   
   return x_pos + length, y_pos + font_height, length
 end
 
 
-local function alert_text(x, y, text, text_color, bg_color, always_on_game, ref_x, ref_y)
+local function alert_text(x, y, text, text_colour, bg_colour, always_on_game, ref_x, ref_y)
   -- Reads external variables
   local font_width  = BIZHAWK_FONT_WIDTH
   local font_height = BIZHAWK_FONT_HEIGHT
   
   local x_pos, y_pos, text_length = text_position(x, y, text, font_width, font_height, true, always_on_game, ref_x, ref_y)
   
-  text_color = change_transparency(text_color, Text_opacity)
+  text_colour = change_transparency(text_colour, Text_opacity)
   
-  draw_rectangle(x_pos, y_pos, text_length - 1, font_height - 1, bg_color, bg_color)
+  draw_rectangle(x_pos, y_pos, text_length - 1, font_height - 1, bg_colour, bg_colour)
   
-  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_color)
+  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_colour)
 end
 
-local function draw_over_text(x, y, value, base, color_base, color_value, color_bg, always_on_client, always_on_game, ref_x, ref_y)
+local function draw_over_text(x, y, value, base, colour_base, colour_value, colour_bg, always_on_client, always_on_game, ref_x, ref_y)
   value = decode_bits(value, base)
-  local x_end, y_end, length = draw_text(x, y, base,  color_base, color_bg, always_on_client, always_on_game, ref_x, ref_y)
+  local x_end, y_end, length = draw_text(x, y, base,  colour_base, colour_bg, always_on_client, always_on_game, ref_x, ref_y)
   --gui.opacity(Text_max_opacity * Text_opacity)
-  gui.text(x_end - length, y_end - BIZHAWK_FONT_HEIGHT, value, color_value or COLOUR.text)
+  gui.text(x_end - length, y_end - BIZHAWK_FONT_HEIGHT, value, colour_value or COLOUR.text)
   --gui.opacity(1.0)
   
   return x_end, y_end, length
@@ -1396,7 +1398,7 @@ local function draw_tiles_clicked(camera_x, camera_y)
       end
       
       if OPTIONS.draw_tile_map_grid then -- to make it easier to see when grid is activated
-        block_colour = COLOUR.warning_soft -- this color fits well
+        block_colour = COLOUR.warning_soft -- this colour fits well
       elseif block_is_solid then
         block_colour = COLOUR.block
       else
@@ -1534,12 +1536,12 @@ local function show_movie_info()
   local x_text = 2
   local width = BIZHAWK_FONT_WIDTH
   
-  local rec_color = (Readonly or not Movie_active) and COLOUR.text or COLOUR.warning
+  local rec_colour = (Readonly or not Movie_active) and COLOUR.text or COLOUR.warning
   local recording_bg = (Readonly or not Movie_active) and COLOUR.background or COLOUR.warning_bg 
   
   -- Read-only or read-write?
   local movie_type = (not Movie_active and "No movie ") or (Readonly and "Movie " or "REC ")
-  alert_text(x_text, y_text, movie_type, rec_color, recording_bg)
+  alert_text(x_text, y_text, movie_type, rec_colour, recording_bg)
   
   -- Frame count
   x_text = x_text + width*string.len(movie_type)
@@ -1663,7 +1665,7 @@ local function level_info()
 	if Game_mode ~= YI.game_mode_level then return end
   
   -- Font
-  local color = COLOUR.text
+  local colour = COLOUR.text
   Text_opacity = 0.5
   Bg_opacity = 1.0
   
@@ -1693,7 +1695,7 @@ local function level_info()
   local screen_str = fmt("Screen:$%02X", screen_id and screen_id or 0x80)
 	
   --- Draw whole level info string
-  draw_text(Buffer_middle_x, Screen_height, fmt("%s %s %s", level_str, room_str, screen_str), color, true, false, 0.5)
+  draw_text(Buffer_middle_x, Screen_height, fmt("%s %s %s", level_str, room_str, screen_str), colour, true, false, 0.5)
   
 	--- Extra help/info
 	if OPTIONS.display_level_help then
@@ -1756,35 +1758,19 @@ local function draw_sprite_spawning_areas()
   if not OPTIONS.display_sprite_spawning_areas then return end
   if Game_mode ~= YI.game_mode_level or Is_paused then return end
 
-  --- Spawning --- TODO: make it a square, since you have spawn/despawn vertically too
-  local left_line, right_line = 63, 32
+  -- Spawning
+  local left_line, right_line, top_line, bottom_line = 0x3f, 0x20, 0x2f, 0x30
+  draw_box(OPTIONS.left_gap - left_line, OPTIONS.top_gap - top_line, Border_right_start + right_line, Border_bottom_start + bottom_line, COLOUR.weak)
+  draw_box(OPTIONS.left_gap - left_line + 15, OPTIONS.top_gap - top_line + 15, Border_right_start + right_line - 15, Border_bottom_start + bottom_line - 15, COLOUR.very_weak)
 
-  -- Left area
-  draw_line(OPTIONS.left_gap - left_line, 0, OPTIONS.left_gap - left_line, Screen_height, COLOUR.weak)
-  draw_line(OPTIONS.left_gap - left_line + 15, 0, OPTIONS.left_gap - left_line + 15, Screen_height, COLOUR.very_weak)
-
-  draw_text(OPTIONS.left_gap - left_line + 3, Screen_height - 2*BIZHAWK_FONT_HEIGHT, fmt("Spawn \n %04X", Camera_x - left_line), COLOUR.weak, false, false, 0.5)
+  --draw_text(OPTIONS.left_gap - left_line + 3, Screen_height - 2*BIZHAWK_FONT_HEIGHT, fmt("Spawn \n %04X", Camera_x - left_line), COLOUR.weak, false, false, 0.5)
+  --draw_text(Border_right_start + right_line + 2, Screen_height - 2*BIZHAWK_FONT_HEIGHT, fmt("Spawn \n%04X", Camera_x + 256 + right_line), COLOUR.weak)
   
-  -- Right area
-  draw_line(Border_right_start + right_line, 0, Border_right_start + right_line, Screen_height, COLOUR.weak)
-  draw_line(Border_right_start + right_line - 15, 0, Border_right_start + right_line - 15, Screen_height, COLOUR.very_weak)
-
-  draw_text(Border_right_start + right_line + 2, Screen_height - 2*BIZHAWK_FONT_HEIGHT, fmt("Spawn \n%04X", Camera_x + 256 + right_line), COLOUR.weak)
+  -- Despawning
   
-  --[[- Despawning ---
-  left_line, right_line = 0xF0, 0xF0
+  left_line, right_line, top_line, bottom_line = 0x61, 0x51, 0x61, 0x49
+  draw_box(OPTIONS.left_gap - left_line, OPTIONS.top_gap - top_line, Border_right_start + right_line, Border_bottom_start + bottom_line, COLOUR.warning_transparent)
   
-  -- Left line
-  draw_line(OPTIONS.left_gap - left_line, 0, OPTIONS.left_gap - left_line, Screen_height, COLOUR.warning)
-  draw_line(OPTIONS.left_gap - left_line + 0x60, 0, OPTIONS.left_gap - left_line + 0x60, Screen_height, COLOUR.warning_transparent) -- REMOVE/TEST
-  draw_line(OPTIONS.left_gap - 0x60, 0, OPTIONS.left_gap - 0x60, Screen_height, COLOUR.warning_transparent) -- REMOVE/TEST
-  draw_line(OPTIONS.left_gap - 0x90, 0, OPTIONS.left_gap - 0x90, Screen_height, COLOUR.warning_soft) -- REMOVE/TEST
-  
-  -- Right line
-  draw_line(Border_right_start + right_line, 0, Border_right_start + right_line, Screen_height, COLOUR.warning)
-  draw_line(Border_right_start + 0x60, 0, Border_right_start + 0x60, Screen_height, COLOUR.warning_transparent) -- REMOVE/TEST
-  draw_line(Border_right_start + 0x90, 0, Border_right_start + 0x90, Screen_height, COLOUR.warning_soft) -- REMOVE/TEST
-  ]]
   --[[
   ; 8C83 in code (indexed by 4's, pairs of words)
   ; x, y thresholds for despawning sprites
@@ -2308,8 +2294,8 @@ local function ambient_sprites()
 			-- Calculates the ambient sprites screen positions
 			local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
 			
-			-- Calculates the correct color to use, according to id
-			local ambspr_color = COLOUR.sprites[id%(#COLOUR.sprites) + 1] -- TODO: change
+			-- Calculates the correct colour to use, according to id
+			local ambspr_colour = COLOUR.sprites[id%(#COLOUR.sprites) + 1] -- TODO: change
 			
 			-- Adjusts the opacity if it's offscreen
 			if x_screen >= OPTIONS.left_gap and x_screen <= Border_right_start and y_screen >= OPTIONS.top_gap and y_screen <= Border_bottom_start then
@@ -2333,18 +2319,18 @@ local function ambient_sprites()
 			
 			local ambspr_string = fmt("<%.2d> %.4X %s(%d.%02x, %d.%02x)", id, ambspr_type, debug_str, x, x_sub, y, y_sub)
 			if OPTIONS.display_ambient_sprite_table then
-				draw_text(Screen_width, y_pos + counter*height, ambspr_string, ambspr_color, true, false)
+				draw_text(Screen_width, y_pos + counter*height, ambspr_string, ambspr_colour, true, false)
 			end
 		
 			-- Prints information next to the exteded sprite
 			if OPTIONS.display_ambient_sprite_slot_in_screen then
-				draw_text(x_screen + 6, y_screen - 5, fmt("<%02d>", id), ambspr_color, COLOUR.background, COLOUR.halo, true)
+				draw_text(x_screen + 6, y_screen - 5, fmt("<%02d>", id), ambspr_colour, COLOUR.background, COLOUR.halo, true)
 			end
 		
 			-- Ambient sprite position pixel and cross
-			draw_pixel(x_screen, y_screen, ambspr_color)
+			draw_pixel(x_screen, y_screen, ambspr_colour)
 			if OPTIONS.display_debug_ambient_sprite then
-				draw_cross(x_screen, y_screen, 2, ambspr_color)
+				draw_cross(x_screen, y_screen, 2, ambspr_colour)
 			end
             
 			-- Alert of new ambient sprite (for documentation purposes)
@@ -2375,18 +2361,18 @@ local function ambient_sprites()
                 local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
                 
                 local t = HITBOX_EXTENDED_SPRITE[ambspr_number] or
-                    {xoff = 0, yoff = 0, width = 16, height = 16, color_line = COLOUR.awkward_hitbox, color_bg = COLOUR.awkward_hitbox_bg}
+                    {xoff = 0, yoff = 0, width = 16, height = 16, colour_line = COLOUR.awkward_hitbox, colour_bg = COLOUR.awkward_hitbox_bg}
                 local xoff = t.xoff
                 local yoff = t.yoff
                 local xrad = t.width
                 local yrad = t.height
                 
-                local color_line = t.color_line or COLOUR.ambient_sprites
-                local color_bg = t.color_bg or COLOUR.ambient_sprites_bg
+                local colour_line = t.colour_line or COLOUR.ambient_sprites
+                local colour_bg = t.colour_bg or COLOUR.ambient_sprites_bg
                 if ambspr_number == 0x5 or ambspr_number == 0x11 then
-                    color_bg = (Frame_counter - id_off)%4 == 0 and COLOUR.special_ambient_sprite_bg or 0
+                    colour_bg = (Frame_counter - id_off)%4 == 0 and COLOUR.special_ambient_sprite_bg or 0
                 end
-                draw_rectangle(x_screen+xoff, y_screen+yoff, xrad, yrad, color_line, color_bg) -- regular hitbox
+                draw_rectangle(x_screen+xoff, y_screen+yoff, xrad, yrad, colour_line, colour_bg) -- regular hitbox
             end]]
             
             counter = counter + 1
@@ -2415,7 +2401,7 @@ local function sprite_info(id, counter, table_position)
 	local id_off = 4*id
 	
   local sprite_status = u8_sram(SRAM.sprite_status + id_off)
-  if sprite_status == 0 then return 0 end  -- returns if the slot is empty -- TODO: make an option if the player wants all visible slots or only active
+  --if sprite_status == 0 then return 0 end  -- returns if the slot is empty -- TODO: make an option if the player wants all visible slots or only active
 
   local sprite_type = u16_sram(SRAM.sprite_type + id_off)
   local x = s16_sram(SRAM.sprite_x + id_off)
@@ -2430,6 +2416,9 @@ local function sprite_info(id, counter, table_position)
   local y_centered = s16_sram(SRAM.sprite_y_center + id_off)
   local x_center_offset = s16_sram(SRAM.sprite_x_center_offset + id_off)
   local y_center_offset = s16_sram(SRAM.sprite_y_center_offset + id_off)
+  local despawn_threshold_id = bit.band(u8_sram(SRAM.sprite_table3 + id_off), 0xC)/4
+  local x_relative_cam = s16_sram(SRAM.sprite_x_relative_cam + id_off)
+  local y_relative_cam = s16_sram(SRAM.sprite_y_relative_cam + id_off)
   local special_hitbox = false
   
   local special = ""
@@ -2467,28 +2456,32 @@ local function sprite_info(id, counter, table_position)
 		sprite_half_height = floor(sprite_half_height*y_scaling/256)
 	end]]
   
-  -- calculates the correct color to use, according to id
-  local info_color = COLOUR.sprites[id%(#COLOUR.sprites) + 1]
-  local color_background = COLOUR.sprites_bg
+  -- calculates the correct colour to use, according to id
+  local info_colour = COLOUR.sprites[id%(#COLOUR.sprites) + 1]
+  local colour_background = COLOUR.sprites_bg
   
   Bg_opacity = 1.0
   
-  -- Handles onscreen/offscreen opacity
+  -- Handles onscreen/offscreen
+  local is_offscreen = true
 	if x_centered_screen >= OPTIONS.left_gap and x_centered_screen <= Border_right_start and
-  y_centered_screen >= OPTIONS.top_gap and y_centered_screen <= Border_bottom_start then
-		--Text_opacity = 0.8
-    info_color = change_transparency(info_color, 0.8)
-	else
+  y_centered_screen >= OPTIONS.top_gap and y_centered_screen <= Border_bottom_start then is_offscreen = false end
+  
+  -- Text opacity due being offscreen
+  if is_offscreen then
 		--Text_opacity = 0.5
-    info_color = change_transparency(info_color, 0.5)
+    info_colour = change_transparency(info_colour, 0.5)
+	else
+		--Text_opacity = 0.8
+    info_colour = change_transparency(info_colour, 0.8)
 	end
   
-  if sprite_status == 0 then info_color = COLOUR.disabled end -- TODO: make an option if the player wants all visible slots or only active
+  if sprite_status == 0 then info_colour = change_transparency(COLOUR.disabled, 0.5) end -- TODO: make an option if the player wants all visible slots or only active
   
   -- CREDITS WARP HELPER:
   
   --local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, x_centered, x_speed, x_subspeed, y_centered, y_speed, y_subspeed)
-	--draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_color, true)
+	--draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
   
   local cw_info_y_pos = Screen_height - 12*BIZHAWK_FONT_HEIGHT
   local cw_info_x_tmp = 2
@@ -2543,6 +2536,47 @@ local function sprite_info(id, counter, table_position)
     draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
   end
   
+  -- Depawning position
+  if is_offscreen then
+  
+    local x_off, y_off
+    
+    if despawn_threshold_id == 1 then
+      
+      -- do nothing, since the despawn lines in the script were based on this threshold
+      
+    elseif despawn_threshold_id == 2 then
+      
+      if x_relative_cam < 0 then x_off = 0x30 else x_off = -0x30 end
+      
+      draw_line(x_screen, y_screen, x_screen + x_off, y_screen, COLOUR.weak)
+      draw_cross(x_screen + x_off, y_screen, 2, info_colour)
+      
+    elseif despawn_threshold_id == 3 then
+    
+      if x_relative_cam < 0 then x_off = 0x30 else x_off = -0x30 end
+      if y_relative_cam < 0 then y_off = 0x40 else y_off = -0x40 end
+      
+      draw_cross(x_screen + x_off, y_screen + y_off, 2, info_colour)
+      draw_line(x_screen, y_screen, x_screen + x_off, y_screen + y_off, COLOUR.weak)
+      
+    else -- despawn_threshold_id == 0
+    
+      -- TODO: check whether is permanent or use the other thresholds at $03A2DE or $03A2F8 and code it
+      
+    end
+  end
+  
+  --[[
+  ; 8C83 in code (indexed by 4's, pairs of words)
+  ; x, y thresholds for despawning sprites
+  .despawn_thresholds
+    dw $0060, $0060   ; $098C87 | -> id 1
+    dw $0090, $0060   ; $098C8B | -> id 2
+    dw $0090, $00A0   ; $098C8F | -> id 3
+  ]]
+
+  
   ---**********************************************
   -- Special sprites analysis:
   
@@ -2563,9 +2597,9 @@ local function sprite_info(id, counter, table_position)
       local yoshi_center_x, yoshi_center_y = s16_sram(SRAM.x_centered), s16_sram(SRAM.y_centered)
       local yoshi_center_x_screen, yoshi_center_y_screen = screen_coordinates(yoshi_center_x, yoshi_center_y, Camera_x, Camera_y)
       if yoshi_center_x <= x + activation_line_x then
-        draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, fmt("Distance: %02X", x + activation_line_x - yoshi_center_x), info_color, true, false, 1.0)
+        draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, fmt("Distance: %02X", x + activation_line_x - yoshi_center_x), info_colour, true, false, 1.0)
       else
-        draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, fmt("Distance: -%02X", 0xFFFFFFFF - x + activation_line_x - yoshi_center_x), info_color, true, false, 1.0)
+        draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, fmt("Distance: -%02X", 0xFFFFFFFF - x + activation_line_x - yoshi_center_x), info_colour, true, false, 1.0)
       end
       
       -- Warning to best area of activation
@@ -2623,18 +2657,18 @@ local function sprite_info(id, counter, table_position)
 			
 			if on_platform == 0 then -- not on the platform
 				-- Horizontal lines
-				draw_line(effective_platform_x1, effective_platform_y1, effective_platform_x2, effective_platform_y1, info_color)
-				draw_line(effective_platform_x1, effective_platform_y2, effective_platform_x2, effective_platform_y2, info_color)
+				draw_line(effective_platform_x1, effective_platform_y1, effective_platform_x2, effective_platform_y1, info_colour)
+				draw_line(effective_platform_x1, effective_platform_y2, effective_platform_x2, effective_platform_y2, info_colour)
 				-- Vertical lines
-				draw_line(effective_platform_x1, effective_platform_y1, effective_platform_x1, effective_platform_y2, info_color)
-				draw_line(effective_platform_x2, effective_platform_y1, effective_platform_x2, effective_platform_y2, info_color)
+				draw_line(effective_platform_x1, effective_platform_y1, effective_platform_x1, effective_platform_y2, info_colour)
+				draw_line(effective_platform_x2, effective_platform_y1, effective_platform_x2, effective_platform_y2, info_colour)
 			else                     -- on the platform
 				-- Horizontal lines
-				draw_line(effective_platform_x1, yoshi_y_screen + 32, effective_platform_x2, yoshi_y_screen + 32, info_color)
+				draw_line(effective_platform_x1, yoshi_y_screen + 32, effective_platform_x2, yoshi_y_screen + 32, info_colour)
 				draw_line(effective_platform_x1, effective_platform_y2, effective_platform_x2, effective_platform_y2, COLOUR.warning)
 				-- Vertical lines
-				draw_line(effective_platform_x1, yoshi_y_screen + 32, effective_platform_x1, effective_platform_y2, info_color)
-				draw_line(effective_platform_x2, yoshi_y_screen + 32, effective_platform_x2, effective_platform_y2, info_color)	
+				draw_line(effective_platform_x1, yoshi_y_screen + 32, effective_platform_x1, effective_platform_y2, info_colour)
+				draw_line(effective_platform_x2, yoshi_y_screen + 32, effective_platform_x2, effective_platform_y2, info_colour)	
 			end	
 
       special_hitbox = true			
@@ -2644,7 +2678,7 @@ local function sprite_info(id, counter, table_position)
 		if sprite_type == 0x054 or sprite_type == 0x066 then
 			local detection_radius = 112
 			-- detection is based on Yoshi's center point
-			draw_box(x_screen - detection_radius + 9, y_screen - detection_radius + 9, x_screen + detection_radius + 8, y_screen + detection_radius + 8, info_color, COLOUR.detection_bg)
+			draw_box(x_screen - detection_radius + 9, y_screen - detection_radius + 9, x_screen + detection_radius + 8, y_screen + detection_radius + 8, info_colour, COLOUR.detection_bg)
 		end
 		
 		-- Green/Pink Pinwheel -- TODO
@@ -2685,10 +2719,10 @@ local function sprite_info(id, counter, table_position)
 					draw_text(x_centered_screen + center1_dx - 1, y_centered_screen + center1_dy + 2, "1")
 					draw_text(x_centered_screen + center2_dx - 1, y_centered_screen + center2_dy + 2, "2")
 					draw_text(x_centered_screen + center3_dx - 1, y_centered_screen + center3_dy + 2, "3")
-					draw_box(x_centered_screen + center0_dx - 10, y_centered_screen + center0_dy - 7, x_centered_screen + center0_dx + 11,  y_centered_screen + center0_dy + 1, info_color, color_background)
-					draw_box(x_centered_screen + center1_dx - 10, y_centered_screen + center1_dy - 7, x_centered_screen + center1_dx + 11,  y_centered_screen + center1_dy + 1, info_color, color_background)
-					draw_box(x_centered_screen + center2_dx - 10, y_centered_screen + center2_dy - 7, x_centered_screen + center2_dx + 11,  y_centered_screen + center2_dy + 1, info_color, color_background)
-					draw_box(x_centered_screen + center3_dx - 10, y_centered_screen + center3_dy - 7, x_centered_screen + center3_dx + 11,  y_centered_screen + center3_dy + 1, info_color, color_background)
+					draw_box(x_centered_screen + center0_dx - 10, y_centered_screen + center0_dy - 7, x_centered_screen + center0_dx + 11,  y_centered_screen + center0_dy + 1, info_colour, colour_background)
+					draw_box(x_centered_screen + center1_dx - 10, y_centered_screen + center1_dy - 7, x_centered_screen + center1_dx + 11,  y_centered_screen + center1_dy + 1, info_colour, colour_background)
+					draw_box(x_centered_screen + center2_dx - 10, y_centered_screen + center2_dy - 7, x_centered_screen + center2_dx + 11,  y_centered_screen + center2_dy + 1, info_colour, colour_background)
+					draw_box(x_centered_screen + center3_dx - 10, y_centered_screen + center3_dy - 7, x_centered_screen + center3_dx + 11,  y_centered_screen + center3_dy + 1, info_colour, colour_background)
 				--end
 				
 			end)]] -- REMOVE TESTS/DEBUG
@@ -2702,10 +2736,10 @@ local function sprite_info(id, counter, table_position)
 			draw_text(x_centered_screen + center1_dx - 1, y_centered_screen + center1_dy + 2, "1")
 			draw_text(x_centered_screen + center2_dx - 1, y_centered_screen + center2_dy + 2, "2")
 			draw_text(x_centered_screen + center3_dx - 1, y_centered_screen + center3_dy + 2, "3")
-			draw_box(x_centered_screen + center0_dx - 10, y_centered_screen + center0_dy - 7, x_centered_screen + center0_dx + 11,  y_centered_screen + center0_dy + 1, info_color, color_background)
-			draw_box(x_centered_screen + center1_dx - 10, y_centered_screen + center1_dy - 7, x_centered_screen + center1_dx + 11,  y_centered_screen + center1_dy + 1, info_color, color_background)
-			draw_box(x_centered_screen + center2_dx - 10, y_centered_screen + center2_dy - 7, x_centered_screen + center2_dx + 11,  y_centered_screen + center2_dy + 1, info_color, color_background)
-			draw_box(x_centered_screen + center3_dx - 10, y_centered_screen + center3_dy - 7, x_centered_screen + center3_dx + 11,  y_centered_screen + center3_dy + 1, info_color, color_background)
+			draw_box(x_centered_screen + center0_dx - 10, y_centered_screen + center0_dy - 7, x_centered_screen + center0_dx + 11,  y_centered_screen + center0_dy + 1, info_colour, colour_background)
+			draw_box(x_centered_screen + center1_dx - 10, y_centered_screen + center1_dy - 7, x_centered_screen + center1_dx + 11,  y_centered_screen + center1_dy + 1, info_colour, colour_background)
+			draw_box(x_centered_screen + center2_dx - 10, y_centered_screen + center2_dy - 7, x_centered_screen + center2_dx + 11,  y_centered_screen + center2_dy + 1, info_colour, colour_background)
+			draw_box(x_centered_screen + center3_dx - 10, y_centered_screen + center3_dy - 7, x_centered_screen + center3_dx + 11,  y_centered_screen + center3_dy + 1, info_colour, colour_background)
 			]]
 			special_hitbox = true			
 		end
@@ -2720,7 +2754,7 @@ local function sprite_info(id, counter, table_position)
 		if sprite_type == 0x057 then
 			local platform_x, platform_y = s16_sram(SRAM.sprite_table19 + id_off), s16_sram(SRAM.sprite_table19 + 2 + id_off)
 			local platform_x_screen, platform_y_screen = screen_coordinates(platform_x, platform_y, Camera_x, Camera_y)
-			draw_box(platform_x_screen - 27, platform_y_screen - 8, platform_x_screen + 26, platform_y_screen + 13, info_color, color_background)
+			draw_box(platform_x_screen - 27, platform_y_screen - 8, platform_x_screen + 26, platform_y_screen + 13, info_colour, colour_background)
 			draw_cross(platform_x_screen, platform_y_screen, 4, COLOUR.text)
 			
 			special_hitbox = true
@@ -2731,9 +2765,9 @@ local function sprite_info(id, counter, table_position)
 			--[[local angle = (s8_sram(SRAM.sprite_table20 + 3 + id_off)*2*pi/256)
 			local half_width = 32
 			local delta_y = math.ceil(half_width*(sin(angle)))
-			gui.line(x_centered_screen, y_centered_screen - 5, x_centered_screen - half_width - 1, y_centered_screen - 5 + delta_y, info_color)
+			gui.line(x_centered_screen, y_centered_screen - 5, x_centered_screen - half_width - 1, y_centered_screen - 5 + delta_y, info_colour)
 			
-			draw_text(x_centered_screen - 20, y_centered_screen + 30, fmt("%f rad\ndelta_y:%d\nsin:%f", angle, delta_y, sin(angle)), info_color) -- REMOVE TESTS/DEBUG
+			draw_text(x_centered_screen - 20, y_centered_screen + 30, fmt("%f rad\ndelta_y:%d\nsin:%f", angle, delta_y, sin(angle)), info_colour) -- REMOVE TESTS/DEBUG
 			--w8_sram(SRAM.sprite_table20 + 3 + id_off, 0) -- REMOVE TESTS/DEBUG
 			--w8_sram(SRAM.sprite_table20 + 2 + id_off, 0) -- REMOVE TESTS/DEBUG
 			]]
@@ -2787,7 +2821,7 @@ local function sprite_info(id, counter, table_position)
 		-- Green/Red switch for spiked platform
 		if sprite_type == 0x15C or sprite_type == 0x15D then
 			local up, down, left, right = 4, 10, 8, 8
-			draw_box(x_centered_screen - left, y_centered_screen - up, x_centered_screen + right, y_centered_screen + down, info_color, color_background)
+			draw_box(x_centered_screen - left, y_centered_screen - up, x_centered_screen + right, y_centered_screen + down, info_colour, colour_background)
 			
 			special_hitbox = true
 		end
@@ -2795,7 +2829,7 @@ local function sprite_info(id, counter, table_position)
 		-- Green spiked platform
 		if sprite_type == 0x15F then
 			local up, down, left, right = 5, 3, 22, 21
-			draw_box(x_centered_screen - left, y_centered_screen - up, x_centered_screen + right, y_centered_screen + down, info_color, color_background)
+			draw_box(x_centered_screen - left, y_centered_screen - up, x_centered_screen + right, y_centered_screen + down, info_colour, colour_background)
 			
 			special_hitbox = true
 		end
@@ -2803,7 +2837,7 @@ local function sprite_info(id, counter, table_position)
 		-- Red spiked platform
 		if sprite_type == 0x160 then
 			local up, down, left, right = 5, 4, 23, 22
-			draw_box(x_centered_screen - left, y_centered_screen - up, x_centered_screen + right, y_centered_screen + down, info_color, color_background)
+			draw_box(x_centered_screen - left, y_centered_screen - up, x_centered_screen + right, y_centered_screen + down, info_colour, colour_background)
 			
 			special_hitbox = true
 		end
@@ -2812,7 +2846,7 @@ local function sprite_info(id, counter, table_position)
     if sprite_type == 0x167 or sprite_type == 0x168 then
       local can_be_licked_timer = u8_sram(SRAM.sprite_table28 + 2 + id_off)
       if can_be_licked_timer > 1 then
-        alert_text(x_centered_screen, y_centered_screen + sprite_half_height, can_be_licked_timer, info_color, COLOUR.background, false, 0.5)
+        alert_text(x_centered_screen, y_centered_screen + sprite_half_height, can_be_licked_timer, info_colour, COLOUR.background, false, 0.5)
       end
     end
     
@@ -2829,7 +2863,7 @@ local function sprite_info(id, counter, table_position)
 		-- Line guided Flatbed Ferries
 		if sprite_type >= 0x185 and sprite_type <= 0x18E then
 			local up, down, left, right = 7, 3, 22, 23
-			--draw_box(x_centered_screen - left, y_centered_screen - up, x_centered_screen + right, y_centered_screen + down, info_color, color_background)
+			--draw_box(x_centered_screen - left, y_centered_screen - up, x_centered_screen + right, y_centered_screen + down, info_colour, colour_background)
 			
 			--special_hitbox = true
 		end
@@ -2839,7 +2873,7 @@ local function sprite_info(id, counter, table_position)
   ---**********************************************
   -- Displays sprites hitboxes -- TODO
   if OPTIONS.display_sprite_hitbox and not special_hitbox then
-		draw_box(x_centered_screen - sprite_half_width, y_centered_screen - sprite_half_height, x_centered_screen + sprite_half_width, y_centered_screen + sprite_half_height, info_color, color_background)
+		draw_box(x_centered_screen - sprite_half_width, y_centered_screen - sprite_half_height, x_centered_screen + sprite_half_width, y_centered_screen + sprite_half_height, info_colour, colour_background)
 		
 		local interaction_x = s16_sram(SRAM.sprite_table14)
 		--draw_line(x_centered_screen + interaction_x, y_centered_screen, x_centered_screen + interaction_x, y_centered_screen + 32, COLOUR.text) -- TODO
@@ -2850,13 +2884,13 @@ local function sprite_info(id, counter, table_position)
 	
 	if OPTIONS.display_sprite_slot_in_screen then
 		local slot_str = fmt("<%02d>", id)
-		draw_text(x_centered_screen, y_centered_screen - sprite_half_height - 10, slot_str, info_color, COLOUR.background, true, false, 0.5)
+		draw_text(x_centered_screen, y_centered_screen - sprite_half_height - 10, slot_str, info_colour, COLOUR.background, true, false, 0.5)
 	end
 	
 	-- Sprite position pixel and cross
 	if OPTIONS.display_debug_sprite_extra then
 		draw_cross(x_centered_screen, y_centered_screen, 2, COLOUR.text) -- TODO: figure out a better colour
-		draw_cross(x_screen, y_screen, 2, info_color)
+		draw_cross(x_screen, y_screen, 2, info_colour)
 	end
   
   ---**********************************************
@@ -2865,7 +2899,7 @@ local function sprite_info(id, counter, table_position)
 	local debug_str = ""
 	local debug_address = SRAM.sprite_table13 -- TODO: CHECK sprite_table21 FOR BOSSES LOOKING FOR TIMERS
   --debug_str = fmt("(%04X, %04X) ", x_center_offset, y_center_offset)
-  debug_str = fmt("[%04X, %d] ", u16_sram(debug_address + id_off), bit.band(u8_sram(0x1040 + id_off), 0xC)/4)
+  --debug_str = fmt("[%04X,%04X , %d] ", u16_sram(debug_address + id_off), u16_sram(debug_address + 2 + id_off), despawn_threshold_id)
 	--debug_str = fmt("[%02X,%02X,%02X,%02X] ", u8_sram(debug_address + id_off), u8_sram(debug_address + 1 + id_off), u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
   --debug_str = decode_bits_new(u8_sram(debug_address + id_off), "00000000") -- REMOVE TESTS/DEBUG
 	--if sprite_type == 0x19A then w8_sram(debug_address + id_off, 0x75) end -- REMOVE TESTS/DEBUG
@@ -2874,7 +2908,7 @@ local function sprite_info(id, counter, table_position)
 	
 	if OPTIONS.display_sprite_table then
     local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, x_centered, x_speed, x_subspeed, y_centered, y_speed, y_subspeed)
-		draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_color, true)
+		draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
   end
 	
 	
@@ -2893,7 +2927,7 @@ local function sprite_info(id, counter, table_position)
       text = misc and fmt("%s %02X", text, misc) or text
     end
     
-    draw_text(x_mis, y_mis, text, info_color)
+    draw_text(x_mis, y_mis, text, info_colour)
   end
   
 	---**********************************************
@@ -2941,7 +2975,7 @@ local function sprites()
       text = t[num] and fmt("%s %02d", text, num) or text
     end
     
-    draw_text(0, Scale_y*144 - BIZHAWK_FONT_HEIGHT, text, info_color)
+    draw_text(0, Scale_y*144 - BIZHAWK_FONT_HEIGHT, text, info_colour)
   end
 end
 
@@ -3003,27 +3037,27 @@ local function sprite_level_data()
     local sxpos_screen, sypos_screen = screen_coordinates(sxpos, sypos, Camera_x, Camera_y)
     
     local status = status_table[id]
-    local color = (status == 0 and COLOUR.disabled) or (status == 0xFF and COLOUR.text) or COLOUR.warning
-    if status ~= 0 and not indexes[id] then color = COLOUR.warning end
+    local colour = (status == 0 and COLOUR.disabled) or (status == 0xFF and COLOUR.text) or COLOUR.warning
+    if status ~= 0 and not indexes[id] then colour = COLOUR.warning end
 
     if OPTIONS.display_sprite_data then
       if is_inside_rectangle(sxpos_screen + 8, sypos_screen + 8, 0, 0, Screen_width, Screen_height) then -- print only onscreen info to avoid lag
       
-        --draw_text(sxpos_screen + 8, sypos_screen -2 - BIZHAWK_FONT_HEIGHT, fmt("$%02X", id), color, false, false, 0.5) -- sprite level ID
+        --draw_text(sxpos_screen + 8, sypos_screen -2 - BIZHAWK_FONT_HEIGHT, fmt("$%02X", id), colour, false, false, 0.5) -- sprite level ID
         
-        if color ~= COLOUR.text then -- don't display sprite ID if sprite is spawned
-          draw_text(sxpos_screen + 8, sypos_screen + 4, fmt("%03X", sprite_id), color, false, false, 0.5)
+        if colour ~= COLOUR.text then -- don't display sprite ID if sprite is spawned
+          draw_text(sxpos_screen + 8, sypos_screen + 4, fmt("%03X", sprite_id), colour, false, false, 0.5)
         end
         
-        draw_rectangle(sxpos_screen, sypos_screen, 15, 15, color)
+        draw_rectangle(sxpos_screen, sypos_screen, 15, 15, colour)
         draw_cross(sxpos_screen, sypos_screen, 3, COLOUR.yoshi)
       end
     end
 
     -- Sprite load status
     if OPTIONS.display_sprite_load_status then
-      draw_rectangle(x, y, w-1, h-1, color, 0x80000000)
-      gui.pixelText(x+2, y+2, fmt("%X ", status ~= 0 and 1 or status), color, 0)
+      draw_rectangle(x, y, w-1, h-1, colour, 0x80000000)
+      gui.pixelText(x+2, y+2, fmt("%X ", status ~= 0 and 1 or status), colour, 0)
       x = x + w
       if id%16 == 15 then
         x = x_origin
@@ -3058,12 +3092,12 @@ local function show_counters()
   local switch_timer = u16_wram(WRAM.switch_timer)
   --local end_level_timer = u8_sram(SRAM.end_level_timer)
   
-  local display_counter = function(label, value, default, mult, frame, color)
+  local display_counter = function(label, value, default, mult, frame, colour)
     if value == default then return end
     text_counter = text_counter + 1
-    local color = color or COLOUR.text
+    local colour = colour or COLOUR.text
     
-    draw_text(2, y_pos + (text_counter * height), fmt("%s: %d", label, (value * mult) - frame), color)
+    draw_text(2, y_pos + (text_counter * height), fmt("%s: %d", label, (value * mult) - frame), colour)
   end
   
   if Player_animation_trigger == 5 or Player_animation_trigger == 6 then
@@ -3835,7 +3869,7 @@ while true do
   -- Dark filter to cover the game area -- TODO
   --if Filter_opacity ~= 0 then
     --gui.opacity(Filter_opacity/10)
-    --draw_box(0, 0, Buffer_width, Buffer_height, Filter_color)
+    --draw_box(0, 0, Buffer_width, Buffer_height, Filter_colour)
     --gui.opacity(1.0)
   --end
   
@@ -3914,12 +3948,10 @@ end
 - Tile editor.
 - Cheat to change the ID of selected sprite.
 - Add gap values around the "Emu gaps" buttons in the menu, that dynamically change with forms.settext when you click them. Align text accordingly with forms.setproperty(label_handle, "TextAlign", "ALIGN") with "ALIGN" being one of these https://docs.microsoft.com/en-us/dotnet/api/system.drawing.contentalignment?view=netcore-3.1
+- 
 -
 -
 -
 -
--
-
-
 
 ]]
