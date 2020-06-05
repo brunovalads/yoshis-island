@@ -38,14 +38,17 @@ local DEFAULT_OPTIONS = {
   display_ambient_sprite_info = false,
   display_ambient_sprite_table = true,
   display_ambient_sprite_slot_in_screen = true,
-  display_sprite_data = true,
+  display_sprite_data = false,
   display_sprite_load_status = false,
-  display_sprite_spawning_areas = true,
+  display_sprite_spawning_areas = false,
   display_level_info = true,
-  display_level_help = true,
+  display_level_extra = true,
   display_counters = false,
   display_controller_input = true,
   draw_tiles_with_click = false,
+  draw_dark_filter = false,
+  dark_filter_opacity = 8,
+  display_cw_helper = false,
 
   -- Some extra/debug info
   display_debug_info = false,  -- shows useful info while investigating the game, but not very useful while TASing
@@ -76,10 +79,10 @@ local DEFAULT_OPTIONS = {
   },
   
   -- Script settings
-  left_gap = 230,
-  right_gap = 280,
-  top_gap = 145,
-  bottom_gap = 104,
+  left_gap = 150,
+  right_gap = 190,
+  top_gap = 55,
+  bottom_gap = 24,
   max_tiles_drawn = 40  -- the max number of tiles to be drawn/registered by the script
 }
 
@@ -538,15 +541,9 @@ local WRAM = {  -- 7E0000~7FFFFF
   ctrl_1_2_first = 0x093E,
 
   -- General
-  game_mode = 0x0118,
+  game_mode = 0x0118, -- 2 bytes
   frame_counter = 0x0030,
-  --effective_frame = 0x0014,
-  --lag_indicator = 0x01fe,
-  --timer_frame_counter = 0x0f30,
-  --RNG = 0x148d,
-  --current_level = 0x00fe,  -- plus 1
-  --lock_animation_flag = 0x009d, -- Most codes will still run if this is set, but almost nothing will move or animate.
-  --level_mode_settings = 0x1925,
+  level_index = 0x021A, -- 2 bytes
   red_coin_counter = 0x03B4, -- 2 bytes
   star_counter = 0x03B6, -- 2 bytes
   flower_counter = 0x03B8, -- 2 bytes
@@ -555,15 +552,10 @@ local WRAM = {  -- 7E0000~7FFFFF
   is_paused = 0x0B10,
   Map16_data = 0x18000, -- 32768 bytes table, in words
   level_header = 0x0134, -- 32 bytes table = 16 headers (words), until $0152
-  
-  -- Cheats
-  frozen = 0x13fb,
-  level_paused = 0x13d4,
-  level_index = 0x021A, -- 2 bytes
-  room_index = 0x00ce,
-  level_flag_table = 0x1ea2,
-  level_exit_type = 0x0dd5,
-  midway_point = 0x13ce,
+  items = 0x0357, -- 27 bytes, one byte per pause menu item
+  screen_exit_data = 0x17E00, -- 512 bytes table, format is level, X, Y, type
+  cur_screen_exit = 0x038E, -- 2 bytes
+  level_load_type = 0x038C, -- 2 bytes (but just a flag)
 
   -- Camera
   camera_x = 0x0039,
@@ -594,7 +586,8 @@ local WRAM = {  -- 7E0000~7FFFFF
   layer2_y_nextframe = 0x1468,
 }
 
-local SOLID_BLOCKS = { -- solid and one-way solid blocks, via tests
+-- IDs of solid and one-way solid blocks, via tests
+YI.solid_blocks = { 
 	0x01, 0x02, 0x03, 0x05, 0x06, 0x08, 0x0A, 0x0C, 0x0D, 0x0F,
 	0x10, 0x15, 0x1A, 0x1B, 0x1C ,
 	0x29, 0x2C, 0x2F,
@@ -608,7 +601,8 @@ local SOLID_BLOCKS = { -- solid and one-way solid blocks, via tests
 	0xA0, 0xA1, 0xA2, 0xA3
 }
 
-local PLAYER_COLLISION_TERRAIN_POINTS = { -- In (x,y) pairs. Located at $0AEB0E
+-- Player solid collision points, in (x,y) pairs. Located at $0AEB0E
+YI.player_collision_points = {
   regular = {
     0x01, 0x09, 0x01, 0x17, -- left
     0x0F, 0x09, 0x0F, 0x17, -- right
@@ -630,7 +624,7 @@ local PLAYER_COLLISION_TERRAIN_POINTS = { -- In (x,y) pairs. Located at $0AEB0E
 }
 
 -- Level sprite data pointers
-local SPR_DATA_POINTERS = {
+YI.sprite_data_pointers = {
 --          00        01        02        03        04        05        06        07        08        09        0A        0B        0C        0D        0E        0F
 --[[00]] 0x168583, 0x4CE976, 0x1690B5, 0x14869D, 0x10F4FA, 0x11D2BB, 0x12CF07, 0x15866B, 0x1694A5, 0x12D8E2, 0x1493BF, 0x159245, 0x159D95, 0x15AB8E, 0x15B8F5, 0x14A39B, 
 --[[10]] 0x00F614, 0x12DD4A, 0x14AD4A, 0x14B123, 0x14BAE3, 0x11DE77, 0x15C19A, 0x169E75, 0x16A7C0, 0x14C6C6, 0x15C4E2, 0x14D2C1, 0x14DE8F, 0x15CA77, 0x12E8A7, 0x14E794, 
@@ -648,7 +642,8 @@ local SPR_DATA_POINTERS = {
 --[[D0]] 0x11DFC4, 0x15E8DE, 0x16F099, 0x15FF28, 0x00F77B, 0x11DFC9, 0x15FF69, 0x11DFF2, 0x15FE9E, 0x15FEE8, 0x15FFD5, 0x15FFD5, 0x15FF7D, 0x15FFD0
 }
 
-local AMBIENT_SPRITE_IDS = {
+-- Known ambient sprites IDs -- TODO: test more to see if there's some missing
+YI.ambient_sprite_ids = {
 	0x1BA, 0x1BB, 0x1BC, 0x1BD, 0x1BE, 0x1BF,
 	0x1C2, 0x1C3, 0x1C7, 0x1CA, 0x1CC, 0x1CD,
 	0x1D1, 0x1D2, 0x1D3, 0x1D4, 0x1D5, 0x1D6, 0x1D8, 0x1D9, 0x1DC, 0x1DD, 0x1DF,
@@ -659,6 +654,18 @@ local AMBIENT_SPRITE_IDS = {
 	0x220, 0x221, 0x224, 0x226, 0x227, 0x229, 0x22A, 0x22B, 0x22C, 0x22D, 0x22E
 }
 
+-- Items from pause menu
+YI.item_names = {
+  [01] = "1: +10 star",
+  [02] = "2: +20 star",
+  [03] = "3: POW",
+  [04] = "4: Full egg",
+  [05] = "5: Magnifying glass",
+  [06] = "6: Star cloud",
+  [07] = "7: Green melon",
+  [08] = "8: Ice melon",
+  [09] = "9: Fire melon"
+}
 
 --##########################################################################################################################################################
 -- SCRIPT UTILITIES:
@@ -676,8 +683,9 @@ local Is_lagged = nil
 local Options_form = {}  -- BizHawk
 local Filter_opacity, Filter_colour = 0, 0xff000000  -- Snes9x specifc / unlisted colour
 local Show_player_point_position = false
-local Sprites_info = {}  -- keeps track of useful sprite info that might be used outside the main sprite function
 local Memory = {} -- family of memory edit functions and variables
+local Sprites_info = {}  -- keeps track of useful sprite info that might be used outside the main sprite function
+Sprites_info.selected_id = 0
 
 -- Initialization of some tables
 for i = 0, YI.sprite_max -1 do
@@ -1072,6 +1080,16 @@ local function get_joypad()
   end
 end
 
+
+-- Dark filter to make lua drawings easier to see
+local function dark_filter()
+  if not OPTIONS.draw_dark_filter then return end
+  
+  local filter_colour = OPTIONS.dark_filter_opacity * 0x11000000
+  draw_rectangle(OPTIONS.left_gap, OPTIONS.top_gap, 256-1, 224-1, filter_colour, filter_colour)
+end
+
+
 -- ############################################################
 -- From gocha's
 
@@ -1167,8 +1185,8 @@ local function scan_yi()
   Level_index = u16_wram(WRAM.level_index)
   
   Sprite_data_pointer = u24_sram(SRAM.sprite_data_pointer)
-  for i = 1, #SPR_DATA_POINTERS do
-    if Sprite_data_pointer == SPR_DATA_POINTERS[i] then
+  for i = 1, #YI.sprite_data_pointers do
+    if Sprite_data_pointer == YI.sprite_data_pointers[i] then
       Room_index = i - 1
       break
     end
@@ -1306,8 +1324,8 @@ local function draw_tile_map(camera_x, camera_y)
                   if OPTIONS.draw_tile_map_grid then
                     
                     local block_is_solid = false
-                    for i = 1, #SOLID_BLOCKS do
-                      if kind_high == SOLID_BLOCKS[i] then
+                    for i = 1, #YI.solid_blocks do
+                      if kind_high == YI.solid_blocks[i] then
                         block_is_solid = true
                         break
                       end
@@ -1390,8 +1408,8 @@ local function draw_tiles_clicked(camera_x, camera_y)
       
       -- Drawings
       local block_is_solid = false
-      for i = 1, #SOLID_BLOCKS do
-        if kind_high == SOLID_BLOCKS[i] then
+      for i = 1, #YI.solid_blocks do
+        if kind_high == YI.solid_blocks[i] then
           block_is_solid = true
           break
         end
@@ -1475,6 +1493,8 @@ local function select_object(mouse_x, mouse_y, camera_x, camera_y)
         local x_centered, y_centered = Sprites_info[id].x_centered, Sprites_info[id].y_centered
         local half_width, half_height = Sprites_info[id].sprite_half_width, Sprites_info[id].sprite_half_height
         
+        -- TODO: initialize Sprites_info table, or simply avoid this if not during game_mode_level and not OPTIONS.display_sprite_info
+        
         -- Exception for sprites with no hitboxes
         if half_width < 4 then half_width = 4 end
         if half_height < 4 then half_height = 4 end
@@ -1532,9 +1552,8 @@ local function show_movie_info()
   -- Font
   Text_opacity = 1.0
   Bg_opacity = 1.0
-  local y_text = 2
-  local x_text = 2
   local width = BIZHAWK_FONT_WIDTH
+  local x_text, y_text = 8*width, 0
   
   local rec_colour = (Readonly or not Movie_active) and COLOUR.text or COLOUR.warning
   local recording_bg = (Readonly or not Movie_active) and COLOUR.background or COLOUR.warning_bg 
@@ -1542,28 +1561,32 @@ local function show_movie_info()
   -- Read-only or read-write?
   local movie_type = (not Movie_active and "No movie ") or (Readonly and "Movie " or "REC ")
   alert_text(x_text, y_text, movie_type, rec_colour, recording_bg)
-  
+  x_text = x_text + width*(string.len(movie_type) + 1)
+
   -- Frame count
-  x_text = x_text + width*string.len(movie_type)
   local movie_info
-  if Readonly then
-      movie_info = string.format("%d/%d", Lastframe_emulated, Framecount)
+  if Readonly and Movie_active then
+    movie_info = fmt("%d/%d", Lastframe_emulated, Framecount)
   else
-      movie_info = string.format("%d", Lastframe_emulated)
+    movie_info = fmt("%d", Lastframe_emulated)
   end
   draw_text(x_text, y_text, movie_info)  -- Shows the latest frame emulated, not the frame being run now
   x_text = x_text + width*string.len(movie_info)
-  
-  -- Rerecord count
-  local rr_info = string.format(" %d ", Rerecords)
-  draw_text(x_text, y_text, rr_info, COLOUR.weak)
-  x_text = x_text + width*string.len(rr_info)
-  
-  -- Lag count
-  draw_text(x_text, y_text, Lagcount, COLOUR.warning)
-  
-  local str = frame_time(Lastframe_emulated)    -- Shows the latest frame emulated, not the frame being run now
-  alert_text(Screen_width, Screen_height, str, COLOUR.text, recording_bg, false, 1.0, 1.0)    
+
+  if Movie_active then
+    -- Rerecord count
+    local rr_info = fmt(" %d ", Rerecords)
+    draw_text(x_text, y_text, rr_info, 0x80FFFFFF)
+    x_text = x_text + width*string.len(rr_info)
+
+    -- Lag count
+    draw_text(x_text, y_text, Lagcount, "red")
+    x_text = x_text + width*string.len(Lagcount)
+  end
+
+  -- Time
+  local time_str = frame_time(Lastframe_emulated)   -- Shows the latest frame emulated, not the frame being run now
+  draw_text(x_text, y_text, fmt(" (%s)", time_str))
 end
 
 
@@ -1584,10 +1607,10 @@ local function show_misc_info()
 	if Game_mode ~= YI.game_mode_level or Is_paused then return end
   
 	local star_counter = u16_wram(WRAM.star_counter)
-	local red_coin_counter = u8_wram(WRAM.red_coin_counter)
-	local flower_counter = u8_wram(WRAM.flower_counter)
-	local coin_counter = u8_wram(WRAM.coin_counter)
+	local red_coin_counter = u16_wram(WRAM.red_coin_counter)
+	local flower_counter = u16_wram(WRAM.flower_counter)
   local life_counter = u16_wram(WRAM.lives)
+	local coin_counter = u16_wram(WRAM.coin_counter)
 	local star_effective = math.floor(star_counter/10)
   
 	local temp_str
@@ -1605,12 +1628,12 @@ local function show_misc_info()
 	temp_str = fmt("%d/5", flower_counter)
 	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
 	
-  draw_image("images\\coin_icon.png", x_temp, y_temp)
-	temp_str = fmt("%d", coin_counter)
-	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
-	
   draw_image("images\\yoshi_icon.png", x_temp, y_temp)
 	temp_str = fmt("%d", life_counter)
+	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
+	
+  draw_image("images\\coin_icon.png", x_temp, y_temp)
+	temp_str = fmt("%d", coin_counter)
 	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
 end
 
@@ -1669,7 +1692,6 @@ local function level_info()
   Text_opacity = 0.5
   Bg_opacity = 1.0
   
-  
   --- Current level, converts the level index to the game level number
 	local world_number = floor(Level_index/12) + 1
   local level_number = fmt("%d", Level_index%12 + 1)
@@ -1697,8 +1719,8 @@ local function level_info()
   --- Draw whole level info string
   draw_text(Buffer_middle_x, Screen_height, fmt("%s %s %s", level_str, room_str, screen_str), colour, true, false, 0.5)
   
-	--- Extra help/info
-	if OPTIONS.display_level_help then
+	--- Extra info
+	if OPTIONS.display_level_extra then
   
 		-- Naval Piranha boss activation line
 		if Room_index == 0x7F then
@@ -1746,8 +1768,15 @@ local function level_info()
 					draw_line(yoshi_center_x_screen, OPTIONS.top_gap, yoshi_center_x_screen, Border_bottom_start, COLOUR.positive) -- green
 				end
 			end
-      
     
+    -- Baby Bowser boss activation line
+    elseif Room_index == 0xDD then
+      
+      local line_x_screen, _ = screen_coordinates(0x0068, 0, Camera_x, Camera_y)
+      local fight_activated -- TODO: figure out
+      --if fight_activated ==  then
+        draw_line(line_x_screen, OPTIONS.top_gap + 8, line_x_screen, Border_bottom_start, COLOUR.warning) -- red
+      --end
     end
 	end
 	
@@ -1871,11 +1900,11 @@ local function player_hitbox(x, y, x_centered, y_centered, tongue_x_screen, tong
 		
     local colour = COLOUR.interaction
     
-    local curr_solid_collision_points = PLAYER_COLLISION_TERRAIN_POINTS.regular
+    local curr_solid_collision_points = YI.player_collision_points.regular
     --local is_ducking = u8_sram(SRAM.ducking_state) > 0
     --local is_swimming = u8_sram(SRAM.swimming_state) > 0
-    if u8_sram(SRAM.ducking_state) > 0 then curr_solid_collision_points = PLAYER_COLLISION_TERRAIN_POINTS.ducking end
-    if u8_sram(SRAM.swimming_state) > 0 then curr_solid_collision_points = PLAYER_COLLISION_TERRAIN_POINTS.swimming end
+    if u8_sram(SRAM.ducking_state) > 0 then curr_solid_collision_points = YI.player_collision_points.ducking end
+    if u8_sram(SRAM.swimming_state) > 0 then curr_solid_collision_points = YI.player_collision_points.swimming end
     
     local x_table, y_table = {}, {}
     for i = 1, #curr_solid_collision_points, 2 do -- Divide the collision table that has (x, y) into 2 separated tables, for x and y
@@ -2335,8 +2364,8 @@ local function ambient_sprites()
             
 			-- Alert of new ambient sprite (for documentation purposes)
 			local new_ambsprite = true
-			for i = 1, #AMBIENT_SPRITE_IDS do
-				if ambspr_type == AMBIENT_SPRITE_IDS[i] then
+			for i = 1, #YI.ambient_sprite_ids do
+				if ambspr_type == YI.ambient_sprite_ids[i] then
 					new_ambsprite = false
 					break
 				end
@@ -2478,66 +2507,68 @@ local function sprite_info(id, counter, table_position)
   
   if sprite_status == 0 then info_colour = change_transparency(COLOUR.disabled, 0.5) end -- TODO: make an option if the player wants all visible slots or only active
   
-  -- CREDITS WARP HELPER:
-  
-  --local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, x_centered, x_speed, x_subspeed, y_centered, y_speed, y_subspeed)
-	--draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
-  
-  local cw_info_y_pos = Screen_height - 12*BIZHAWK_FONT_HEIGHT
-  local cw_info_x_tmp = 2
-  
-  local cw_x_subpos = x_sub
-  local cw_x_pos = u8_sram(SRAM.sprite_x + id_off)
-  local cw_x_screen = u8_sram(SRAM.sprite_x + 1 + id_off)
-  
-  local cw_values = {}
-  local cw_colour = COLOUR.warning
-  local cw_str_tmp
-  
-  if id == 6 then
-    cw_values.x_subpos = 0x00 -- $7010F9
-    cw_values.x_pos = 0xA9 -- $7010FA
-    cw_values.x_screen = 0x0D -- $7010FB
-  elseif id == 7 then
-    cw_values.x_subpos = 0x18 -- $7010FD
-    cw_values.x_pos = 0x0A -- $7010FE
-    cw_values.x_screen = 0x02 -- $7010FF
-  elseif id == 8 then
-    cw_values.x_subpos = 0x99 -- $701101
-    cw_values.x_pos = 0x4C -- $701102
-    cw_values.x_screen = 0x00 -- $701103
-  elseif id == 9 then
-    cw_values.x_subpos = 0x00 -- $701105
-    cw_values.x_pos = 0x6B -- $701106
-    cw_values.x_screen = 0x02 -- $701107
-  end
-  
-  if id == 6 then -- to draw this just once
-    draw_text(cw_info_x_tmp + 9*BIZHAWK_FONT_WIDTH, cw_info_y_pos + (counter-7)*BIZHAWK_FONT_HEIGHT, "Xsub Xpos Xscr")
-  end
-  
-  if id >= 6 and id <= 9 then
-    cw_str_tmp = fmt("<%02d> %03X ", id, sprite_type)
-    draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp)
+  -- Credits Warp Helper -- TODO: decide if this will be here or somewhere else
+  if OPTIONS.display_cw_helper then
     
-    if cw_x_subpos == cw_values.x_subpos then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
-    cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
-    cw_str_tmp = fmt(" %02X  ", cw_x_subpos)
-    draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
+    --local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, x_centered, x_speed, x_subspeed, y_centered, y_speed, y_subspeed)
+    --draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
     
-    if cw_x_pos == cw_values.x_pos then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
-    cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
-    cw_str_tmp = fmt(" %02X  ", cw_x_pos)
-    draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
+    local cw_info_y_pos = Screen_height - 12*BIZHAWK_FONT_HEIGHT
+    local cw_info_x_tmp = 2
     
-    if cw_x_screen == cw_values.x_screen then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
-    cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
-    cw_str_tmp = fmt(" %02X  ", cw_x_screen)
-    draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
+    local cw_x_subpos = x_sub
+    local cw_x_pos = u8_sram(SRAM.sprite_x + id_off)
+    local cw_x_screen = u8_sram(SRAM.sprite_x + 1 + id_off)
+    
+    local cw_values = {}
+    local cw_colour = COLOUR.warning
+    local cw_str_tmp
+    
+    if id == 6 then
+      cw_values.x_subpos = 0x00 -- $7010F9
+      cw_values.x_pos = 0xA9 -- $7010FA
+      cw_values.x_screen = 0x0D -- $7010FB
+    elseif id == 7 then
+      cw_values.x_subpos = 0x18 -- $7010FD
+      cw_values.x_pos = 0x0A -- $7010FE
+      cw_values.x_screen = 0x02 -- $7010FF
+    elseif id == 8 then
+      cw_values.x_subpos = 0x99 -- $701101
+      cw_values.x_pos = 0x4C -- $701102
+      cw_values.x_screen = 0x00 -- $701103
+    elseif id == 9 then
+      cw_values.x_subpos = 0x00 -- $701105
+      cw_values.x_pos = 0x6B -- $701106
+      cw_values.x_screen = 0x02 -- $701107
+    end
+    
+    if id == 6 then -- to draw this just once
+      draw_text(cw_info_x_tmp + 9*BIZHAWK_FONT_WIDTH, cw_info_y_pos + (counter-7)*BIZHAWK_FONT_HEIGHT, "Xsub Xpos Xscr")
+    end
+    
+    if id >= 6 and id <= 9 then
+      cw_str_tmp = fmt("<%02d> %03X ", id, sprite_type)
+      draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp)
+      
+      if cw_x_subpos == cw_values.x_subpos then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
+      cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
+      cw_str_tmp = fmt(" %02X  ", cw_x_subpos)
+      draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
+      
+      if cw_x_pos == cw_values.x_pos then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
+      cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
+      cw_str_tmp = fmt(" %02X  ", cw_x_pos)
+      draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
+      
+      if cw_x_screen == cw_values.x_screen then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
+      cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
+      cw_str_tmp = fmt(" %02X  ", cw_x_screen)
+      draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
+    end
   end
   
   -- Depawning position
-  if is_offscreen then
+  if is_offscreen and OPTIONS.display_sprite_spawning_areas then
   
     local x_off, y_off
     
@@ -2580,7 +2611,7 @@ local function sprite_info(id, counter, table_position)
   ---**********************************************
   -- Special sprites analysis:
   
-	if OPTIONS.display_sprite_special_info and Game_mode == YI.game_mode_level then
+	if OPTIONS.display_sprite_special_info and Game_mode == YI.game_mode_level and sprite_status ~= 0 then
 	
 		-- Goal ring
 		if sprite_type == 0x00D then
@@ -2817,6 +2848,15 @@ local function sprite_info(id, counter, table_position)
       end
       gui.drawPolygon(vertex_table, "cyan")
     end
+    
+    -- Baby Bowser
+    if sprite_type == 0x134 then
+      
+      -- HP, timers, AI
+      
+      
+    end
+    
     
 		-- Green/Red switch for spiked platform
 		if sprite_type == 0x15C or sprite_type == 0x15D then
@@ -3181,14 +3221,17 @@ local function left_click()
     return
   end
   
-  -- Drag and drop sprites
-  if Cheat.allow_cheats then
-    local id = select_object(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
-    if type(id) == "number" and id >= 0 and id < YI.sprite_max then
+  -- Store selected sprite
+
+  local id = select_object(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
+  if type(id) == "number" and id >= 0 and id < YI.sprite_max then
+    Sprites_info.selected_id = id
+    
+    if Cheat.allow_cheats then
       Cheat.dragging_sprite_id = id
       Cheat.is_dragging_sprite = true
-      return
     end
+    return
   end
   
   -- Select tile
@@ -3245,123 +3288,67 @@ local function read_raw_input()
 end
 
 
--- This function runs at the end of paint callback
--- Specific for info that changes if the emulator is paused and idle callback is called
-local function snes9x_buttons()
-    -- Font
-    Text_opacity = 1.0
-    
-    if not Options_menu.show_menu and User_input.mouse_inwindow == 1 then
-        create_button(100, 0, " Menu ", function() Options_menu.show_menu = true end) -- Snes9x
-        
-        create_button(-Border_left, Buffer_height - Border_bottom, Cheat.allow_cheats and "Cheats: allowed" or "Cheats: blocked",
-            function() Cheat.allow_cheats = not Cheat.allow_cheats end, {always_on_client = true, ref_y = 1.0})
-        ;
-		
-        create_button(Screen_width, Buffer_height + Border_bottom, "Erase Tiles",
-            function() Tiletable = {} end, {always_on_client = true, ref_y = 1.0})
-        ;
-    else
-        if Cheat.allow_cheats then  -- show cheat status anyway
-            Text_opacity = 0.8
-            draw_text(-Border_left, Buffer_height + Border_bottom, "Cheats: allowed", COLOUR.warning, true, false, 0, 1)
-        end
-    end
-    
-    -- Drag and drop sprites with the mouse
-    if Cheat.is_dragging_sprite then
-        Cheat.drag_sprite(Cheat.dragging_sprite_id)
-        Cheat.is_cheating = true
-    end
-    
-    Options_menu.display()
-end
-
-
-
 --#############################################################################
 -- CHEATS
 
--- This signals that some cheat is activated, or was some short time ago
+-- Forbid cheats on script start
 Cheat.allow_cheats = false
 Cheat.is_cheating = false
+Cheat.under_invincibility = false
+Cheat.under_free_move = false
+Cheat.sprite_dragging_enabled = false
+
+-- This signals that some cheat is activated, or was some short time ago
 function Cheat.is_cheat_active()
-    if Cheat.is_cheating then
-        alert_text(Buffer_middle_x - 3*BIZHAWK_FONT_WIDTH, 0, " Cheat ", COLOUR.warning,COLOUR.warning_bg)
-        Previous.is_cheating = true
-    else
-        if Previous.is_cheating then
-            emu.message("Script applied cheat")
-            Previous.is_cheating = false
-        end
+  if Cheat.is_cheating then
+    local cheat_str = " CHEAT "
+    if Cheat.under_free_move then cheat_str = cheat_str .. "- Free movement " end
+    if Cheat.under_invincibility then cheat_str = cheat_str .. "- Invincibility " end
+    if Cheat.sprite_dragging_enabled then cheat_str = cheat_str .. "- Sprite dragging " end
+    
+    draw_text(Buffer_middle_x, OPTIONS.top_gap - 3*BIZHAWK_FONT_HEIGHT, cheat_str, "red", "blue", false, false, 0.5)
+    
+    Previous.is_cheating = true
+  else
+    if Previous.is_cheating then
+      gui.addmessage("Script applied cheat")
+      Previous.is_cheating = false
     end
+  end
 end
 
 
 -- Called from Cheat.beat_level()
-function Cheat.activate_next_level(secret_exit)
-    if u8_wram(WRAM.level_exit_type) == 0x80 and u8_wram(WRAM.midway_point) == 1 then
-        if secret_exit then
-            w8_wram(WRAM.level_exit_type, 0x2)
-        else
-            w8_wram(WRAM.level_exit_type, 1)
-        end
-    end
-    
-    Cheat.is_cheating = true
+function Cheat.activate_next_level() -- TODO
+
+  
+  Cheat.is_cheating = true
 end
 
 
--- allows start + select + X to activate the normal exit
---        start + select + A to activate the secret exit 
---        start + select + B to exit the level without activating any exits
-function Cheat.beat_level()
-    if Is_paused and Joypad["select"] and (Joypad["X"] or Joypad["A"] or Joypad["B"]) then
-        w8_wram(WRAM.level_flag_table + Level_index, bit.bor(Level_flag, 0x80))
-        
-        local secret_exit = Joypad["A"]
-        if not Joypad["B"] then
-            w8_wram(WRAM.midway_point, 1)
-        else
-            w8_wram(WRAM.midway_point, 0)
-        end
-        
-        Cheat.activate_next_level(secret_exit)
-    end
+-- Cheat to beat the level
+function Cheat.beat_level() -- TODO
+
+  Cheat.activate_next_level()
+  
 end
 
 
--- This function makes Mario's position free
--- Press L+R+up to activate and L+R+down to turn it off.
--- While active, press directionals to fly free and Y or X to boost him up
-Cheat.under_free_move = false
+-- Free movement cheat:
+-- While active, press directionals to fly Yoshi freely and Y or X to boost him up
 function Cheat.free_movement()
-  if (Joypad["L"] and Joypad["R"] and Joypad["up"]) then Cheat.under_free_move = true end
-  if (Joypad["L"] and Joypad["R"] and Joypad["down"]) then Cheat.under_free_move = false ; w8_sram(SRAM.sprite_freeze_flag, 0) end -- ram write to re-enable sprite interaction if you disabled before end
-  if not Cheat.under_free_move then
-    if Previous.under_free_move then return end
-    return
-  end
-
+  
+  -- Get current position
   local x_pos, y_pos = Yoshi_x, Yoshi_y
-  local pixels = (Joypad["Y"] and 7) or (Joypad["X"] and 4) or 1  -- how many pixels per frame
+  
+  -- Set movement speed
+  local pixels = (Joypad["Y"] and 8) or (Joypad["X"] and 4) or 1  -- how many pixels per frame
 
   -- Math
-  if Joypad["left"] then x_pos = x_pos - pixels ; w8_sram(SRAM.direction, 2)  end
-  if Joypad["right"] then x_pos = x_pos + pixels ; w8_sram(SRAM.direction, 0) end
-  if Joypad["up"] then y_pos = y_pos - pixels end
-  if Joypad["down"] then y_pos = y_pos + pixels end
-
-  -- Disable normal button behavior
-  if Joypad["down"] then pad_send[1].down = false end -- avoid ground pound
-  --if Joypad["down"] then gui.text(100, 100, "down", COLOUR.text) end
-  if Joypad["A"] then pad_send[1].A = false end -- avoid throwing egg
-  --if Joypad["A"] then gui.text(100, 100, "A", COLOUR.text) end
-  if Joypad["B"] then pad_send[1].B = false end -- avoid "jumping"
-  --if Joypad["B"] then gui.text(100, 100, "B", COLOUR.text) end
-  if Joypad["Y"] then pad_send[1].Y = false end -- avoid licking
-  --if Joypad["Y"] then gui.text(100, 100, "Y", COLOUR.text) end
-  joypad.set(1, pad_send[1]) -- set
+  if Joypad["Left"] then x_pos = x_pos - pixels ; w8_sram(SRAM.direction, 2)  end
+  if Joypad["Right"] then x_pos = x_pos + pixels ; w8_sram(SRAM.direction, 0) end
+  if Joypad["Up"] then y_pos = y_pos - pixels end
+  if Joypad["Down"] then y_pos = y_pos + pixels end
 
   -- Manipulate the addresses
   w16_sram(SRAM.x, x_pos)
@@ -3373,8 +3360,6 @@ function Cheat.free_movement()
   w8_sram(SRAM.invincibility_timer, 120)
   w16_sram(SRAM.player_blocked_status, 1) -- TODO: figure out why it doesn't work
   w16_sram(SRAM.on_sprite_platform, 1) -- to make the game think you're in a platform, so the camera scrolls vertically too
-  --w8_sram(SRAM.sprite_freeze_flag, 1) -- to disable sprite interaction
-  w16_sram(0x00C0, 0) -- REMOVE/TEST
 
   Cheat.is_cheating = true
   Previous.under_free_move = true
@@ -3427,6 +3412,8 @@ function Cheat.drag_sprite(id)
   w16_sram(SRAM.sprite_x + 4*id, sprite_x_pos)
   w16_sram(SRAM.sprite_y + 4*id, sprite_y_pos)
   
+  w16_sram(SRAM.sprite_y_subspeed + 4*id, 0)
+  
   
   --w8_wram(WRAM.sprite_x_high + id, sprite_xhigh)
   --w8_wram(WRAM.sprite_x_low + id, sprite_xlow)
@@ -3435,20 +3422,108 @@ function Cheat.drag_sprite(id)
 end
 
 
--- Snes9x: modifies address <address> value from <current> to <current + modification>
--- [size] is the optional size in bytes of the address
--- TODO: [is_signed] is untrue if the value is unsigned, true otherwise
-function Cheat.change_address(address, modification, size)
-  size = size or 1
-  local memoryf_read =  (size == 1 and u8) or (size == 2 and u16) or (size == 3 and u24) or error"size is too big"
-  local memoryf_write = (size == 1 and w8) or (size == 2 and w16) or (size == 3 and w24) or error"size is too big"
-  local max_value = 256^size - 1
-  local current = memoryf_read(address)
-  --if is_signed then max_value = signed(max_value, 8*size) end
+-- Level warp cheat
+-- Player must input the level/room ID (values above 0xE9 may glitch!) and the x, y coordinates (in blocks)
+function Cheat.level_warp(level_id, x, y)
   
-  local new = (current + modification)%(max_value + 1)
-  memoryf_write(address, new)
+  -- Error check (if some input is missing)
+  local ERROR = false
+  local error_message = "Level warp cheat need "
+  if level_id == "" then error_message = error_message .. "a level ID" ; ERROR = true end
+  if x == "" or y == "" then error_message = error_message .. (level_id == "" and " and " or "") .. "(x, y) coordinates" ; ERROR = true end
+  
+  if not ERROR then
+    -- Convert strings to hex numbers
+    level_id = tonumber(level_id, 16)
+    x = tonumber(x, 16)
+    y = tonumber(y, 16)
+    
+    -- Write memory to do the warp
+    w8_wram(WRAM.screen_exit_data + 0, level_id)
+    w8_wram(WRAM.screen_exit_data + 1, x)
+    w8_wram(WRAM.screen_exit_data + 2, y)
+    w8_wram(WRAM.screen_exit_data + 3, 0x00) -- normal Yoshi control
+    w16_wram(WRAM.cur_screen_exit, 0x0000)
+    w16_wram(WRAM.level_load_type, 0x0001)
+    w16_wram(WRAM.game_mode, 0x000B)
+    
+    print(fmt("Cheat: warped to level $%02X at position (%03X0, %03X0).", level_id, x, y))
+  else
+    print(error_message)
+  end
+end
+
+
+-- Tool to modify address <address> value to a new value <value_form> in the specified domain <domain> (only WRAM and SRAM currently supported)
+-- Optional: address size <size> in bytes; if value is hex <is_hex> or decimal; criterion returned from a function <criterion>; some error message <error_message> if value is out of range; some success message <success_message> if the tool successfully edited the address (accepts string, false (display nothin), and nil (display default message))
+function Cheat.change_address(domain, address, value_form, size, is_hex, criterion, error_message, success_message)
+  if not Cheat.allow_cheats then
+    print("Cheats not allowed.")
+    return
+  end
+
+  size = size or 1
+  local max_value = 256^size - 1
+  local value = Options_form[value_form] and forms.gettext(Options_form[value_form]) or value_form
+  local default_criterion = function(value)
+    if type(value) == "string" then
+      local number = string.match(value, is_hex and "%x+" or "%d+")
+      if not number then return false end
+
+      value = tonumber(number, is_hex and 16 or 10) -- take first number of the string
+    else
+      value = tonumber(value, is_hex and 16 or 10)
+    end
+
+    if not value or value%1 ~= 0 or value < 0 or value > max_value then
+      return false
+    else
+      return value
+    end
+  end
+  
+  local new = default_criterion(value)
+  if criterion and new then
+    new = criterion(new) and new or false
+  end
+  if not new then
+    print(error_message or "Enter a valid value.")
+    return
+  end
+
+  local memoryf
+  if domain == "WRAM" then
+    memoryf = (size == 1 and w8_wram) or (size == 2 and w16_wram) or (size == 3 and w24_wram) or error"size is too big"
+  elseif domain == "SRAM" then
+    memoryf = (size == 1 and w8_sram) or (size == 2 and w16_sram) or (size == 3 and w24_sram) or error"size is too big"
+  else
+    print("Enter a valid memory domain")
+    return
+  end
+  memoryf(address, new)
+  
+  if success_message ~= false then
+    print(success_message and fmt("Cheat: %s set to %s.", success_message, is_hex and fmt("0x%X", new) or fmt("%d", new)) or fmt("Cheat: set %s $%04X to %s.", domain, address, is_hex and fmt("0x%X", new) or fmt("%d", new)))
+  end
+  
   Cheat.is_cheating = true
+end
+
+-- Function that handles all passive cheats (in other words, cheats that must act every frame instead of just one trigger)
+function Cheat.passive_cheats()
+  if not Cheat.allow_cheats then return end
+
+  Cheat.is_cheating = false
+  
+  -- Free movement
+  if Cheat.under_free_move then Cheat.free_movement() end
+  
+  -- Invincibility
+  if Cheat.under_invincibility then
+    w8_sram(SRAM.invincibility_timer, 2)
+    Cheat.is_cheating = true
+    Previous.under_invincibility = true
+  end
 end
 
 
@@ -3473,7 +3548,7 @@ function Options_form.create_window()
   --- MAIN ---------------------------------------------------------------------------------------
 
   -- Create form
-  local form_width, form_height = 500, 500
+  local form_width, form_height = 380, 800
   Options_form.form = forms.newform(form_width, form_height, "YI Script Options")
   -- Set form location based on the emu window
   local emu_window_x, emu_window_y = client.xpos(), client.ypos()
@@ -3485,7 +3560,11 @@ function Options_form.create_window()
   
   --- SHOW/HIDE ---------------------------------------------------------------------------------------
   
-  forms.label(Options_form.form, "Show/hide options:", xform, yform)
+  Options_form.show_hide_label = forms.label(Options_form.form, "Show/hide options", xform, yform)
+  forms.setproperty(Options_form.show_hide_label, "AutoSize", true)
+  forms.setlocation(Options_form.show_hide_label, (form_width-16)/2 - forms.getproperty(Options_form.show_hide_label, "Width")/2, yform)
+  forms.label(Options_form.form, string.rep("-", 150), xform - 2, yform, form_width, 20)
+  
   yform = yform + 1.25*delta_y
   
   local y_section, y_bigger = yform  -- 1st row
@@ -3569,7 +3648,7 @@ function Options_form.create_window()
   yform = yform + delta_y
   
   Options_form.level_extra_info = forms.checkbox(Options_form.form, "Extra", xform, yform)
-  forms.setproperty(Options_form.level_extra_info, "Checked", OPTIONS.display_level_help)
+  forms.setproperty(Options_form.level_extra_info, "Checked", OPTIONS.display_level_extra)
   yform = yform + delta_y
   
   Options_form.tile_map_grid = forms.checkbox(Options_form.form, "Tile grid", xform, yform)
@@ -3584,38 +3663,13 @@ function Options_form.create_window()
   forms.setproperty(Options_form.tile_map_screen, "Checked", OPTIONS.draw_tile_map_screen)
   yform = yform + delta_y
 
-  if yform > y_bigger then y_bigger = yform end 
-  
-  -- Other
-  xform, yform = xform + delta_x, y_section
-  forms.label(Options_form.form, "Other:", xform, yform)
-  yform = yform + delta_y
-  
-  Options_form.misc_info = forms.checkbox(Options_form.form, "Miscellaneous", xform, yform)
-  forms.setproperty(Options_form.misc_info, "Checked", OPTIONS.display_misc_info)
-  yform = yform + delta_y
-  
-  Options_form.counters_info = forms.checkbox(Options_form.form, "Counters info", xform, yform)
-  forms.setproperty(Options_form.counters_info, "Checked", OPTIONS.display_counters)
-  yform = yform + delta_y
-  
-  Options_form.movie_info = forms.checkbox(Options_form.form, "Movie info", xform, yform)
-  forms.setproperty(Options_form.movie_info, "Checked", OPTIONS.display_movie_info)
-  yform = yform + delta_y
-
-  --[[
-  Options_form.overworld_info = forms.checkbox(Options_form.form, "Overworld info", xform, yform)
-  forms.setproperty(Options_form.overworld_info, "Checked", OPTIONS.display_overworld_info)
-  yform = yform + delta_y
-  ]]
-  
-  if yform > y_bigger then y_bigger = yform end 
+  if yform > y_bigger then y_bigger = yform end
   
   -- Debug/Extra
   
   y_section = y_bigger + delta_y  -- 2nd row
-  
   xform, yform = 4, y_section
+  
   forms.label(Options_form.form, "Debug info:", xform, yform, 62, 22)
   yform = yform + delta_y
   
@@ -3634,22 +3688,59 @@ function Options_form.create_window()
   Options_form.debug_controller_data = forms.checkbox(Options_form.form, "Controller data", xform, yform)
   forms.setproperty(Options_form.debug_controller_data, "Checked", OPTIONS.display_debug_controller_data)
   yform = yform + delta_y
+  
+  if yform > y_bigger then y_bigger = yform end 
 
-  -- Ambient sprites
+  -- Ambient sprites -- TODO
   
   xform, yform = xform + delta_x, y_section
   forms.label(Options_form.form, "Ambient sprites:", xform, yform)
   yform = yform + delta_y
   
-  forms.label(Options_form.form, "> TODO <", xform, yform + delta_y) -- REMOVE
+  Options_form.todo_label = forms.label(Options_form.form, "> TODO <", xform, yform + delta_y) -- REMOVE once done
+  forms.setproperty(Options_form.todo_label, "Enabled", false) -- REMOVE once done
   
-  -- TODO
+  if yform > y_bigger then y_bigger = yform end 
+  
+  -- Other
+  xform, yform = xform + delta_x, y_section
+  forms.label(Options_form.form, "Other:", xform, yform)
+  yform = yform + delta_y
+  
+  Options_form.misc_info = forms.checkbox(Options_form.form, "Miscellaneous", xform, yform)
+  forms.setproperty(Options_form.misc_info, "Checked", OPTIONS.display_misc_info)
+  yform = yform + delta_y
+  
+  Options_form.counters_info = forms.checkbox(Options_form.form, "Counters info", xform, yform)
+  forms.setproperty(Options_form.counters_info, "Checked", OPTIONS.display_counters)
+  yform = yform + delta_y
+  
+  Options_form.movie_info = forms.checkbox(Options_form.form, "Movie info", xform, yform)
+  forms.setproperty(Options_form.movie_info, "Checked", OPTIONS.display_movie_info)
+  yform = yform + delta_y
+  
+  Options_form.cw_helper = forms.checkbox(Options_form.form, "Credis Warp help", xform, yform)
+  forms.setproperty(Options_form.cw_helper, "Checked", OPTIONS.display_cw_helper)
+  forms.setproperty(Options_form.cw_helper, "Width", 110)
+  yform = yform + delta_y
+
+  --[[
+  Options_form.overworld_info = forms.checkbox(Options_form.form, "Overworld info", xform, yform)
+  forms.setproperty(Options_form.overworld_info, "Checked", OPTIONS.display_overworld_info)
+  yform = yform + delta_y
+  ]]
+  
+  if yform > y_bigger then y_bigger = yform end 
   
   --- SETTINGS ---------------------------------------------------------------------------------------
   
-  xform, yform = xform + delta_x, y_section
+  y_section = y_bigger + delta_y -- 3rd row
+  xform, yform = 4, y_section
   
-  forms.label(Options_form.form, "Script settings:", xform, yform, 78, 22)
+  Options_form.script_settings_label = forms.label(Options_form.form, "Script settings", xform, yform)
+  forms.setproperty(Options_form.script_settings_label, "AutoSize", true)
+  forms.setlocation(Options_form.script_settings_label, (form_width-16)/2 - forms.getproperty(Options_form.script_settings_label, "Width")/2, yform)
+  forms.label(Options_form.form, string.rep("-", 150), xform - 2, yform, form_width, 20)
   yform = yform + delta_y
 
   Options_form.draw_tiles_with_click = forms.checkbox(Options_form.form, "Draw tiles", xform, yform)
@@ -3666,6 +3757,35 @@ function Options_form.create_window()
   Options_form.write_help_handle = forms.button(Options_form.form, "Help", Options_form.write_help, xform, yform)
   yform = yform + delta_y
   
+  -- Dark filter
+  xform, yform = xform - 85, yform + delta_y
+  Options_form.dark_filter = forms.checkbox(Options_form.form, "Dark filter", xform, yform)
+  forms.setproperty(Options_form.dark_filter, "Checked", OPTIONS.draw_dark_filter)
+  forms.setproperty(Options_form.dark_filter, "AutoSize", true)
+  
+  xform = xform + 72
+  Options_form.dark_filter_decrease = forms.button(Options_form.form, "-", function()
+    OPTIONS.dark_filter_opacity = OPTIONS.dark_filter_opacity - 1
+    if OPTIONS.dark_filter_opacity < 0 then OPTIONS.dark_filter_opacity = 0 end
+  end, xform, yform - 4, 16, 24)
+  forms.setproperty(Options_form.dark_filter_decrease, "Enabled", OPTIONS.draw_dark_filter)
+  
+  xform = xform + 16
+  Options_form.dark_filter_increase = forms.button(Options_form.form, "+", function()
+    OPTIONS.dark_filter_opacity = OPTIONS.dark_filter_opacity + 1
+    if OPTIONS.dark_filter_opacity > 0xf then OPTIONS.dark_filter_opacity = 0xf end
+  end, xform, yform - 4, 16, 24)
+  forms.setproperty(Options_form.dark_filter_increase, "Enabled", OPTIONS.draw_dark_filter)
+  
+  forms.addclick(Options_form.dark_filter, function() -- to enable/disable child options on click
+    OPTIONS.draw_dark_filter = forms.ischecked(Options_form.dark_filter) or false
+    
+    forms.setproperty(Options_form.dark_filter_decrease, "Enabled", OPTIONS.draw_dark_filter)
+    forms.setproperty(Options_form.dark_filter_increase, "Enabled", OPTIONS.draw_dark_filter)
+  end)
+  
+  if yform > y_bigger then y_bigger = yform end 
+  
   -- Emu gaps
   
   local function emu_gaps_update(side)
@@ -3673,7 +3793,7 @@ function Options_form.create_window()
     forms.settext(Options_form[side .. "_label"], fmt("%d", OPTIONS[side]))
   end
   
-  xform, yform = xform - 37, yform + delta_y
+  xform, yform = xform + 150, y_section + 2*delta_y
   -- top gap
   Options_form.top_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.top_gap), xform, yform - 20, 48, delta_y)
   forms.setproperty(Options_form.top_gap_label, "TextAlign", "BottomCenter")
@@ -3699,7 +3819,6 @@ function Options_form.create_window()
     OPTIONS.left_gap = OPTIONS.left_gap + 10
     emu_gaps_update("left_gap")
   end, xform, yform, 24, 24)
-  if yform > y_bigger then y_bigger = yform end
   -- right gap
   xform = xform + 3*24
   Options_form.right_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.right_gap), xform, yform - 20, 48, delta_y)
@@ -3713,7 +3832,6 @@ function Options_form.create_window()
     OPTIONS.right_gap = OPTIONS.right_gap + 10
     emu_gaps_update("right_gap")
   end, xform, yform, 24, 24)
-  if yform > y_bigger then y_bigger = yform end
   -- bottom gap
   xform, yform = xform - 3*24, yform + 24
   Options_form.bottom_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.bottom_gap), xform, yform + 24, 48, delta_y)
@@ -3727,52 +3845,317 @@ function Options_form.create_window()
     OPTIONS.bottom_gap = OPTIONS.bottom_gap + 10
     emu_gaps_update("bottom_gap")
   end, xform, yform, 24, 24)
-  if yform > y_bigger then y_bigger = yform end
   -- label
   xform, yform = xform - 26, yform - 20
   forms.label(Options_form.form, "Emu gaps", xform, yform, 70, 20)
   
   --- CHEATS ---------------------------------------------------------------------------------------
   
-  y_section = yform + delta_y -- 3rd row
+  y_section = y_bigger + 2*delta_y -- 4th row
   xform, yform = 4, y_section
   
-  Options_form.allow_cheats = forms.checkbox(Options_form.form, "Allow cheats", xform, yform)
+  Options_form.allow_cheats = forms.checkbox(Options_form.form, "Cheats", xform, yform)
   forms.setproperty(Options_form.allow_cheats, "Checked", Cheat.allow_cheats)
+  forms.setproperty(Options_form.allow_cheats, "TextAlign", "TopRight")
+  forms.setproperty(Options_form.allow_cheats, "CheckAlign", "TopRight")
+  forms.setproperty(Options_form.allow_cheats, "AutoSize", true)
+  forms.setlocation(Options_form.allow_cheats, (form_width-16)/2 - forms.getproperty(Options_form.allow_cheats, "Width")/2, yform)
+  forms.label(Options_form.form, string.rep("-", 150), xform - 2, yform, form_width, 20)
   
-  --[[ Coin cheat
-  xform = xform + 60
-  forms.button(Options_form.form, "Coin", function() Cheat.change_address(WRAM.player_coin, "coin_number", 1, false,
-    function(num) return num < 100 end, "Enter an integer between 0 and 99.", "coin")
-  end, xform, yform, 43, 24)
-
-  xform = xform + 45
-  Options_form.coin_number = forms.textbox(Options_form.form, "", 24, 16, "UNSIGNED", xform, yform + 2, false, false)
-
-  -- Positon cheat
-  xform = 2
-  yform = yform + 28
-  forms.button(Options_form.form, "Position", function()
-    Cheat.change_address(WRAM.x, "player_x", 2, false, nil, "Enter a valid x position", "x position")
-    Cheat.change_address(WRAM.x_sub, "player_x_sub", 1, true, nil, "Enter a valid x subpixel", "x subpixel")
-    Cheat.change_address(WRAM.y, "player_y", 2, false, nil, "Enter a valid y position", "y position")
-    Cheat.change_address(WRAM.y_sub, "player_y_sub", 1, true, nil, "Enter a valid y subpixel", "y subpixel")
-  end, xform, yform, 60, 24)
-
+  -- Function that creates a button with an image:
+  -- <name> is which name it should have, to create the handles accordingly (string);
+  -- <x> and <y> position;
+  -- <width> and <height> of the image used;
+  -- <colour> is the background colour in the button, it's optional (0xaarrggbb colour or name)
+  -- <image> is the path to the image (string)
+  -- <button_fn> is the function the button should have (function)
+  -- <enabled> is whether the button should start enabled or disabled, it's optional, enabled is default (boolean)
+  local function image_button(name, x, y, width, height, colour, image, button_fn, enabled)
+    
+    -- Picture box handle, mandatory to draw images
+    Options_form[name.."_picture_box"] = forms.pictureBox(Options_form.form, x + 2, y + 3, width + 2, height + 2)
+    -- Optional background colour of the picture box
+    if colour then forms.clear(Options_form[name.."_picture_box"], colour) end
+    -- Draw the image
+    forms.drawImage(Options_form[name.."_picture_box"], image, 1, 1)
+    -- Disable the image so it can't be select, this is needed to the mouse can click the button under
+    forms.setproperty(Options_form[name.."_picture_box"], "Enabled", false)
+    -- Creates the button
+    Options_form[name.."_button"] = forms.button(Options_form.form, "", button_fn, x, y + 1, width + 6, height + 6)
+    -- Disables the button, optionally
+    if enabled == false then forms.setproperty(Options_form[name.."_button"], "Enabled", enabled) end
+    
+  end
+  
+  -- Stars cheat
+  yform = yform + 1.5*delta_y
+  y_section = yform
+  --[[
+  Options_form.stars_button = forms.button(Options_form.form, "", function() Cheat.change_address("WRAM", WRAM.star_counter, forms.gettext(Options_form.stars_number), 2, false,
+    nil, "Enter a valid integer (0-65535)", "Stars")
+  end, xform, yform + 1, 22, 22)
+  forms.setproperty(Options_form.stars_button, "Enabled", Cheat.allow_cheats)
+  ]]
+  image_button("stars", xform, yform, 16, 16, "black", "images\\star_icon.png",
+    function() Cheat.change_address("WRAM", WRAM.star_counter, "stars_number", 2, false,
+    nil, "Enter a valid integer (0-65535)", "Stars") end, Cheat.allow_cheats)
+    
+  xform = xform + 24
+  Options_form.stars_number = forms.textbox(Options_form.form, "", 40, 16, "UNSIGNED", xform, yform + 2, false, false)
+  forms.setproperty(Options_form.stars_number, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.stars_number, "MaxLength", 5)
+  
+  -- Red coins cheat
+  xform, yform = 4, yform + 1.5*delta_y
+  --[[
+  Options_form.red_coins_button = forms.button(Options_form.form, "Red coins", function() Cheat.change_address("WRAM", WRAM.red_coin_counter, forms.gettext(Options_form.red_coins_number), 2, false,
+    nil, "Enter a valid integer (0-65535)", "Red coins")
+  end, xform, yform, 64, 24)
+  forms.setproperty(Options_form.red_coins_button, "Enabled", Cheat.allow_cheats)]]
+  image_button("red_coins", xform, yform, 16, 16, "black", "images\\red_coin_icon.png",
+    function() Cheat.change_address("WRAM", WRAM.red_coin_counter, "red_coins_number", 2, false,
+    nil, "Enter a valid integer (0-65535)", "Red coins") end, Cheat.allow_cheats)
+    
+  xform = xform + 24
+  Options_form.red_coins_number = forms.textbox(Options_form.form, "", 40, 16, "UNSIGNED", xform, yform + 2, false, false)
+  forms.setproperty(Options_form.red_coins_number, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.red_coins_number, "MaxLength", 5)
+  
+  -- Flowers cheat
+  xform, yform = 4, yform + 1.5*delta_y
+  --[[
+  Options_form.flowers_button = forms.button(Options_form.form, "Flowers", function() Cheat.change_address("WRAM", WRAM.flower_counter, forms.gettext(Options_form.flowers_number), 2, false,
+    nil, "Enter a valid integer (0-65535)", "Flowers")
+  end, xform, yform, 52, 24)
+  forms.setproperty(Options_form.flowers_button, "Enabled", Cheat.allow_cheats)]]
+  image_button("flowers", xform, yform, 16, 16, "black", "images\\flower_icon.png",
+    function() Cheat.change_address("WRAM", WRAM.flower_counter, "flowers_number", 2, false,
+    nil, "Enter a valid integer (0-65535)", "Flowers") end, Cheat.allow_cheats)
+    
+  xform = xform + 24
+  Options_form.flowers_number = forms.textbox(Options_form.form, "", 40, 16, "UNSIGNED", xform, yform + 2, false, false)
+  forms.setproperty(Options_form.flowers_number, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.flowers_number, "MaxLength", 5)
+  
+  -- Lives cheat
+  xform, yform = 4, yform + 1.5*delta_y
+  --[[
+  Options_form.lives_button = forms.button(Options_form.form, "Lives", function() Cheat.change_address("WRAM", WRAM.lives, forms.gettext(Options_form.lives_number), 2, false,
+    nil, "Enter a valid integer (0-65535)", "Lives")
+  end, xform, yform, 52, 24)
+  forms.setproperty(Options_form.lives_button, "Enabled", Cheat.allow_cheats)]]
+  image_button("lives", xform, yform, 16, 16, "black", "images\\yoshi_icon.png",
+    function() Cheat.change_address("WRAM", WRAM.lives, "lives_number", 2, false,
+    nil, "Enter a valid integer (0-65535)", "Lives") end, Cheat.allow_cheats)
+    
+  xform = xform + 24
+  Options_form.lives_number = forms.textbox(Options_form.form, "", 40, 16, "UNSIGNED", xform, yform + 2, false, false)
+  forms.setproperty(Options_form.lives_number, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.lives_number, "MaxLength", 5)
+  
+  -- Coins cheat
+  xform, yform = 4, yform + 1.5*delta_y
+  --[[
+  Options_form.coins_button = forms.button(Options_form.form, "Coins", function() Cheat.change_address("WRAM", WRAM.coin_counter, forms.gettext(Options_form.coins_number), 2, false,
+    nil, "Enter a valid integer (0-65535)", "Coins")
+  end, xform, yform, 52, 24)
+  forms.setproperty(Options_form.coins_button, "Enabled", Cheat.allow_cheats)]]
+  image_button("coins", xform, yform, 16, 16, "black", "images\\coin_icon.png",
+    function() Cheat.change_address("WRAM", WRAM.coin_counter, "coins_number", 2, false,
+    nil, "Enter a valid integer (0-65535)", "Coins") end, Cheat.allow_cheats)
+    
+  xform = xform + 24
+  Options_form.coins_number = forms.textbox(Options_form.form, "", 40, 16, "UNSIGNED", xform, yform + 2, false, false)
+  forms.setproperty(Options_form.coins_number, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.coins_number, "MaxLength", 5)
+  
+  -- Yoshi position cheat
+  xform, yform = 4, yform + 1.5*delta_y
+  Options_form.cheat_position = forms.button(Options_form.form, "Position", function()
+    Cheat.change_address("SRAM", SRAM.x,     "player_x", 2, true, nil, "Enter a valid x position", false)
+    Cheat.change_address("SRAM", SRAM.x_sub, "player_x_sub", 1, true, nil, "Enter a valid x subpixel", false)
+    Cheat.change_address("SRAM", SRAM.y,     "Options_form.player_y", 2, true, nil, "Enter a valid y position", false)
+    Cheat.change_address("SRAM", SRAM.y_sub, "Options_form.player_y_sub", 1, true, nil, "Enter a valid y subpixel", false)
+    print(fmt("Cheat: Position set to (%s.%s, %s.%s).", 
+      forms.gettext(Options_form.player_x) and forms.gettext(Options_form.player_x) or "____",
+      forms.gettext(Options_form.player_x_sub) and string.lower(forms.gettext(Options_form.player_x_sub)) or "__",
+      forms.gettext(Options_form.player_y) and forms.gettext(Options_form.player_y) or "____",
+      forms.gettext(Options_form.player_y_sub) and string.lower(forms.gettext(Options_form.player_y_sub)) or "__")
+    )
+  end, xform, yform, 52, 24)
+  forms.setproperty(Options_form.cheat_position, "Enabled", Cheat.allow_cheats)
+  
   yform = yform + 2
   xform = xform + 62
-  Options_form.player_x = forms.textbox(Options_form.form, "", 32, 16, "UNSIGNED", xform, yform, false, false)
-  xform = xform + 33
+  Options_form.player_x = forms.textbox(Options_form.form, "", 38, 16, "HEX", xform, yform, false, false)
+  xform = xform + 40
   Options_form.player_x_sub = forms.textbox(Options_form.form, "", 28, 16, "HEX", xform, yform, false, false)
   xform = xform + 34
-  Options_form.player_y = forms.textbox(Options_form.form, "", 32, 16, "UNSIGNED", xform, yform, false, false)
-  xform = xform + 33
+  Options_form.player_y = forms.textbox(Options_form.form, "", 38, 16, "HEX", xform, yform, false, false)
+  xform = xform + 40
   Options_form.player_y_sub = forms.textbox(Options_form.form, "", 28, 16, "HEX", xform, yform, false, false)
+  forms.setproperty(Options_form.player_x, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.player_x_sub, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.player_y, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.player_y_sub, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.player_x, "MaxLength", 4)
+  forms.setproperty(Options_form.player_x_sub, "MaxLength", 2)
+  forms.setproperty(Options_form.player_y, "MaxLength", 4)
+  forms.setproperty(Options_form.player_y_sub, "MaxLength", 2)
+  
+  Options_form.coordinates_label = forms.label(Options_form.form, "(             .          ,             .          )", 4 + 54, yform + 2, form_width, 20)
+  forms.setproperty(Options_form.coordinates_label, "AutoSize", true)
+  forms.setproperty(Options_form.coordinates_label, "Enabled", Cheat.allow_cheats)
+  
+  -- Free movement cheat
+  xform, yform = 80, y_section
+  Options_form.free_movement = forms.checkbox(Options_form.form, "Free movement", xform, yform)
+  forms.setproperty(Options_form.free_movement, "Checked", Cheat.under_free_move)
+  forms.setproperty(Options_form.free_movement, "Enabled", Cheat.allow_cheats)
+  
+  -- Invincibility cheat
+  yform = yform + delta_y
+  Options_form.invincibility = forms.checkbox(Options_form.form, "Invincibility", xform, yform)
+  forms.setproperty(Options_form.invincibility, "Checked", Cheat.under_invincibility)
+  forms.setproperty(Options_form.invincibility, "Enabled", Cheat.allow_cheats)
+  
+  -- Sprite dragging cheat
+  yform = yform + delta_y
+  Options_form.sprite_dragging = forms.checkbox(Options_form.form, "Sprite dragging", xform, yform)
+  forms.setproperty(Options_form.sprite_dragging, "Checked", Cheat.sprite_dragging_enabled)
+  forms.setproperty(Options_form.sprite_dragging, "Enabled", Cheat.allow_cheats)
+  
+  -- Menu items cheat
+  xform, yform = 200, y_section
+  
+  local function free_slot()
+    for slot = 0, 26 do
+      if u8_wram(WRAM.items + slot) == 0 then return slot end
+    end
+    return 0 -- if all slots are filled it will return the first one
+  end
+  
+  Options_form.item_button = forms.button(Options_form.form, "Item", function()
+    Cheat.change_address("WRAM", WRAM.items + free_slot(), "item_number", 1, false, nil, nil, false) 
+    print(fmt("Cheat: got %s item.", string.sub(forms.gettext(Options_form.item_number), 4)))
+  end, xform, yform, 40, 24)
+  forms.setproperty(Options_form.item_button, "AutoSize", true)
+  forms.setproperty(Options_form.item_button, "Enabled", Cheat.allow_cheats)
+  
+  Options_form.item_number = forms.dropdown(Options_form.form, YI.item_names, xform + 42, yform + 1, 100, 20)
+  forms.setproperty(Options_form.item_number, "Enabled", Cheat.allow_cheats)
+  
+  -- Level warp
+  yform = yform + 2*delta_y
+  Options_form.warp_button = forms.button(Options_form.form, "Warp", function()
+    Cheat.level_warp(forms.gettext(Options_form.warp_level), forms.gettext(Options_form.warp_x), forms.gettext(Options_form.warp_y))
+  end, xform, yform, 40, 24)
+  forms.setproperty(Options_form.warp_button, "AutoSize", true)
+  forms.setproperty(Options_form.warp_button, "Enabled", Cheat.allow_cheats)
+  
+  xform = xform + forms.getproperty(Options_form.warp_button, "Width") + 2
+  Options_form.warp_level = forms.textbox(Options_form.form, "", 22, 16, "HEX", xform, yform + 2, false, false)
+  forms.setproperty(Options_form.warp_level, "MaxLength", 2)
+  forms.setproperty(Options_form.warp_level, "Enabled", Cheat.allow_cheats)
+  Options_form.warp_level_label = forms.label(Options_form.form, "Level", xform, yform - 12)
+  forms.setproperty(Options_form.warp_level_label, "AutoSize", true)
+  forms.setproperty(Options_form.warp_level_label, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Options_form.warp_level, "Width", forms.getproperty(Options_form.warp_level_label, "Width"))
+  
+  xform = xform + forms.getproperty(Options_form.warp_level, "Width") + 2
+  Options_form.warp_x = forms.textbox(Options_form.form, "", 22, 16, "HEX", xform, yform + 2, false, false)
+  forms.setproperty(Options_form.warp_x, "MaxLength", 2)
+  forms.setproperty(Options_form.warp_x, "Enabled", Cheat.allow_cheats)
+  Options_form.warp_x_label = forms.label(Options_form.form, "X", xform, yform - 12, 22, 13)
+  forms.setproperty(Options_form.warp_x_label, "TextAlign", "TopCenter")
+  forms.setproperty(Options_form.warp_x_label, "Enabled", Cheat.allow_cheats)
+  
+  xform = xform + forms.getproperty(Options_form.warp_x, "Width") + 2
+  Options_form.warp_y = forms.textbox(Options_form.form, "", 22, 16, "HEX", xform, yform + 2, false, false)
+  forms.setproperty(Options_form.warp_y, "MaxLength", 2)
+  forms.setproperty(Options_form.warp_y, "Enabled", Cheat.allow_cheats)
+  Options_form.warp_y_label = forms.label(Options_form.form, "Y", xform, yform - 12, 22, 13)
+  forms.setproperty(Options_form.warp_y_label, "TextAlign", "TopCenter")
+  forms.setproperty(Options_form.warp_y_label, "Enabled", Cheat.allow_cheats)
+  
+  
+  --[[TODO CHEATS:
+  [ ] - Arne's sprite spawn
+  [ ] - Sprite select to change ID, delete, etc (id select is already done in Sprites_info.selected_id = id)
+  [ ] - Sprite table editor, that you can select which sprite slot you want edit via dropdown list or clicking the sprite itself
+  [ ] - Egg inventory editor (hard, need to force sprite spawning, or do like the Practice Cart where only is set in overworld by poking $7E5D98 and $7E5D9A)
+  [ ] - Full save unlock, by writing into SRAM
+  [ ] - Tile editor
   ]]
   
   
+  -- Enabling/disabling child options
+  forms.addclick(Options_form.allow_cheats, function()
+    Cheat.allow_cheats = forms.ischecked(Options_form.allow_cheats) or false
+    
+    forms.setproperty(Options_form.stars_button, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.stars_number, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.red_coins_button, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.red_coins_number, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.flowers_button, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.flowers_number, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.lives_button, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.lives_number, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.coins_button, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.coins_number, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.cheat_position, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.player_x, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.player_x_sub, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.player_y, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.player_y_sub, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.coordinates_label, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.free_movement, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.invincibility, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.sprite_dragging, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.item_button, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.item_number, "Enabled", Cheat.allow_cheats)
+  
+    forms.setproperty(Options_form.warp_button, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.warp_level, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.warp_level_label, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.warp_x, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.warp_x_label, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.warp_y, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.warp_y_label, "Enabled", Cheat.allow_cheats)
+  
+    -- TODO: report issue: it's painting the whole form when this is called inside addclick event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+    --forms.clear(Options_form.stars_picture_box, 0xff000000) --0xffF0F0F0) -- TODO: report issue: it's painting the whole form when this is called inside addclick event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    --forms.clearImageCache(Options_form.stars_picture_box) -- REMOVE/TEST
+    --[[
+    if Cheat.allow_cheats then
+      forms.drawImage(Options_form.stars_picture_box, "images\\star_icon.png", 1, 1)
+    else
+      forms.drawImage(Options_form.stars_picture_box, "images\\star_icon_disabled.png", 1, 1)
+    end
+    forms.refresh(Options_form.stars_picture_box) -- REMOVE/TEST]] -- TODO: report issue: after any refresh all the images are drawn over all the picture boxes
+  
+  
+  
+  end)
+  
+  
+  -- Resize options form height base on the amount of options
+  --forms.setproperty(Options_form.form, "Height", y_bigger + 70) -- TODO
+  
+  --- DEBUG ---------------------------------------------------------------------------------------
+  
   -- Background for dev/debug tests
-  --Options_form.picture_box = forms.pictureBox(Options_form.form, 0, 0, form_width, tonumber(forms.getproperty(Options_form.form, "Height")))
+  Options_form.picture_box = forms.pictureBox(Options_form.form, 0, 0, form_width, tonumber(forms.getproperty(Options_form.form, "Height")))
   --forms.clear(Options_form.picture_box, 0xffFF0000)
 end
 
@@ -3797,7 +4180,7 @@ function Options_form.evaluate_form()
   -- Level
   OPTIONS.display_level_info = forms.ischecked(Options_form.level_info) or false
   OPTIONS.display_sprite_data =  forms.ischecked(Options_form.sprite_data) or false
-  OPTIONS.display_level_help =  forms.ischecked(Options_form.level_extra_info) or false
+  OPTIONS.display_level_extra =  forms.ischecked(Options_form.level_extra_info) or false
   OPTIONS.draw_tile_map_grid =  forms.ischecked(Options_form.tile_map_grid) or false
   OPTIONS.draw_tile_map_type =  forms.ischecked(Options_form.tile_map_type) or false
   OPTIONS.draw_tile_map_screen =  forms.ischecked(Options_form.tile_map_screen) or false  
@@ -3805,6 +4188,7 @@ function Options_form.evaluate_form()
   OPTIONS.display_misc_info = forms.ischecked(Options_form.misc_info) or false
   OPTIONS.display_counters = forms.ischecked(Options_form.counters_info) or false
   OPTIONS.display_movie_info = forms.ischecked(Options_form.movie_info) or false
+  OPTIONS.display_cw_helper = forms.ischecked(Options_form.cw_helper) or false
 --OPTIONS.display_overworld_info = forms.ischecked(Options_form.overworld_info) or false
   
   --- Debug/Extra -------------------------------------------------------------------------------------------
@@ -3816,9 +4200,13 @@ function Options_form.evaluate_form()
   --- Settings -------------------------------------------------------------------------------------------
   OPTIONS.draw_tiles_with_click = forms.ischecked(Options_form.draw_tiles_with_click) or false
   OPTIONS.display_mouse_coordinates = forms.ischecked(Options_form.mouse_info) or false
+  OPTIONS.draw_dark_filter = forms.ischecked(Options_form.dark_filter) or false
   
   --- Cheats -------------------------------------------------------------------------------------------
   Cheat.allow_cheats = forms.ischecked(Options_form.allow_cheats) or false
+  Cheat.under_free_move = forms.ischecked(Options_form.free_movement) or false
+  Cheat.under_invincibility = forms.ischecked(Options_form.invincibility) or false
+  Cheat.sprite_dragging_enabled = forms.ischecked(Options_form.sprite_dragging) or false
 end
 
 
@@ -3869,7 +4257,7 @@ if not file_exists("images\\yoshi_blocked_status.png") then error(error_str) end
 if not file_exists("images\\yoshi_icon.png") then error(error_str) end
 
 
-print("Lua script loaded successfully.\n")
+print("Yoshi's Island Lua script loaded successfully.\n")
 
 -- Main script loop
 while true do
@@ -3884,12 +4272,8 @@ while true do
   read_raw_input()
   scan_yi()
   
-  -- Dark filter to cover the game area -- TODO
-  --if Filter_opacity ~= 0 then
-    --gui.opacity(Filter_opacity/10)
-    --draw_box(0, 0, Buffer_width, Buffer_height, Filter_colour)
-    --gui.opacity(1.0)
-  --end
+  -- Get player input
+  Joypad = joypad.get(1)
   
   -- Drawings  
   if Is_lagged then
@@ -3897,6 +4281,7 @@ while true do
     
     gui.clearImageCache() -- unload unused images, "inside lag" to no run every frame
   end
+  dark_filter()
   level_mode()
   overworld_mode()
   show_movie_info()
@@ -3904,12 +4289,28 @@ while true do
   --show_controller_data()
   show_mouse_info()
   
-  Cheat.is_cheat_active()
+  -- Cheats
+  if Cheat.allow_cheats then
+    Cheat.is_cheat_active()
+    
+    -- Warning
+    gui.drawText(Buffer_middle_x - 57, Border_bottom_start, "Cheats allowed!", COLOUR.warning, 0xA00040FF)
+    if Movie_active then
+      gui.drawText(Buffer_middle_x - 124, Border_bottom_start + 15, "Disable it while recording movies", COLOUR.warning, 0xA00040FF)
+    end
+    
+    -- Passive cheats
+    Cheat.passive_cheats()
+    
+    -- Drag and drop sprites with the mouse (Cheat)
+    if Cheat.sprite_dragging_enabled and Cheat.is_dragging_sprite then
+      Cheat.drag_sprite(Cheat.dragging_sprite_id)
+      Cheat.is_cheating = true
+    end
+    
+  else -- to make sure these cheats are not activated while Cheats is disabled
   
-  -- Drag and drop sprites with the mouse (Cheat)
-  if Cheat.is_dragging_sprite then
-    Cheat.drag_sprite(Cheat.dragging_sprite_id)
-    Cheat.is_cheating = true
+    Cheat.under_invincibility = false
   end
 
 
@@ -3944,12 +4345,15 @@ while true do
   draw_text(Buffer_middle_x, Buffer_middle_y, "TEST MIDDLE", "red", 0, 12)]]
   
   --for number, positions in ipairs(Tiletable) do  -- REMOVE/TEST
-  for number = 1, #Tiletable do  -- REMOVE/TEST
+  --for number = 1, #Tiletable do  -- REMOVE/TEST
     
     --print(Tiletable[number])
     
-  end
+  --end
   
+  --draw_text(0, 2*BIZHAWK_FONT_HEIGHT, "Options_form.warp_level = " .. forms.gettext(Options_form.warp_level) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_level))))
+  --draw_text(0, 3*BIZHAWK_FONT_HEIGHT, "Options_form.warp_x = " .. forms.gettext(Options_form.warp_x) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_x))))
+  --draw_text(0, 4*BIZHAWK_FONT_HEIGHT, "Options_form.warp_y = " .. forms.gettext(Options_form.warp_y) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_y))))
   
   -- (End of drawings)
 
@@ -3961,10 +4365,7 @@ end
 
 --[[ TODO LIST #########################################################################################################################
 
-- Sprite editor on click: click sprite > form pop out > textboxes to edit every single table.
-- Import Arne's sprite spawn cheat.
-- Tile editor.
-- Cheat to change the ID of selected sprite.
+- 
 - 
 - 
 -
