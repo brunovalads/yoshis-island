@@ -667,6 +667,530 @@ YI.item_names = {
   [09] = "9: Fire melon"
 }
 
+-- Sprite IDs and names (and maybe other info i might add later)
+YI.sprites = {
+  [0x000] = "Log, floating on water / lava",
+  [0x001] = "Closed door",
+  [0x002] = "Naval Piranha's stalk",
+  [0x003] = "Crate, key",
+  [0x004] = "Item from Star Mario block",
+  [0x006] = "Chill",
+  [0x005] = "Icy watermelon",
+  [0x007] = "Watermelon",
+  [0x008] = "Rubble",
+  [0x009] = "Fire watermelon",
+  [0x00A] = "Kaboomba",
+  [0x00B] = "Cannonball of Kaboomba",
+  [0x00C] = "Raphael the Raven",
+  [0x00D] = "Goal ring",
+  [0x00E] = "G O A L !",
+  [0x00F] = "BONUS CHALLENGE",
+  [0x010] = "Caged Ghost, round mound",
+  [0x011] = "Item Card",
+  [0x012] = "Boss Door",
+  [0x013] = "Boss Explosion",
+  [0x014] = "Key from defeated boss",
+  [0x015] = "Torpedo of Yoshi Submarine",
+  [0x016] = "Bigger Boo",
+  [0x017] = "Frog Pirate",
+  [0x018] = "Flame of Red Watermelon",
+  [0x019] = "Bubble",
+  [0x01A] = "Ski lift",
+  [0x01B] = "Vertical log, floating on lava",
+  [0x01C] = "Dr. Freezegood, nothing / 6 stars / 1-up / Bumpty",
+  [0x01D] = "Dr. Freezegood, with ski lift",
+  [0x01E] = "Shy Guy, green / red / yellow / purple",
+  [0x01F] = "Rotating Doors",
+  [0x020] = "Bandit",
+  [0x021] = "? bucket",
+  [0x022] = "Flashing Egg",
+  [0x023] = "Red Egg",
+  [0x024] = "Yellow Egg",
+  [0x025] = "Green Egg",
+  [0x026] = "Giant Egg, for battle with Bowser",
+  [0x027] = "Key",
+  [0x028] = "Huffin' Puffin, running away",
+  [0x029] = "Giant Egg, Yoshi while Super Baby Mario",
+  [0x02A] = "Red Giant Egg",
+  [0x02B] = "Green Giant Egg",
+  [0x02C] = "Lunge Fish",
+  [0x02D] = "Salvo the Slime",
+  [0x02E] = "Salvo the Slime 's eyes",
+  [0x02F] = "Little Mouser's Nest",
+  [0x030] = "Little Mouser",
+  [0x031] = "Potted Spiked Fun Guy",
+  [0x032] = "Little Mouser, looking around, in nest / behind stuff",
+  [0x033] = "Little Mouser, from nest",
+  [0x034] = "Pot for Rogger the Potted Ghost",
+  [0x035] = "Rogger the Potted Ghost",
+  [0x036] = "(BG3) Falling down wall",
+  [0x037] = "Grim Leecher",
+  [0x038] = "Flame spat by Rogger the Potted Ghost",
+  [0x039] = "(BG3) Spinning wooden platform",
+  [0x03A] = "3 Mini-Ravens",
+  [0x03B] = "Mini-Raven",
+  [0x03C] = "Tap-Tab the Red Nose",
+  [0x03D] = "(BG3) Seesaw",
+  [0x03E] = "Skinny platform",
+  [0x03F] = "Slime",
+  [0x040] = "Baby Luigi",
+  [0x041] = "Stork",
+  [0x042] = "Vertical pipe entrance",
+  [0x043] = "Red Giant Shy Guy",
+  [0x044] = "Green Giant Shy Guy",
+  [0x045] = "Prince Froggy , throat / before fight / throat with uvula / after fight",
+  [0x046] = "Burt the Bushful",
+  [0x047] = "Shy Guy for Rogger the Potted Ghost",
+  [0x048] = "Kamek, for scenes before boss fights",
+  [0x049] = "The head of fire of the Thunder Lakitu",
+  [0x04A] = "Fire of Thunder Lakitu",
+  [0x04B] = "Hypocenter of the thunder",
+  [0x04C] = "Upside down Blow Hard",
+  [0x04D] = "unknown",
+  [0x04E] = "Locked door",
+  [0x04F] = "Middle ring",
+  [0x050] = "(BG3) Board",
+  [0x051] = "(BG3) Large log",
+  [0x052] = "Balloon",
+  [0x053] = "Kamek, says 'OH MY!!!'",
+  [0x054] = "Upside down Wild Piranha",
+  [0x055] = "Green Pinwheel",
+  [0x056] = "Pink Pinwheel",
+  [0x057] = "(BG3) Sewer ghost with Flatbed Ferry on its head",
+  [0x058] = "Green Solo Toady",
+  [0x059] = "Continuous Super Star",
+  [0x05A] = "Spark of Raphael the Raven.",
+  [0x05B] = "Coin Bandit",
+  [0x05C] = "Pink Toadie",
+  [0x05D] = "[CRASH]",
+  [0x05E] = "(BG3) Plank",
+  [0x05F] = "(BG3) Plank",
+  [0x060] = "Bomb",
+  [0x061] = "Baby Mario",
+  [0x062] = "Goomba",
+  [0x063] = "Muddy Buddy",
+  [0x064] = "Pink Pinwheel, (X: direction) (Y: size)",
+  [0x065] = "Red coin",
+  [0x066] = "Wild Piranha",
+  [0x067] = "Hidden Winged Cloud, stars / seed / flower / 1-up",
+  [0x068] = "Flashing Egg Block",
+  [0x069] = "Red Egg Block",
+  [0x06A] = "Yellow Egg Block",
+  [0x06B] = "Hit green Egg Block",
+  [0x06C] = "Large Spring Ball",
+  [0x06D] = "Hootie the Blue Fish, clockwise",
+  [0x06E] = "Hootie the Blue Fish, anticlockwise",
+  [0x06F] = "Spring Ball",
+  [0x070] = "Clawdaddy",
+  [0x071] = "Big Boo with 3 Boos / Big Boo / Big Boo with 3 Boos / Boo",
+  [0x072] = "Train Bandit",
+  [0x073] = "(BG3) Balloon Pumper with red balloon",
+  [0x074] = "Spike",
+  [0x075] = "Spiked ball",
+  [0x076] = "Piro Dangle, clockwise",
+  [0x077] = "Piro Dangle, anticlockwise",
+  [0x078] = "Biting Bullet Bill Blaster",
+  [0x079] = "Bouncing Bullet Bill Blaster",
+  [0x07A] = "Bullet Bill Blaster",
+  [0x07B] = "Biting Bullet Bill",
+  [0x07C] = "Bouncing Bullet Bill",
+  [0x07D] = "Bullet Bill",
+  [0x07E] = "Dent of castella",
+  [0x07F] = "Log seesaw",
+  [0x080] = "Lava Bubble",
+  [0x081] = "Lava Bubble, jumps across",
+  [0x082] = "Chain Chomp",
+  [0x083] = "Cloud",
+  [0x084] = "Teleport sprite",
+  [0x085] = "Harry Hedgehog",
+  [0x086] = "[CRASH]",
+  [0x087] = "Red Egg, gives 1-up",
+  [0x088] = "Super Star",
+  [0x089] = "Red Flatbed Ferry, moving horizontally",
+  [0x08A] = "Pink Flatbed Ferry, moving vertically",
+  [0x08B] = "Mock Up, green / red",
+  [0x08C] = "Yoshi, at the Goal",
+  [0x08D] = "Fly Guy, 5 stars / red coin / 1-up / 1-up",
+  [0x08E] = "Kamek, at Bowser's room",
+  [0x08F] = "Swing of Grinders",
+  [0x090] = "(BG3) Dangling Ghost",
+  [0x091] = "4 Toadies",
+  [0x092] = "Melon Bug",
+  [0x093] = "Door",
+  [0x094] = "Expansion Block",
+  [0x095] = "Blue checkered block",
+  [0x096] = "Red checkered block",
+  [0x097] = "POW",
+  [0x098] = "Yoshi Block",
+  [0x099] = "Spiny Egg",
+  [0x09A] = "Chained green Flatbed Ferry",
+  [0x09B] = "Mace Guy",
+  [0x09C] = "Mace",
+  [0x09D] = "!-switch",
+  [0x09E] = "Chomp Rock",
+  [0x09F] = "Wild Ptooie Piranha, spits 1 / 3 Needlenose",
+  [0x0A0] = "Tulip",
+  [0x0A1] = "Pot of Potted Spiked Fun Guy",
+  [0x0A2] = "Fireball of Thunder Lakitu",
+  [0x0A3] = "Bandit, getting under cover, left",
+  [0x0A4] = "Bandit, getting under cover, right",
+  [0x0A5] = "Nep-Enut / Gargantua Blargg",
+  [0x0A6] = "Incoming Chomp",
+  [0x0A7] = "Flcok of Incoming Chomps",
+  [0x0A8] = "Falling Incoming Chomp",
+  [0x0A9] = "Shadow of falling Incoming Chomp",
+  [0x0AA] = "Shy Guy in background",
+  [0x0AB] = "Fill Eggs",
+  [0x0AC] = "Sign Arrow and Shadow",
+  [0x0AD] = "Hint Block",
+  [0x0AE] = "Hookbill the Koopa",
+  [0x0AF] = "Morph Bubble, Car",
+  [0x0B0] = "Morph Bubble, Mole Tank",
+  [0x0B1] = "Morph Bubble, Helicopter",
+  [0x0B2] = "Morph Bubble, Train",
+  [0x0B3] = "Wind of Fuzzy",
+  [0x0B4] = "Morph Bubble, Submarine",
+  [0x0B5] = "Hidden Winged Cloud, 1-up / 5 stars / !-switch / 5 stars",
+  [0x0B6] = "Winged Cloud, 8 coins",
+  [0x0B7] = "Winged Cloud, bubbled 1-up",
+  [0x0B8] = "Winged Cloud, flower",
+  [0x0B9] = "Winged Cloud, POW",
+  [0x0BA] = "Winged Cloud, stairs, right / left",
+  [0x0BB] = "Winged Cloud, platform, right / left",
+  [0x0BC] = "Winged Cloud, Bandit",
+  [0x0BD] = "Winged Cloud, coin (object)",
+  [0x0BE] = "Winged Cloud, 1-up",
+  [0x0BF] = "Winged Cloud, key",
+  [0x0C0] = "Winged Cloud, 3 stars",
+  [0x0C1] = "Winged Cloud, 5 stars",
+  [0x0C2] = "Winged Cloud, door",
+  [0x0C3] = "Winged Cloud, ground eater",
+  [0x0C4] = "Winged Cloud, watermelon",
+  [0x0C5] = "Winged Cloud, fire watermelon",
+  [0x0C6] = "Winged Cloud, icy watermelon",
+  [0x0C7] = "Winged Cloud, seed of sunflower with 3 leaves",
+  [0x0C8] = "Winged Cloud, seed of sunflower with 6 leaves",
+  [0x0C9] = "Winged Cloud (CRASH)",
+  [0x0CA] = "Boss Door of Bowser's room",
+  [0x0CB] = "Winged Cloud, random item.",
+  [0x0CC] = "Winged Cloud, !-switch / !-switch",
+  [0x0CD] = "Baron Von Zeppelin, Giant Egg",
+  [0x0CE] = "Bowser's flame",
+  [0x0CF] = "Bowser's quake",
+  [0x0D0] = "Horizontal entrance, towards right",
+  [0x0D1] = "Hidden entrance, revealed by an ! switch",
+  [0x0D2] = "Marching Milde",
+  [0x0D3] = "Giant Milde",
+  [0x0D4] = "Large Milde",
+  [0x0D5] = "Moutain backgrounds at fight with Hookbill the Koopa",
+  [0x0D6] = "(BG3) Ghost with Flatbed Ferry on its head",
+  [0x0D7] = "Sluggy the Unshaven",
+  [0x0D8] = "Chomp signboard.",
+  [0x0D9] = "Fishin' Lakitu",
+  [0x0DA] = "Flower pot, key / 6 stars / 6 coins / nothing",
+  [0x0DB] = "(BG3) Soft thing",
+  [0x0DC] = "Snowball",
+  [0x0DD] = "Closer, in Naval Piranha's room",
+  [0x0DE] = "Falling Rock",
+  [0x0DF] = "Piscatory Pete, Blue / Gold",
+  [0x0E0] = "Preying Mantas",
+  [0x0E1] = "Loch Nestor",
+  [0x0E2] = "Boo Blah, normal / upside down",
+  [0x0E3] = "Boo Blah with Piro Dangle, normal / upside down",
+  [0x0E4] = "Heading cactus",
+  [0x0E5] = "Green Needlenose",
+  [0x0E6] = "Gusty, left / right / infinite right / infinite left",
+  [0x0E7] = "Burt, two / one",
+  [0x0E8] = "Goonie, right / towards Yoshi / generator right / generator left",
+  [0x0E9] = "3 Flightless Goonies",
+  [0x0EA] = "Cloud Drop, moving vertically",
+  [0x0EB] = "Cloud Drop, moving horizontally",
+  [0x0EC] = "Flamer Guy, jumping around",
+  [0x0ED] = "Flamer Guy, walking around",
+  [0x0EE] = "Eggo-Dill",
+  [0x0EF] = "Eggo-Dill's face",
+  [0x0F0] = "Petal of Eggo-Dill",
+  [0x0F1] = "Bubble-Plant",
+  [0x0F2] = "Stilt Guy, green / red / yellow / purple",
+  [0x0F3] = "Woozy Guy, green / red / yellow / purple",
+  [0x0F4] = "Egg-Plant / Needlenose-Plant",
+  [0x0F5] = "Slugger",
+  [0x0F6] = "Parent and children of Huffin' Puffins",
+  [0x0F7] = "Barney Bubble",
+  [0x0F8] = "Blow Hard",
+  [0x0F9] = "Yellow Needlenose",
+  [0x0FA] = "Flower",
+  [0x0FB] = "Spear Guy, long spear",
+  [0x0FC] = "Spear Guy, short spear",
+  [0x0FD] = "Zeus Guy",
+  [0x0FE] = "Energy of Zeus Guy",
+  [0x0FF] = "Poochy",
+  [0x100] = "Bubbled 1-up",
+  [0x101] = "Spiky mace",
+  [0x102] = "Spiky mace, double-ended",
+  [0x103] = "Boo Guys spinning spiky mace",
+  [0x104] = "Jean de Fillet, right / left",
+  [0x105] = "Boo Guys, carrying bombs towards left.",
+  [0x106] = "Boo Guys, carrying bombs towards right",
+  [0x107] = "Seed of watermelon",
+  [0x108] = "Milde",
+  [0x109] = "Tap-Tap",
+  [0x10A] = "Tap-Tap, stays on ledges",
+  [0x10B] = "Hopping Tap-tap",
+  [0x10C] = "Chained spike ball, controlled by Boo Guy",
+  [0x10D] = "Boo Guy, rotating a pulley, right / left",
+  [0x10E] = "Crate, 6 stars",
+  [0x10F] = "Boo Man Bluff",
+  [0x110] = "Flower",
+  [0x111] = "Georgette Jelly",
+  [0x112] = "Splashed Georgette Jelly",
+  [0x113] = "Snifit",
+  [0x114] = "Bullet, shot by Snifit",
+  [0x115] = "Coin, gravity affected",
+  [0x116] = "Floating round platform on water",
+  [0x117] = "Donut Lift",
+  [0x118] = "Giant Donut Lift",
+  [0x119] = "Spooky",
+  [0x11A] = "Green Glove",
+  [0x11B] = "Lakitu, one / two",
+  [0x11C] = "Lakitu's cloud",
+  [0x11D] = "Spiny Egg",
+  [0x11E] = "Brown Arrow Wheel",
+  [0x11F] = "Blue Arrow Wheel",
+  [0x120] = "Double-ended arrow lift",
+  [0x121] = "Explosion of Number Platform",
+  [0x122] = "? bucket, Bandit",
+  [0x123] = "? bucket, 5 coins",
+  [0x124] = "Stretch, green / red / yellow / purple",
+  [0x125] = "Kamek, for the ending scene / flying and chases",
+  [0x126] = "Spiked log held by chain and pulley",
+  [0x127] = "? Pulley",
+  [0x128] = "Ground shake",
+  [0x129] = "Fuzzy",
+  [0x12A] = "Shy Guy, with Bandit hidden",
+  [0x12B] = "Fat Guy, red / green",
+  [0x12C] = "Fly Guy carrying red coin / Whirly Fly Guy",
+  [0x12D] = "Yoshi, in the intro scene",
+  [0x12E] = "unknown",
+  [0x12F] = "Lava Drop, moving horizontally",
+  [0x130] = "Lava Drop, moving vertically",
+  [0x131] = "Locked door",
+  [0x132] = "Lemon Drop",
+  [0x133] = "Lantern Ghost",
+  [0x134] = "Baby Bowser",
+  [0x135] = "Raven, always circling, anticlockwise / clockwise",
+  [0x136] = "Raven, anticlockwise / clockwise initially",
+  [0x137] = "3x6 Falling Rock",
+  [0x138] = "3x3 Falling Rock",
+  [0x139] = "3x9 Falling Rock",
+  [0x13A] = "6x3 Falling Rock",
+  [0x13B] = "Stomach Acid",
+  [0x13C] = "Flipper, downwards",
+  [0x13D] = "Fang, dangling",
+  [0x13E] = "Fang, flying wavily",
+  [0x13F] = "Flopsy Fish, swimming around",
+  [0x140] = "Flopsy Fish, swimming and occasionally jumps vertically",
+  [0x141] = "Flopsy Fish, swimming and jumps in an arc",
+  [0x142] = "Flopsy Fish, jumps 3 times in an arc, right / left",
+  [0x143] = "Spray Fish",
+  [0x144] = "Flipper, rightwards / leftwards",
+  [0x145] = "Blue Sluggy, falling down / crawing ceiling",
+  [0x146] = "Pink Sluggy, falling down / crawing ceiling but doesn't move",
+  [0x147] = "Horizontal entrance, towards left",
+  [0x148] = "Large Spring Ball",
+  [0x149] = "Arrow cloud, up",
+  [0x14A] = "Arrow cloud, up right",
+  [0x14B] = "Arrow cloud, right",
+  [0x14C] = "Arrow cloud, down right",
+  [0x14D] = "Arrow cloud, down",
+  [0x14E] = "Arrow cloud, down left",
+  [0x14F] = "Arrow cloud, left",
+  [0x150] = "Arrow cloud, up left",
+  [0x151] = "Arrow cloud, rotating",
+  [0x152] = "Flutter",
+  [0x153] = "Goonie with Shy Guy",
+  [0x154] = "Shark Chomp",
+  [0x155] = "Very Goonie",
+  [0x156] = "Cactus Jack, one / three",
+  [0x157] = "Wall Lakitu",
+  [0x158] = "Bowling Goonie",
+  [0x159] = "Grunt, walking",
+  [0x15A] = "Grunt, running",
+  [0x15B] = "Dancing Spear Guy",
+  [0x15C] = "Green switch for green spiked platform",
+  [0x15D] = "Red switch for red spiked platform",
+  [0x15E] = "Pink Pinwheel with Shy Guys, clockwise / anticlockwise",
+  [0x15F] = "Green spiked platform",
+  [0x160] = "Red spiked platform",
+  [0x161] = "Bonus Item, red coin / key / flower / door",
+  [0x162] = "Two spiked platforms with one switch in the center",
+  [0x163] = "Bouncing green Needlenose",
+  [0x164] = "Nipper Plant",
+  [0x165] = "Nipper Spore",
+  [0x166] = "Thunder Lakitu, one / two",
+  [0x167] = "Green Koopa shell",
+  [0x168] = "Red Koopa shell",
+  [0x169] = "Green Beach Koopa",
+  [0x16A] = "Red Beach Koopa",
+  [0x16B] = "Green Koopa",
+  [0x16C] = "Red Koopa",
+  [0x16D] = "Green Para Koopa, jumping forth.",
+  [0x16E] = "Red Para Koopa, flying horizontally",
+  [0x16F] = "Red Para Koopa, flying vertically",
+  [0x170] = "Aqua Lakitu",
+  [0x171] = "Naval Piranha",
+  [0x172] = "Naval Bud",
+  [0x173] = "Baron Von Zeppelin, red Suy Guy",
+  [0x174] = "Baron Von Zeppelin, Needlenose",
+  [0x175] = "Baron Von Zeppelin, bomb",
+  [0x176] = "Baron Von Zeppelin, Bandit",
+  [0x177] = "Baron Von Zeppelin, large Spring Ball",
+  [0x178] = "Baron Von Zeppelin, 1-up",
+  [0x179] = "Baron Von Zeppelin, key",
+  [0x17A] = "Baron Von Zeppelin, 5 coins",
+  [0x17B] = "Baron Von Zeppelin, watermelon",
+  [0x17C] = "Baron Von Zeppelin, fire watermelon",
+  [0x17D] = "Baron Von Zeppelin, icy watermelon",
+  [0x17E] = "Baron Von Zeppelin, crate, 6 stars.",
+  [0x17F] = "Baron Von Zeppelin",
+  [0x180] = "Spinning Log",
+  [0x181] = "Crazee Dayzee",
+  [0x182] = "Dragonfly",
+  [0x183] = "Butterfly",
+  [0x184] = "Bumpty",
+  [0x185] = "Active line guided green Flatbed Ferry, left",
+  [0x186] = "Active line guided green Flatbed Ferry, right",
+  [0x187] = "Active line guided yellow Flatbed Ferry, left",
+  [0x188] = "Active line guided yellow Flatbed Ferry, right",
+  [0x189] = "Line guided green Flatbed Ferry, left",
+  [0x18A] = "Line guided green Flatbed Ferry, right",
+  [0x18B] = "Line guided yellow Flatbed Ferry, left",
+  [0x18C] = "Line guided yellow Flatbed Ferry, right",
+  [0x18D] = "Line guided red Flatbed Ferry, left",
+  [0x18E] = "Line guided red Flatbed Ferry, right",
+  [0x18F] = "Whirling lift",
+  [0x190] = "Falling icicle",
+  [0x191] = "Sparrow",
+  [0x192] = "Mufti Guy, green / red / yellow / purple",
+  [0x193] = "Caged Ghost, squeezing in sewer",
+  [0x194] = "Blargg",
+  [0x195] = "unknown",
+  [0x196] = "Unbalanced snowy platform",
+  [0x197] = "Arrow sign, up / right / left / down",
+  [0x198] = "Diagonal arrow sign, up left / up right / down left / down right",
+  [0x199] = "Dizzy Dandy",
+  [0x19A] = "Boo Guy",
+  [0x19B] = "Bumpty, tackles at Yoshi",
+  [0x19C] = "Flying Bumpty, flying aronnd / flying straightly",
+  [0x19D] = "Skeleton Goonie",
+  [0x19E] = "Flightless Skeleton Goonie",
+  [0x19F] = "Skeleton Goonie with a bomb",
+  [0x1A0] = "Firebar, double-ended, clockwise / anticlockwise",
+  [0x1A1] = "Firebar, clockwise / anticlockwise",
+  [0x1A2] = "Star",
+  [0x1A3] = "Little Skull Mouser",
+  [0x1A4] = "Cork, seals 3D pipe",
+  [0x1A5] = "Grinder, runs away",
+  [0x1A6] = "Grinder, spits seeds of watermelon",
+  [0x1A7] = "Short Fuse / Seedy Sally, right / left",
+  [0x1A8] = "Grinder, grasps Baby Mario",
+  [0x1A9] = "Grinder, climbing, spits seeds of watermelon",
+  [0x1AA] = "Hot Lips",
+  [0x1AB] = "Boo Balloon, coin / !-switch",
+  [0x1AC] = "Frog",
+  [0x1AD] = "Kamek, shoots magic at Yoshi.",
+  [0x1AE] = "Kamek's magic",
+  [0x1AF] = "Coin",
+  [0x1B0] = "(BG3) Balloon",
+  [0x1B1] = "Coin Cannon for Mini Battle",
+  [0x1B2] = "Coin for Mini Battle",
+  [0x1B3] = "Bandit for Mini Battle",
+  [0x1B4] = "Checkered Platform for Mini Battle",
+  [0x1B5] = "Bandit for Mini Battle",
+  [0x1B6] = "Red Balloon for Mini Battle",
+  [0x1B7] = "Bandit for Mini Battle",
+  [0x1B8] = "Watermelon Pot for Mini Battle",
+  [0x1B9] = "possibly Bandit for Mini Battle?",
+  [0x1BA] = "Graphic / Palette Changer 00",
+  [0x1BB] = "Graphic / Palette Changer 01",
+  [0x1BC] = "Graphic / Palette Changer 02",
+  [0x1BD] = "Graphic / Palette Changer 03",
+  [0x1BE] = "Graphic / Palette Changer 04",
+  [0x1BF] = "Graphic / Palette Changer 05",
+  [0x1C0] = "Graphic / Palette Changer 06",
+  [0x1C1] = "Graphic / Palette Changer 07",
+  [0x1C2] = "Graphic / Palette Changer 08",
+  [0x1C3] = "Graphic / Palette Changer 09",
+  [0x1C4] = "Graphic / Palette Changer 0A",
+  [0x1C5] = "Graphic / Palette Changer 0B",
+  [0x1C6] = "Graphic / Palette Changer 0C",
+  [0x1C7] = "Graphic / Palette Changer 0D",
+  [0x1C8] = "Graphic / Palette Changer 0E",
+  [0x1C9] = "Graphic / Palette Changer 0F",
+  [0x1CA] = "Extremely slow auto-scroll",
+  [0x1CB] = "Special auto-scroll 0",
+  [0x1CC] = "Special auto-scroll 1",
+  [0x1CD] = "Special auto-scroll 2",
+  [0x1CE] = "Special auto-scroll 3",
+  [0x1CF] = "Special auto-scroll 4",
+  [0x1D0] = "Special auto-scroll 5",
+  [0x1D1] = "Special auto-scroll 6",
+  [0x1D2] = "Special auto-scroll 7",
+  [0x1D3] = "Special auto-scroll 8",
+  [0x1D4] = "Slow auto-scroll",
+  [0x1D5] = "unknown",
+  [0x1D6] = "Lock horizontal scroll",
+  [0x1D7] = "Gusty generator",
+  [0x1D8] = "Gusty generator stopper",
+  [0x1D9] = "Lakitu stopper",
+  [0x1DA] = "Fuzzy generator stopper",
+  [0x1DB] = "unknown",
+  [0x1DC] = "Fang generator, from right",
+  [0x1DD] = "Fang generator stopper",
+  [0x1DE] = "Fang generator, from both sides",
+  [0x1DF] = "Fang generator stopper",
+  [0x1E0] = "Wall Lakitu generator?",
+  [0x1E1] = "unknown",
+  [0x1E2] = "Dancing Spear Guy trigger",
+  [0x1E3] = "unknown",
+  [0x1E4] = "Thunder Lakitu stopper",
+  [0x1E5] = "Flutter generator",
+  [0x1E6] = "Flutter generator stopper",
+  [0x1E7] = "Nipper Spore generator",
+  [0x1E8] = "Nipper Spore generator stopper",
+  [0x1E9] = "Baron Von Zeppelin with Needlenose generator",
+  [0x1EA] = "Baron Von Zeppelin with Needlenose generator stopper",
+  [0x1EB] = "Baron Von Zeppelin with bomb generator",
+  [0x1EC] = "Baron Von Zeppelin with bomb generator stopper",
+  [0x1ED] = "Balloon generator",
+  [0x1EE] = "Balloon generator stopper",
+  [0x1EF] = "Four yellow line guided Flatbed Ferries generator",
+  [0x1F0] = "Lemon Drop generator",
+  [0x1F1] = "Lemon Drop generator stopper",
+  [0x1F2] = "Turn off dizzy effect",
+  [0x1F3] = "unknown",
+  [0x1F4] = "Fuzzy generator",
+  [0x232] = "[Intro] Stork",
+  [0x233] = "[Intro] Big cloud",
+  [0x234] = "[Intro] Medium cloud",
+  [0x235] = "[Intro] Small cloud",
+  [0x236] = "[Intro] Kamek coming from far away",
+  [0x237] = "[Intro] Kamek coming from the right",
+  [0x238] = "[Intro] Bag with baby",
+  [0x239] = "[Intro] Bag with baby falling",
+  [0x23A] = "[Intro] Scroll map",
+  [0x23B] = "[Intro] Yoshi",
+  [0x23C] = "[Intro] Scroll map from sky",
+  [0x23D] = "[Intro] Bag with baby from sky",
+  [0x23E] = "[Intro] Baby Mario in bag",
+  [0x23F] = "[Intro] Yoshi's head",
+  [0x240] = "[Intro] Kamek furious",
+  [0x241] = "[Intro] Toadie",
+  [0x242] = "[Intro] Stolen bag with baby",
+  [0x243] = "[Intro] Baby Mario riding Yoshi",
+  [0x244] = "[Intro] Toadie chasing Yoshi",
+}
+
 --##########################################################################################################################################################
 -- SCRIPT UTILITIES:
 
@@ -2947,12 +3471,9 @@ local function sprite_info(id, counter, table_position)
 	--if sprite_type == 0x056 then w8_sram(SRAM.sprite_table18 + 3 + id_off, 0) end -- REMOVE TESTS/DEBUG
 	
 	if OPTIONS.display_sprite_table then
-    local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, x_centered, x_speed, x_subspeed, y_centered, y_speed, y_subspeed)
+    local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, bit.band(x_centered, 0xFFFF), x_speed, x_subspeed, bit.band(y_centered, 0xFFFF), y_speed, y_subspeed)
 		draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
   end
-	
-	
-	
 	
   -- Miscellaneous sprite table
   if OPTIONS.display_miscellaneous_sprite_table then
@@ -3222,7 +3743,6 @@ local function left_click()
   end
   
   -- Store selected sprite
-
   local id = select_object(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
   if type(id) == "number" and id >= 0 and id < YI.sprite_max then
     Sprites_info.selected_id = id
@@ -3234,16 +3754,13 @@ local function left_click()
     return
   end
   
+  -- Left click flag for cheats
+  if Cheat.allow_cheats then
+    Cheat.mouse_click = true
+  end
+  
   -- Select tile
   select_tile()
-
-  -- Layer 1 tiles
-  --[[local x_mouse, y_mouse = game_coordinates(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
-  x_mouse = 16*floor(x_mouse/16)
-  y_mouse = 16*floor(y_mouse/16)
-  if not Options_menu.show_menu then
-    select_tile(x_mouse, y_mouse, Layer1_tiles)
-  end]]
 end
 
 
@@ -3261,7 +3778,7 @@ local function read_raw_input()
   User_input.leftclick = tmp.Left
   User_input.rightclick = tmp.Right
   -- BizHawk, custom field
-  User_input.mouse_inwindow = mouse_onregion(-OPTIONS.left_gap, -OPTIONS.top_gap, Screen_width, Screen_height)
+  User_input.mouse_inwindow = mouse_onregion(-OPTIONS.left_gap, -OPTIONS.top_gap, Screen_width-OPTIONS.left_gap, Screen_height-OPTIONS.top_gap)
 
   -- Detect if a key was just pressed or released
   for entry, value in pairs(User_input) do
@@ -3294,9 +3811,12 @@ end
 -- Forbid cheats on script start
 Cheat.allow_cheats = false
 Cheat.is_cheating = false
+Cheat.mouse_click = false
+Cheat.mouse_click_prev = false
 Cheat.under_invincibility = false
 Cheat.under_free_move = false
 Cheat.sprite_dragging_enabled = false
+Cheat.sprite_spawning_enabled = false
 
 -- This signals that some cheat is activated, or was some short time ago
 function Cheat.is_cheat_active()
@@ -3305,6 +3825,7 @@ function Cheat.is_cheat_active()
     if Cheat.under_free_move then cheat_str = cheat_str .. "- Free movement " end
     if Cheat.under_invincibility then cheat_str = cheat_str .. "- Invincibility " end
     if Cheat.sprite_dragging_enabled then cheat_str = cheat_str .. "- Sprite dragging " end
+    if Cheat.sprite_spawning_enabled then cheat_str = cheat_str .. "- Sprite spawning " end
     
     draw_text(Buffer_middle_x, OPTIONS.top_gap - 3*BIZHAWK_FONT_HEIGHT, cheat_str, "red", "blue", false, false, 0.5)
     
@@ -3393,7 +3914,7 @@ end
 
 
 -- Drag and drop sprites with the mouse, if the cheats are activated and mouse is over the sprite
--- Right clicking and holding: drags the sprite
+-- Left clicking and holding: drags the sprite
 -- Releasing: drops it over the latest spot
 function Cheat.drag_sprite(id)
   --if Game_mode ~= YI.game_mode_level then Cheat.is_dragging_sprite = false ; return end
@@ -3419,6 +3940,47 @@ function Cheat.drag_sprite(id)
   --w8_wram(WRAM.sprite_x_low + id, sprite_xlow)
   --w8_wram(WRAM.sprite_y_high + id, sprite_yhigh)
   --w8_wram(WRAM.sprite_y_low + id, sprite_ylow)
+end
+
+
+-- Spawn sprites with the mouse, if the cheats are activated and mouse is on the screen
+-- Player must select the sprite id in the dropdown list
+-- Made by ArneTheGreat
+function Cheat.spawn_sprite()
+  --if Game_mode ~= YI.game_mode_level then Cheat.is_dragging_sprite = false ; return end
+  
+  -- Hijacks in RAM
+  local ram_hijack = {0x22,0x00,0xB9,0x7E,0xEA,0xEA}  --2200B97EEAEA --9C3030AC2D01 in original
+  local ram_patch = {
+  0x08,0x48,0xDA,0xAD,0x06,0x1E,0xF0,0x15,0xAD,0x00,0x1E,0x22,0x4C, -- all zeros in original
+  0xA3,0x03,0x90,0x0C,0xAD,0x02,0x1E,0x99,0xE2,0x70,0xAD,0x04,0x1E,
+  0x99,0x82,0x71,0xFA,0x68,0x28,0x9C,0x30,0x30,0xAC,0x2D,0x01,0x6B}
+
+  local ram_hijack_dest = 0xDE68 -- in WRAM
+  local ram_code_dest = 0xB900 -- in WRAM
+
+  for i,k in ipairs(ram_hijack) do
+    w8_wram(ram_hijack_dest + i - 1, k)
+  end
+
+  for i,k in ipairs(ram_patch) do
+    w8_wram(ram_code_dest + i - 1, k)
+  end
+  
+  -- Read position and id to spawn
+  local xgame, ygame = game_coordinates(User_input.xmouse + OPTIONS.left_gap, User_input.ymouse + OPTIONS.top_gap, Camera_x, Camera_y)
+  local sprite_id = tonumber(forms.getproperty(Options_form.sprite_number, "SelectedIndex"))
+  
+  -- Write values in ram (Note: these addresses are used only by the ram_patch)
+  --w16_wram(0x1E06, 0)
+  w16_wram(0x1E00, sprite_id)
+  w16_wram(0x1E02, xgame)
+  w16_wram(0x1E04, ygame)
+  w16_wram(0x1E06, 1)
+  
+  -- Print cheat message
+  print(fmt("Cheat: spawned sprite $%03X - %s at position (%04X, %04X).", sprite_id, YI.sprites[sprite_id], bit.band(xgame, 0xFFFF), bit.band(ygame, 0xFFFF)))
+  
 end
 
 
@@ -4025,6 +4587,25 @@ function Options_form.create_window()
   forms.setproperty(Options_form.sprite_dragging, "Checked", Cheat.sprite_dragging_enabled)
   forms.setproperty(Options_form.sprite_dragging, "Enabled", Cheat.allow_cheats)
   
+  -- Sprite spawning cheat
+  yform = yform + delta_y
+  Options_form.sprite_spawning = forms.checkbox(Options_form.form, "Sprite spawning", xform, yform)
+  forms.setproperty(Options_form.sprite_spawning, "Checked", Cheat.sprite_spawning_enabled)
+  forms.setproperty(Options_form.sprite_spawning, "Enabled", Cheat.allow_cheats)
+  
+  local sprite_names = {} -- to force the table with alphabetical order, since dropdown rearranges tables in alphabetical order
+  for i = 0, #YI.sprites do
+    sprite_names[i] = fmt("$%03X - %s", i, YI.sprites[i])
+  end
+  
+  yform = yform + 1.2*delta_y
+  Options_form.sprite_number = forms.dropdown(Options_form.form, sprite_names, xform, yform + 1, 260, 20)
+  forms.setproperty(Options_form.sprite_number, "Enabled", (Cheat.allow_cheats and Cheat.sprite_spawning_enabled))
+  
+  forms.addclick(Options_form.sprite_spawning, function() -- to enabling/disabling the dropdown according to Cheat.sprite_spawning_enabled
+    forms.setproperty(Options_form.sprite_number, "Enabled", (Cheat.allow_cheats and not Cheat.sprite_spawning_enabled))
+  end)
+  
   -- Menu items cheat
   xform, yform = 200, y_section
   
@@ -4080,7 +4661,6 @@ function Options_form.create_window()
   
   
   --[[TODO CHEATS:
-  [ ] - Arne's sprite spawn
   [ ] - Sprite select to change ID, delete, etc (id select is already done in Sprites_info.selected_id = id)
   [ ] - Sprite table editor, that you can select which sprite slot you want edit via dropdown list or clicking the sprite itself
   [ ] - Egg inventory editor (hard, need to force sprite spawning, or do like the Practice Cart where only is set in overworld by poking $7E5D98 and $7E5D9A)
@@ -4120,6 +4700,9 @@ function Options_form.create_window()
     forms.setproperty(Options_form.invincibility, "Enabled", Cheat.allow_cheats)
     
     forms.setproperty(Options_form.sprite_dragging, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.sprite_spawning, "Enabled", Cheat.allow_cheats)
+    forms.setproperty(Options_form.sprite_number, "Enabled", (Cheat.allow_cheats and Cheat.sprite_spawning_enabled))
     
     forms.setproperty(Options_form.item_button, "Enabled", Cheat.allow_cheats)
     forms.setproperty(Options_form.item_number, "Enabled", Cheat.allow_cheats)
@@ -4207,6 +4790,7 @@ function Options_form.evaluate_form()
   Cheat.under_free_move = forms.ischecked(Options_form.free_movement) or false
   Cheat.under_invincibility = forms.ischecked(Options_form.invincibility) or false
   Cheat.sprite_dragging_enabled = forms.ischecked(Options_form.sprite_dragging) or false
+  Cheat.sprite_spawning_enabled = forms.ischecked(Options_form.sprite_spawning) or false
 end
 
 
@@ -4293,6 +4877,8 @@ while true do
   if Cheat.allow_cheats then
     Cheat.is_cheat_active()
     
+    Cheat.mouse_click = User_input.leftclick
+    
     -- Warning
     gui.drawText(Buffer_middle_x - 57, Border_bottom_start, "Cheats allowed!", COLOUR.warning, 0xA00040FF)
     if Movie_active then
@@ -4307,6 +4893,15 @@ while true do
       Cheat.drag_sprite(Cheat.dragging_sprite_id)
       Cheat.is_cheating = true
     end
+    
+    -- Spawn sprite with mouse or keyboard
+    if Cheat.sprite_spawning_enabled and User_input.mouse_inwindow and ((Cheat.mouse_click and not Cheat.mouse_click_prev) or (User_input.T and not Previous.User_input.T)) then -- "T" on keyboard works for me
+      Cheat.spawn_sprite()
+      Cheat.is_cheating = true
+    end
+    
+    -- Update mouse_click_prev to avoid some cheats adctivating indefinitely while clicking
+    Cheat.mouse_click_prev = Cheat.mouse_click
     
   else -- to make sure these cheats are not activated while Cheats is disabled
   
@@ -4351,6 +4946,7 @@ while true do
     
   --end
   
+  --draw_text(0, 2*BIZHAWK_FONT_HEIGHT, "Options_form.sprite_number = " .. forms.gettext(Options_form.sprite_number))
   --draw_text(0, 2*BIZHAWK_FONT_HEIGHT, "Options_form.warp_level = " .. forms.gettext(Options_form.warp_level) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_level))))
   --draw_text(0, 3*BIZHAWK_FONT_HEIGHT, "Options_form.warp_x = " .. forms.gettext(Options_form.warp_x) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_x))))
   --draw_text(0, 4*BIZHAWK_FONT_HEIGHT, "Options_form.warp_y = " .. forms.gettext(Options_form.warp_y) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_y))))
@@ -4361,6 +4957,11 @@ while true do
   --Is_lagged = emu.lagged() REMOVE?
   
   emu.frameadvance()
+  
+  -- Cheat: to avoid spawning sprites indefinitely
+  if Cheat.sprite_spawning_enabled then
+    w16_wram(0x1E06, 0)
+  end
 end
 
 --[[ TODO LIST #########################################################################################################################
