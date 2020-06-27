@@ -57,8 +57,7 @@ local DEFAULT_OPTIONS = {
   display_debug_sprite_tweakers = true,
   display_debug_ambient_sprite = true,
   display_debug_controller_data = false,
-  display_miscellaneous_sprite_table = false,
-  miscellaneous_sprite_table_number = {[1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [6] = true, [7] = true, [8] = true, [9] = true,
+  miscellaneous_sprite_table_number = {[1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [6] = true, [7] = true, [8] = true, [9] = true, -- TODO: see if used
     [10] = true, [11] = true, [12] = true, [13] = true, [14] = true, [15] = true, [16] = true, [17] = true, [18] = true, [19] = true, [20] = true,
 		[21] = true, [22] = true, [23] = true, [24] = true, [25] = true, [26] = true, [27] = true, [28] = true, [29] = true
   },
@@ -66,17 +65,6 @@ local DEFAULT_OPTIONS = {
 	draw_tile_map_grid = false,
 	draw_tile_map_type = false,
 	draw_tile_map_screen = false,
-	
-	-- Memory edit function
-	address = 0x7E0000,
-	size = 1,
-	value = 0,
-	edit_method = "Poke",
-	edit_sprite_table = false,
-  edit_sprite_table_number = {[1] = false, [2] = false, [3] = false, [4] = false, [5] = false, [6] = false, [7] = false, [8] = false,
-    [9] = false, [10] = false, [11] = false, [12] = false, [13] = false, [14] = false, [15] = false, [16] = false, [17] = false,
-    [18] = false, [19] = false, [20] = false, [21] = false, [22] = false, [23] = false, [24] = false
-  },
   
   -- Script settings
   left_gap = 150,
@@ -1191,6 +1179,40 @@ YI.sprites = {
   [0x244] = "[Intro] Toadie chasing Yoshi",
 }
 
+-- Sprite table descriptions (from https://github.com/Raidenthequick/yoshisisland-disassembly/wiki/SRAM-Map )
+YI.sprite_table_descr = {
+  [0x0F00] = "Word 1: Sprite state:\r\n$0000: nonexistent (used for skipping processing)\r\n$0002: newly spawned\r\n$0004: same as $02?\r\n$0006: pop sprite (turn into other sprite based on this table)\r\n$0008: in yoshi's tongue and/or mouth\r\n$000A: riding Yoshi\r\n$000C: colliding\r\n$000E: yoshi head bop\r\n$0010: active / alive\r\n$0012: burning to death from lava/fire melon\r\n\r\nWord 2: Angle of ground that the sprite is walking on",
+  [0x0FA0] = "Byte 1: tc?hhhhh\r\nt = Can be tongued (into mouth)\r\nc = Tongue collision is ignored\r\nh = hitbox setting (index into hitbox tables)\r\nByte 2: ??\r\nByte 3: terrain collision flags\r\nByte 4: ???s????\r\ns = Inedible / cannot be swallowed",
+  [0x1040] = "Byte 1: sf?bddmm\r\ns = automatic swallow\r\nf = can be frozen\r\nb = can be burned by flame\r\nd = Index into despawning x,y threshold table (00 means no despawning)\r\nm = drawing method index\r\n\r\nByte 2: Count/# of bytes taken up in OAM buffer\r\n\r\nByte 3: Partial OAM low table mirror, format yx00ccc0 (c = palette 0-7, x&y = flip)",
+  [0x10E0] = "Byte 1: Sprite priority override flag (puts sprite farthest back if $40)\r\nByte 2: X subpixel\r\nByte 3: X pixel\r\nByte 4: X screen",
+  [0x1180] = "Byte 1: Index into OBJ Tiles (override)\r\nByte 2: Y subpixel\r\nByte 3: Y pixel\r\nByte 4: Y screen",
+  [0x1220] = "Word 1: X speed\r\nWord 2: Y speed",
+  [0x12C0] = "Word 1: X delta, or pixels moved since last frame (curr X - prev X)\r\nWord 2: Y delta, or pixels moved since last frame (curr Y - prev Y)",
+  [0x1360] = "Word 1: Sprite ID (list of valid values with their names https://github.com/Raidenthequick/yoshisisland-disassembly/wiki/Ambient-Sprite-IDs )\r\nWord 2: Pointer to first entry within OAM buffer",
+  [0x1400] = "Word 1: Facing/direction: 00000yx0\r\ny = Y flip\r\nx = X flip\r\nNote: Y-flip conventionally set by OAM mirror\r\n\r\nWord 2: Current animation frame (High byte is used as a special flag for shyguys when spat upwards)",
+  [0x14A0] = "Byte 1: Stage-wide ID ($FF means no respawn)\r\nByte 2: Background layer # of sprite\r\nByte 3: Sprite Prioirty (0-7) - higher means further back - $FF used to disable drawing\r\nByte 4: 00 (unused)",
+  [0x1540] = "Word 1: X acceleration (e.g. gravity, friction)\r\nWord 2: Y acceleration",
+  [0x15E0] = "Word 1: X acceleration ceiling (max speed for acceleration to apply)\r\nWord 2: Y acceleration ceiling",
+  [0x1680] = "Word 1: X coordinate relative to camera\r\nWord 2: Y coordinate relative to camera",
+  [0x1720] = "Word 1: vertical terrain collision offset in pixels (signed)\r\nWord 2: Index into reserved dynamic tiles table, often used for SuperFX graphics ($FFFF means disabled)",
+  [0x17C0] = "Yoshi collision information:\r\nByte 1: ??\r\nByte 2: Timer, used for whatever that sprite needs. Only sprite timer active during pause flags. (unused in game?)\r\nByte 3: $00: Yoshi is to the left of the sprite; $02: Yoshi is to the right of the sprite\r\nByte 4: $00: Yoshi is above the sprite; $02: Yoshi is below the sprite",
+  [0x1860] = "Word 1: Terrain collision flags, format ???????? ????LRUD, high byte is unused\r\nL = Left\r\nR = Right\r\nU = Up\r\nD = Down\r\n\r\nWord 2: Lava and water collision flag, format ???????? ??LW???\r\nL = Lava\r\nW = Water",
+  [0x1900] = "Wildcard table; 4 bytes per sprite to be used as each one pleases.",
+  [0x1976] = "Wildcard table; 4 bytes per sprite to be used as each one pleases. Commonly used for AI state, graphical state, or other purposes.",
+  [0x19D6] = "Wildcard table; 4 bytes per sprite to be used as each one pleases. Common usages:\r\nByte 1: AI state\r\nByte 2: Index for which Super FX graphic/animation frame\r\nByte 3: 'Next' animation frame\r\nByte 4: Custom per sprite",
+  [0x1A36] = "Super FX morphing values to be used as each Super FX sprite needs, most common is scale then rotation.",
+  [0x1A96] = "Each word is a timer, used for whatever that sprite needs. Common uses are AI and skeletal animations.",
+  [0x1AF6] = "Each word is a timer, used for whatever that sprite needs. (Additional general purpose timers if needed)",
+  [0x1B56] = "Word 1: X offset for hitbox center\r\nWord 2: Y offset for hitbox center",
+  [0x1BB6] = "Word 1: Width of hitbox from center (both sides)\r\nWord 2: Height of hitbox from center (top & bottom)",
+  [0x1C16] = "Word 1: X distance from Yoshi (+ means to the right of Yoshi)\r\nWord 2: Y distance from Yoshi (+ means below Yoshi)",
+  [0x1C76] = "Word 1: On collision with another sprite, X delta from that sprite (this X - that X)\r\nWord 2: On collision with another sprite, Y delta from that sprite (this Y - that Y)",
+  [0x1CD6] = "Word 1: Hitbox X center position (X + offset )\r\nWord 2: Hitbox Y center position (Y + offset )",
+  [0x1D36] = "Byte 1: Slot # of sprite currently colliding with + 1, $FF for Yoshi\r\nByte 2: ?? (something with most recent collision)\r\nByte 3: Collision state: $00 = May collide with Yoshi's body/tongue/other sprites, $01 = May not collide with Yoshi's body/other sprites but can be tongued, beyond $01 = Cannot collide with Yoshi/sprites, counts down until $01 to enable tongue collision\r\nByte 4: ?? (used only for special purposes)",
+  [0x1D96] = "Word 1: Timer of being frozen from ice melon, counts down\r\nWord 2: Unused (most likely)"
+}
+
+
 --##########################################################################################################################################################
 -- SCRIPT UTILITIES:
 
@@ -1204,16 +1226,21 @@ local Joypad = {}
 local Layer1_tiles = {}
 local Layer2_tiles = {}
 local Is_lagged = nil
-local Options_form = {}  -- BizHawk
-local Filter_opacity, Filter_colour = 0, 0xff000000  -- Snes9x specifc / unlisted colour
-local Show_player_point_position = false
-local Memory = {} -- family of memory edit functions and variables
+local Options_form = {}
+local Sprite_tables_form = {}
 local Sprites_info = {}  -- keeps track of useful sprite info that might be used outside the main sprite function
 Sprites_info.selected_id = 0
 
--- Initialization of some tables
+-- Initialization of main sprite tables
 for i = 0, YI.sprite_max -1 do
   Sprites_info[i] = {}
+  Sprites_info[i].sprite_type = 0
+  Sprites_info[i].sprite_status = 0
+  Sprites_info[i].x, Sprites_info[i].y = 0, 0
+  Sprites_info[i].x_screen, Sprites_info[i].y_screen = 0, 0
+  Sprites_info[i].x_centered, Sprites_info[i].y_centered = 0, 0
+  Sprites_info[i].x_center_offset, Sprites_info[i].y_center_offset = 0, 0
+  Sprites_info[i].sprite_half_width, Sprites_info[i].sprite_half_height = 0, 0
 end
 
 -- Returns the exact chosen digit of a number from the left to the right, in a given base
@@ -2035,7 +2062,6 @@ local function select_object(mouse_x, mouse_y, camera_x, camera_y)
   
   if not obj_id then return end
   
-  draw_text(User_input.xmouse, User_input.ymouse - 8, obj_id, true, false, 0.5, 1.0)
   return obj_id, x_game, y_game
 end
 
@@ -2509,18 +2535,7 @@ local function player_hitbox(x, y, x_centered, y_centered, tongue_x_screen, tong
 	draw_cross(x_test, y_test, 2, "blue") -- REMOVE
 	draw_cross(x_test2, y_test2, 2, "white") -- REMOVE
 	draw_box(x_test, y_test, x_test2, y_test2, "yellow") -- REMOVE]]
-	
-	
-	--[[
-  -- That's the pixel that appears when Mario dies in the pit
-  Show_player_point_position = Show_player_point_position or y_screen >= 200 or
-    (OPTIONS.display_debug_info and OPTIONS.display_debug_player_extra)
-  if Show_player_point_position then
-    draw_rectangle(x_screen - 1, y_screen - 1, 2, 2, COLOUR.interaction_bg, COLOUR.text)
-    Show_player_point_position = false
-  end]]
   
-  return x_points, y_points
 end
 
 
@@ -2576,16 +2591,13 @@ local function egg_throw_info(egg_target_x, egg_target_y, direction, x_centered,
     
 	-- Radius
 	if egg_throw_effective_timer == 18 then
-		--draw_text(egg_target_x_screen + 8, egg_target_y_screen, fmt("%d", radius), COLOUR.positive) -- REMOVE
 		if direction == RIGHT_ARROW then
 			for i = -pi/2, 5*pi/18, pi/80 do
 				draw_pixel(egg_throw_origin_x_screen + cos(i)*(68) , egg_throw_origin_y_screen + sin(i)*(68), COLOUR.text)
-			--draw_text(0, 150 + i*10*BIZHAWK_FONT_HEIGHT, fmt("sin:%f cos:%f", sin(i), cos(i)), COLOUR.text) -- REMOVE
 			end
 		else
 			for i = 13*pi/18, 3*pi/2, pi/80 do
 				draw_pixel(egg_throw_origin_x_screen + cos(i)*(68) , egg_throw_origin_y_screen + sin(i)*(68), COLOUR.text)
-			--draw_text(0, 150 + i*10*BIZHAWK_FONT_HEIGHT, fmt("sin:%f cos:%f", sin(i), cos(i)), COLOUR.text) -- REMOVE
 			end		
 		end
 	end
@@ -2684,8 +2696,6 @@ local function player()
   local tongued_slot = u8_sram(SRAM.tongued_slot)
   local egg_target_x = s16_sram(SRAM.egg_target_x)
   local egg_target_y = s16_sram(SRAM.egg_target_y)
-	
-	--draw_text(100, 190, fmt(" delta x = %d \n delta_y = %d", x_centered - x, y_centered - y), COLOUR.memory) -- REMOVE TESTS/DEBUG
 	
   -- Transformations
   if direction == 0 then direction = RIGHT_ARROW else direction = LEFT_ARROW end
@@ -3474,22 +3484,6 @@ local function sprite_info(id, counter, table_position)
     local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, bit.band(x_centered, 0xFFFF), x_speed, x_subspeed, bit.band(y_centered, 0xFFFF), y_speed, y_subspeed)
 		draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
   end
-	
-  -- Miscellaneous sprite table
-  if OPTIONS.display_miscellaneous_sprite_table then
-    -- Font
-    Font = false
-    local x_mis, y_mis = 0, Scale_y*144 + counter*BIZHAWK_FONT_HEIGHT
-    
-    local t = OPTIONS.miscellaneous_sprite_table_number
-    local misc, text = nil, fmt("<%.2d>", id)
-    for num = 1, 29 do
-      misc = t[num] and u8_sram(SRAM["sprite_table" .. num] + id_off) or false
-      text = misc and fmt("%s %02X", text, misc) or text
-    end
-    
-    draw_text(x_mis, y_mis, text, info_colour)
-  end
   
 	---**********************************************
   -- Exporting some values
@@ -3521,23 +3515,10 @@ local function sprites()
     counter = counter + sprite_info(id, counter, table_position)
   end
   
-  -- Font
+  -- Display amount of sprites
   Text_opacity = 0.8
-
   draw_text(Screen_width, table_position - BIZHAWK_FONT_HEIGHT, fmt("Sprites:%.2d", counter), COLOUR.weak, true)
   
-  -- Miscellaneous sprite table: index
-  if OPTIONS.display_miscellaneous_sprite_table then
-    Font = false
-    local t = OPTIONS.miscellaneous_sprite_table_number
-    
-    local text = "Tab "
-    for num = 1, 29 do
-      text = t[num] and fmt("%s %02d", text, num) or text
-    end
-    
-    draw_text(0, Scale_y*144 - BIZHAWK_FONT_HEIGHT, text, info_colour)
-  end
 end
 
 
@@ -3736,6 +3717,14 @@ end
 
 
 local function left_click()
+  -- Measure to avoid runnin click functions when option forms are focused (note: "ContainsFocus" works better than "Focused", since it checks for any child control focus too)
+  if not Options_form.is_form_closed then
+    if forms.getproperty(Options_form.form, "ContainsFocus") == "True" then return end
+  end
+  if not Sprite_tables_form.is_form_closed then
+    if forms.getproperty(Sprite_tables_form.form, "ContainsFocus") == "True" then return end
+  end
+
   -- Call options menu if the form is closed
   if Options_form.is_form_closed and mouse_onregion(Buffer_middle_x - OPTIONS.left_gap - 18, 7, Buffer_middle_x - OPTIONS.left_gap + 16, 21) then
     Options_form.create_window()
@@ -3745,11 +3734,20 @@ local function left_click()
   -- Store selected sprite
   local id = select_object(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
   if type(id) == "number" and id >= 0 and id < YI.sprite_max then
+    
     Sprites_info.selected_id = id
     
+    if not Sprite_tables_form.is_form_closed then
+      Sprite_tables_form.curr_slot = id
+      forms.setproperty(Sprite_tables_form.slot_dropdown, "SelectedIndex", fmt("%d", Sprites_info.selected_id))
+    end
     if Cheat.allow_cheats then
-      Cheat.dragging_sprite_id = id
-      Cheat.is_dragging_sprite = true
+      forms.setproperty(Options_form.sprite_number, "SelectedIndex", Sprites_info[id].sprite_type)
+      
+      if Cheat.sprite_dragging_enabled then
+        Cheat.dragging_sprite_id = id
+        Cheat.is_dragging_sprite = true
+      end
     end
     return
   end
@@ -3816,16 +3814,19 @@ Cheat.mouse_click_prev = false
 Cheat.under_invincibility = false
 Cheat.under_free_move = false
 Cheat.sprite_dragging_enabled = false
+Cheat.is_dragging_sprite = false
 Cheat.sprite_spawning_enabled = false
+Cheat.is_spawning_sprite = false
+Cheat.sprite_table_edit_enabled = false
 
 -- This signals that some cheat is activated, or was some short time ago
 function Cheat.is_cheat_active()
   if Cheat.is_cheating then
-    local cheat_str = " CHEAT "
+    local cheat_str = "CHEAT "
     if Cheat.under_free_move then cheat_str = cheat_str .. "- Free movement " end
     if Cheat.under_invincibility then cheat_str = cheat_str .. "- Invincibility " end
-    if Cheat.sprite_dragging_enabled then cheat_str = cheat_str .. "- Sprite dragging " end
-    if Cheat.sprite_spawning_enabled then cheat_str = cheat_str .. "- Sprite spawning " end
+    if Cheat.is_dragging_sprite then cheat_str = cheat_str .. "- Sprite dragging " end
+    if Cheat.is_spawning_sprite then cheat_str = cheat_str .. "- Sprite spawning " end
     
     draw_text(Buffer_middle_x, OPTIONS.top_gap - 3*BIZHAWK_FONT_HEIGHT, cheat_str, "red", "blue", false, false, 0.5)
     
@@ -3947,7 +3948,7 @@ end
 -- Player must select the sprite id in the dropdown list
 -- Made by ArneTheGreat
 function Cheat.spawn_sprite()
-  --if Game_mode ~= YI.game_mode_level then Cheat.is_dragging_sprite = false ; return end
+  if Cheat.is_dragging_sprite then return end
   
   -- Hijacks in RAM
   local ram_hijack = {0x22,0x00,0xB9,0x7E,0xEA,0xEA}  --2200B97EEAEA --9C3030AC2D01 in original
@@ -3959,12 +3960,16 @@ function Cheat.spawn_sprite()
   local ram_hijack_dest = 0xDE68 -- in WRAM
   local ram_code_dest = 0xB900 -- in WRAM
 
-  for i,k in ipairs(ram_hijack) do
-    w8_wram(ram_hijack_dest + i - 1, k)
-  end
+  local hijack_hash = memory.hash_region(ram_hijack_dest, #ram_hijack, "WRAM")
 
-  for i,k in ipairs(ram_patch) do
-    w8_wram(ram_code_dest + i - 1, k)
+  if hijack_hash == "8431CCC23FD8AC675C75E8FCDBF823F3626553373629E90D0E819515E6211C36" then -- hijack still not set (first time using cheat), this is to avoid writing everytime the cheat is used
+    for i,k in ipairs(ram_hijack) do
+      w8_wram(ram_hijack_dest + i - 1, k)
+    end
+
+    for i,k in ipairs(ram_patch) do
+      w8_wram(ram_code_dest + i - 1, k)
+    end
   end
   
   -- Read position and id to spawn
@@ -3981,6 +3986,7 @@ function Cheat.spawn_sprite()
   -- Print cheat message
   print(fmt("Cheat: spawned sprite $%03X - %s at position (%04X, %04X).", sprite_id, YI.sprites[sprite_id], bit.band(xgame, 0xFFFF), bit.band(ygame, 0xFFFF)))
   
+  Cheat.is_spawning_sprite = true
 end
 
 
@@ -4017,7 +4023,7 @@ end
 
 
 -- Tool to modify address <address> value to a new value <value_form> in the specified domain <domain> (only WRAM and SRAM currently supported)
--- Optional: address size <size> in bytes; if value is hex <is_hex> or decimal; criterion returned from a function <criterion>; some error message <error_message> if value is out of range; some success message <success_message> if the tool successfully edited the address (accepts string, false (display nothin), and nil (display default message))
+-- Optional: address size <size> in bytes; if value is hex <is_hex> or decimal; criterion returned from a function <criterion>; some error message <error_message> if value is out of range (accepts string, false (display nothing), and nil (display default message); some success message <success_message> if the tool successfully edited the address (accepts string, false (display nothing), and nil (display default message))
 function Cheat.change_address(domain, address, value_form, size, is_hex, criterion, error_message, success_message)
   if not Cheat.allow_cheats then
     print("Cheats not allowed.")
@@ -4049,7 +4055,9 @@ function Cheat.change_address(domain, address, value_form, size, is_hex, criteri
     new = criterion(new) and new or false
   end
   if not new then
-    print(error_message or "Enter a valid value.")
+    if error_message ~= false then
+      print(error_message or "Enter a valid value.")
+    end
     return
   end
 
@@ -4088,6 +4096,75 @@ function Cheat.passive_cheats()
   end
 end
 
+-- Main cheat function, to run inside the frame loop
+-- Every cheat must be called inside this function
+function Cheat.main()
+
+  if Cheat.allow_cheats then
+    Cheat.is_cheat_active()
+    
+    Cheat.mouse_click = User_input.leftclick
+    
+    -- Warning
+    gui.drawText(Buffer_middle_x - 57, Border_bottom_start, "Cheats allowed!", COLOUR.warning, 0xA00040FF)
+    if Movie_active then
+      gui.drawText(Buffer_middle_x - 124, Border_bottom_start + 15, "Disable it while recording movies", COLOUR.warning, 0xA00040FF)
+    end
+    
+    -- Passive cheats
+    Cheat.passive_cheats()
+    
+    -- Drag and drop sprites with the mouse (Cheat)
+    if Cheat.sprite_dragging_enabled and Cheat.is_dragging_sprite then
+      Cheat.drag_sprite(Cheat.dragging_sprite_id)
+      Cheat.is_cheating = true
+    end
+    
+    -- Spawn sprite with mouse or keyboard
+    if Cheat.sprite_spawning_enabled and User_input.mouse_inwindow and ((Cheat.mouse_click and not Cheat.mouse_click_prev) or (User_input.T and not Previous.User_input.T)) then -- "T" on keyboard works for me
+      
+      -- Measure to avoid runnin click functions when option forms are focused (note: "ContainsFocus" works better than "Focused", since it checks for any child control focus too)
+      if not Options_form.is_form_closed then
+        if forms.getproperty(Options_form.form, "ContainsFocus") == "True" then return end
+      end
+      if not Sprite_tables_form.is_form_closed then
+        if forms.getproperty(Sprite_tables_form.form, "ContainsFocus") == "True" then return end
+      end
+      
+      Cheat.spawn_sprite()
+      Cheat.is_cheating = true
+    end
+    
+    -- Update mouse_click_prev to avoid some cheats adctivating indefinitely while clicking
+    Cheat.mouse_click_prev = Cheat.mouse_click
+    
+  else -- to make sure these cheats are not activated while Cheats is disabled
+    
+    -- Disable invincibility
+    Cheat.under_invincibility = false
+    
+  end
+  
+  -- Undo hijack from Sprite Spawn cheat
+  if (not Cheat.allow_cheats) or (not Cheat.sprite_spawning_enabled) then
+    local ram_dehijack = {0x9C,0x30,0x30,0xAC,0x2D,0x01}
+    local ram_hijack_dest = 0xDE68 -- in WRAM
+    local ram_code_dest = 0xB900 -- in WRAM
+
+    local hijack_hash = memory.hash_region(ram_hijack_dest, #ram_dehijack, "WRAM")
+
+    if hijack_hash == "5650BC9A59753F111F9A62056A0F9EF8381B031EEEAB05F6473ADE4470C7EED6" then -- hijack is set (cheat was used), this is to avoid writing every frame
+      for i,k in ipairs(ram_dehijack) do
+        w8_wram(ram_hijack_dest + i - 1, k)
+      end
+
+      for i = 0, 38 do
+        w8_wram(ram_code_dest + i, 0)
+      end
+    end
+  end
+
+end
 
 --#############################################################################
 -- MAIN --
@@ -4102,8 +4179,8 @@ Keys.registerkeypress(OPTIONS.hotkey_increase_opacity, increase_opacity)
 Keys.registerkeypress(OPTIONS.hotkey_decrease_opacity, decrease_opacity)
 
 -- Key releases:
-Keys.registerkeyrelease("mouse_inwindow", function() Cheat.is_dragging_sprite = false end)
-Keys.registerkeyrelease("leftclick", function() Cheat.is_dragging_sprite = false end)
+Keys.registerkeyrelease("mouse_inwindow", function() Cheat.is_dragging_sprite = false ; Cheat.is_spawning_sprite = false end)
+Keys.registerkeyrelease("leftclick", function() Cheat.is_dragging_sprite = false ; Cheat.is_spawning_sprite = false end)
 
 -- Options menu window
 function Options_form.create_window()
@@ -4185,13 +4262,13 @@ function Options_form.create_window()
   Options_form.sprite_special_info = forms.checkbox(Options_form.form, "Special info", xform, yform)
   forms.setproperty(Options_form.sprite_special_info, "Checked", OPTIONS.display_sprite_special_info)
   yform = yform + delta_y
-  
-  Options_form.sprite_tables = forms.checkbox(Options_form.form, "Misc tables", xform, yform)
-  forms.setproperty(Options_form.sprite_tables, "Checked", OPTIONS.display_miscellaneous_sprite_table)
-  yform = yform + delta_y
 
   Options_form.sprite_spawning_areas = forms.checkbox(Options_form.form, "Spawning areas", xform, yform)
   forms.setproperty(Options_form.sprite_spawning_areas, "Checked", OPTIONS.display_sprite_spawning_areas)
+  yform = yform + delta_y
+
+  Options_form.sprite_tables_button = forms.button(Options_form.form, "Sprite tables", Sprite_tables_form.create_window, xform, yform + 4)
+  --forms.setproperty(Options_form.sprite_tables_button, "Enabled", OPTIONS.display_sprite_info)
   yform = yform + delta_y
 
   if yform > y_bigger then y_bigger = yform end 
@@ -4244,7 +4321,7 @@ function Options_form.create_window()
   yform = yform + delta_y
   
   Options_form.sprite_load_status = forms.checkbox(Options_form.form, "Sprite load stat", xform, yform)
-  forms.setproperty(Options_form.sprite_load_status, "Checked", OPTIONS.display_miscellaneous_sprite_table)
+  forms.setproperty(Options_form.sprite_load_status, "Checked", OPTIONS.display_sprite_load_status)
   yform = yform + delta_y
   
   Options_form.debug_controller_data = forms.checkbox(Options_form.form, "Controller data", xform, yform)
@@ -4603,7 +4680,9 @@ function Options_form.create_window()
   forms.setproperty(Options_form.sprite_number, "Enabled", (Cheat.allow_cheats and Cheat.sprite_spawning_enabled))
   
   forms.addclick(Options_form.sprite_spawning, function() -- to enabling/disabling the dropdown according to Cheat.sprite_spawning_enabled
-    forms.setproperty(Options_form.sprite_number, "Enabled", (Cheat.allow_cheats and not Cheat.sprite_spawning_enabled))
+    Cheat.sprite_spawning_enabled = forms.ischecked(Options_form.sprite_spawning) or false
+    
+    forms.setproperty(Options_form.sprite_number, "Enabled", (Cheat.allow_cheats and Cheat.sprite_spawning_enabled))
   end)
   
   -- Menu items cheat
@@ -4662,8 +4741,7 @@ function Options_form.create_window()
   
   --[[TODO CHEATS:
   [ ] - Sprite select to change ID, delete, etc (id select is already done in Sprites_info.selected_id = id)
-  [ ] - Sprite table editor, that you can select which sprite slot you want edit via dropdown list or clicking the sprite itself
-  [ ] - Egg inventory editor (hard, need to force sprite spawning, or do like the Practice Cart where only is set in overworld by poking $7E5D98 and $7E5D9A)
+  [ ] - Egg inventory editor (could use the Sprite Spawn cheat to spawn eggs on Yoshi, or do like the Practice Cart where only is set in overworld by poking $7E5D98 and $7E5D9A)
   [ ] - Full save unlock, by writing into SRAM
   [ ] - Tile editor
   ]]
@@ -4714,7 +4792,11 @@ function Options_form.create_window()
     forms.setproperty(Options_form.warp_x_label, "Enabled", Cheat.allow_cheats)
     forms.setproperty(Options_form.warp_y, "Enabled", Cheat.allow_cheats)
     forms.setproperty(Options_form.warp_y_label, "Enabled", Cheat.allow_cheats)
-  
+    
+    if not Sprite_tables_form.is_form_closed then
+      forms.setproperty(Sprite_tables_form.edit_values_option, "Enabled", Cheat.allow_cheats)
+    end
+    
     -- TODO: report issue: it's painting the whole form when this is called inside addclick event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     --forms.clear(Options_form.stars_picture_box, 0xff000000) --0xffF0F0F0) -- TODO: report issue: it's painting the whole form when this is called inside addclick event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -4743,6 +4825,139 @@ function Options_form.create_window()
 end
 
 
+function Sprite_tables_form.create_window()
+  if not Sprite_tables_form.is_form_closed then return end
+
+  -- Create sprite tables form
+  local default_width, default_height = 254, 750
+  if Sprite_tables_form.width == nil and Sprite_tables_form.height == nil then
+    Sprite_tables_form.width, Sprite_tables_form.height = default_width, default_height
+  end
+  Sprite_tables_form.form = forms.newform(Sprite_tables_form.width, Sprite_tables_form.height, "Sprite Tables", function () Sprite_tables_form.is_form_closed = true end )
+  
+  -- Font
+  local xform, yform, delta_y = 4, 8, 20
+  Sprite_tables_form.colour_changed = forms.createcolor(0xFF, 0x00, 0x00, 0xFF) -- red
+  Sprite_tables_form.colour_same = forms.createcolor(0x00, 0x00, 0x00, 0xFF) -- black  
+  
+  -- Slot
+  Sprite_tables_form.slot_label = forms.label(Sprite_tables_form.form, "Slot:", xform, yform)
+  forms.setproperty(Sprite_tables_form.slot_label, "AutoSize", true)
+  
+  xform = xform + forms.getproperty(Sprite_tables_form.slot_label, "Width")
+  local slots_table = {}
+  for i = 0, 23 do slots_table[i] = fmt("%02d", i) end
+  Sprite_tables_form.slot_dropdown = forms.dropdown(Sprite_tables_form.form, slots_table, xform, yform - 4, 40, 20)
+  
+  forms.setproperty(Sprite_tables_form.slot_dropdown, "SelectedIndex", fmt("%d", Sprites_info.selected_id))
+  Sprite_tables_form.curr_slot = tonumber(forms.getproperty(Sprite_tables_form.slot_dropdown, "SelectedIndex"))
+  
+  -- Sprite name
+  xform, yform = 4, yform + delta_y
+  local sprite_type = u16_sram(SRAM.sprite_type + Sprite_tables_form.curr_slot*4)
+  local sprite_str = fmt("%s%s", u8_sram(SRAM.sprite_status + Sprite_tables_form.curr_slot*4) ~= 0 and "" or "[EMPTY] ", YI.sprites[sprite_type] and YI.sprites[sprite_type] or "") -- to warn empty slot and avoid printing sprites that doesn't exist (bad ID, resulting in nil)
+  Sprite_tables_form.sprite_name = forms.textbox(Sprite_tables_form.form, sprite_str, 131, 20, "", xform, yform, true, false, "Vertical")
+  forms.setproperty(Sprite_tables_form.sprite_name, "ReadOnly", true)
+  
+  -- Edit values cheat option
+  xform, yform = 4 + 142, yform - delta_y
+  Sprite_tables_form.edit_values_option = forms.checkbox(Sprite_tables_form.form, "Edit values", xform, yform)
+  forms.setproperty(Sprite_tables_form.edit_values_option, "Enabled", Cheat.allow_cheats)
+  forms.setproperty(Sprite_tables_form.edit_values_option, "AutoSize", true)
+  
+  -- Edit values button
+  yform = yform + delta_y
+  Sprite_tables_form.edit_values_button = forms.button(Sprite_tables_form.form, "Poke", function()
+    Sprite_tables_form.curr_slot = tonumber(forms.getproperty(Sprite_tables_form.slot_dropdown, "SelectedIndex"))
+    local edit_counter = 0
+    for i = 0, 28 do
+      for j = 0, 3 do
+        if forms.gettext(Sprite_tables_form.cheat_values[i][j]) ~= "" then
+          Cheat.change_address("SRAM", SRAM["sprite_table"..i+1] + 4*Sprite_tables_form.curr_slot + j, forms.gettext(Sprite_tables_form.cheat_values[i][j]), 1, true, nil, false, false)
+          edit_counter = edit_counter + 1
+        end
+      end
+    end
+    print(fmt("Cheat: %d edit(s) in sprite <%02d>.", edit_counter, Sprite_tables_form.curr_slot))
+  end, xform - 1, yform - 2, 2*22 + 1, 22)
+  forms.setproperty(Sprite_tables_form.edit_values_button, "Enabled", Cheat.sprite_table_edit_enabled)
+  
+  -- Clear values button
+  xform = xform + 2*22
+  Sprite_tables_form.clear_values_button = forms.button(Sprite_tables_form.form, "Clear", function()
+    for i = 0, 28 do
+      for j = 0, 3 do 
+        forms.settext(Sprite_tables_form.cheat_values[i][j], "")
+      end
+    end
+  end, xform, yform - 2, 2*22 + 1, 22)
+  forms.setproperty(Sprite_tables_form.clear_values_button, "Enabled", Cheat.sprite_table_edit_enabled)
+  
+  -- Table addresses and values
+  xform, yform = 4, yform + delta_y
+  
+  Sprite_tables_form.values = {}
+  Sprite_tables_form.cheat_values = {}
+  
+  for i = 0, 28 do -- i = table
+    
+    -- Addresses
+    forms.button(Sprite_tables_form.form, fmt("$%04X", SRAM["sprite_table"..i+1]), function ()
+      forms.settext(Sprite_tables_form.description, fmt("$70%04X:\r\n%s", SRAM["sprite_table"..i+1], YI.sprite_table_descr[SRAM["sprite_table"..i+1]]))
+    end, xform - 1, yform + i*delta_y, 48, 20)
+    
+    -- Values
+    Sprite_tables_form.values[i] = {}
+    for j = 0, 3 do -- j = byte in the dword in the table
+      
+      Sprite_tables_form.values[i][j] = forms.label(Sprite_tables_form.form, fmt("%02X", u8_sram(SRAM["sprite_table"..i+1] + 4*Sprite_tables_form.curr_slot + j)), xform + 48 + j*22, yform + i*delta_y, 24, delta_y)
+      forms.setproperty(Sprite_tables_form.values[i][j], "ForeColor", Sprite_tables_form.colour_same) -- set pure black colour to be used later at Sprite_tables_form.evaluate_form()
+      forms.setproperty(Sprite_tables_form.values[i][j], "TextAlign", "MiddleCenter")
+    
+    end
+    
+    -- Cheat boxes
+    Sprite_tables_form.cheat_values[i] = {}
+    for j = 0, 3 do -- j = byte in the dword in the table
+    
+      Sprite_tables_form.cheat_values[i][j] = forms.textbox(Sprite_tables_form.form, "", 22, 14, "HEX", xform + 142 + j*22, yform + i*delta_y, false, false)
+      forms.setproperty(Sprite_tables_form.cheat_values[i][j], "MaxLength", 2)
+      forms.setproperty(Sprite_tables_form.cheat_values[i][j], "Enabled", Cheat.sprite_table_edit_enabled)
+    
+    end
+  end
+  
+  -- Edit values: enabling/disabling child controls
+  forms.addclick(Sprite_tables_form.edit_values_option, function()
+    Cheat.sprite_table_edit_enabled = forms.ischecked(Sprite_tables_form.edit_values_option) or false
+  
+    forms.setproperty(Sprite_tables_form.edit_values_button, "Enabled", Cheat.sprite_table_edit_enabled)
+    forms.setproperty(Sprite_tables_form.clear_values_button, "Enabled", Cheat.sprite_table_edit_enabled)
+    for i = 0, 28 do
+      for j = 0, 3 do
+        forms.setproperty(Sprite_tables_form.cheat_values[i][j], "Enabled", Cheat.sprite_table_edit_enabled)
+      end
+    end
+  end)
+  
+  -- Info box with table description
+  xform, yform = 4, yform + 29*delta_y + 2
+  Sprite_tables_form.description = forms.textbox(Sprite_tables_form.form, "Click the address buttons to see the respective description here",
+    Sprite_tables_form.width - xform - 20, Sprite_tables_form.height - yform - 44, "", xform, yform, true, false, "Vertical")
+  forms.setproperty(Sprite_tables_form.description, "ReadOnly", true)
+  
+  
+  
+  Sprite_tables_form.is_form_closed = false
+  
+  --- DEBUG ---------------------------------------------------------------------------------------
+  
+  -- Background for dev/debug tests
+  Sprite_tables_form.picture_box = forms.pictureBox(Sprite_tables_form.form, 0, 0, Sprite_tables_form.width, tonumber(forms.getproperty(Sprite_tables_form.form, "Height")))
+  --forms.clear(Sprite_tables_form.picture_box, 0xffFF0000) -- red
+end
+
+
 function Options_form.evaluate_form()
   --- Show/hide -------------------------------------------------------------------------------------------
   -- Player
@@ -4758,7 +4973,6 @@ function Options_form.evaluate_form()
   OPTIONS.display_sprite_table = forms.ischecked(Options_form.sprite_table) or false
   OPTIONS.display_sprite_hitbox = forms.ischecked(Options_form.sprite_hitbox) or false
   OPTIONS.display_sprite_special_info = forms.ischecked(Options_form.sprite_special_info) or false
-  OPTIONS.display_miscellaneous_sprite_table =  forms.ischecked(Options_form.sprite_tables) or false
   OPTIONS.display_sprite_spawning_areas = forms.ischecked(Options_form.sprite_spawning_areas) or false
   -- Level
   OPTIONS.display_level_info = forms.ischecked(Options_form.level_info) or false
@@ -4794,6 +5008,47 @@ function Options_form.evaluate_form()
 end
 
 
+function Sprite_tables_form.evaluate_form()
+  
+  -- Selected slot
+  --forms.setproperty(Sprite_tables_form.slot_dropdown, "SelectedIndex", fmt("%d", Sprites_info.selected_id))
+  Sprite_tables_form.curr_slot = tonumber(forms.getproperty(Sprite_tables_form.slot_dropdown, "SelectedIndex"))
+  
+  -- Sprite name
+  local sprite_type = u16_sram(SRAM.sprite_type + Sprite_tables_form.curr_slot*4)
+  local sprite_str = fmt("%s%s", u8_sram(SRAM.sprite_status + Sprite_tables_form.curr_slot*4) ~= 0 and "" or "[EMPTY] ", YI.sprites[sprite_type] and YI.sprites[sprite_type] or "")
+  forms.settext(Sprite_tables_form.sprite_name, sprite_str)
+  
+  -- Sprite tables
+  for i = 0, 28 do -- i = table
+    
+    for j = 0, 3 do -- j = byte in the dword in the table
+      
+      if forms.getproperty(Sprite_tables_form.values[i][j], "Text") ~= fmt("%02X", u8_sram(SRAM["sprite_table"..i+1] + 4*Sprite_tables_form.curr_slot + j)) then -- value changed in this frame
+        
+        forms.settext(Sprite_tables_form.values[i][j], fmt("%02X", u8_sram(SRAM["sprite_table"..i+1] + 4*Sprite_tables_form.curr_slot + j)))
+        forms.setproperty(Sprite_tables_form.values[i][j], "ForeColor", Sprite_tables_form.colour_changed)
+        
+      else -- value didn't change in this frame
+        
+        local colour_same_str = string.sub(tostring(Sprite_tables_form.colour_same), 1, string.find(tostring(Sprite_tables_form.colour_same), ":") - 1) -- because colours created with forms.createcolor are userdatas with a pattern like "Color [A=255, R=0, G=255, B=0]: -16580862"
+        
+        if forms.getproperty(Sprite_tables_form.values[i][j], "ForeColor") ~= colour_same_str then
+          forms.setproperty(Sprite_tables_form.values[i][j], "ForeColor", Sprite_tables_form.colour_same)
+        end
+        
+      end
+      
+    end
+    
+  end
+  
+  -- Options
+  Cheat.sprite_table_edit_enabled = forms.ischecked(Sprite_tables_form.edit_values_option) or false
+  
+end
+
+
 function Options_form.write_help() -- TODO
   print(" - - - TIPS - - - ")
   print("MOUSE:")
@@ -4816,11 +5071,12 @@ end
 
 Options_form.create_window()
 Options_form.is_form_closed = false
+Sprite_tables_form.is_form_closed = true
 
 
 event.onexit(function()
   
-  forms.destroy(Options_form.form)
+  forms.destroyall()
   
   gui.clearImageCache()
   
@@ -4848,6 +5104,7 @@ while true do
  
   Options_form.is_form_closed = forms.gettext(Options_form.form) == ""
   if not Options_form.is_form_closed then Options_form.evaluate_form() end
+  if not Sprite_tables_form.is_form_closed then Sprite_tables_form.evaluate_form() end
  
   -- Initial values, don't make drawings here
   bizhawk_status()
@@ -4874,40 +5131,7 @@ while true do
   show_mouse_info()
   
   -- Cheats
-  if Cheat.allow_cheats then
-    Cheat.is_cheat_active()
-    
-    Cheat.mouse_click = User_input.leftclick
-    
-    -- Warning
-    gui.drawText(Buffer_middle_x - 57, Border_bottom_start, "Cheats allowed!", COLOUR.warning, 0xA00040FF)
-    if Movie_active then
-      gui.drawText(Buffer_middle_x - 124, Border_bottom_start + 15, "Disable it while recording movies", COLOUR.warning, 0xA00040FF)
-    end
-    
-    -- Passive cheats
-    Cheat.passive_cheats()
-    
-    -- Drag and drop sprites with the mouse (Cheat)
-    if Cheat.sprite_dragging_enabled and Cheat.is_dragging_sprite then
-      Cheat.drag_sprite(Cheat.dragging_sprite_id)
-      Cheat.is_cheating = true
-    end
-    
-    -- Spawn sprite with mouse or keyboard
-    if Cheat.sprite_spawning_enabled and User_input.mouse_inwindow and ((Cheat.mouse_click and not Cheat.mouse_click_prev) or (User_input.T and not Previous.User_input.T)) then -- "T" on keyboard works for me
-      Cheat.spawn_sprite()
-      Cheat.is_cheating = true
-    end
-    
-    -- Update mouse_click_prev to avoid some cheats adctivating indefinitely while clicking
-    Cheat.mouse_click_prev = Cheat.mouse_click
-    
-  else -- to make sure these cheats are not activated while Cheats is disabled
-  
-    Cheat.under_invincibility = false
-  end
-
+  Cheat.main()
 
   -- Checks if options form exits and create a button in case it doesn't
   if Options_form.is_form_closed then
@@ -4939,17 +5163,7 @@ while true do
   gui.drawText(0, y_pos, fmt("Scale_y:%d ", Scale_y), "white", 0, 9); y_pos = y_pos + 11
   draw_text(Buffer_middle_x, Buffer_middle_y, "TEST MIDDLE", "red", 0, 12)]]
   
-  --for number, positions in ipairs(Tiletable) do  -- REMOVE/TEST
-  --for number = 1, #Tiletable do  -- REMOVE/TEST
-    
-    --print(Tiletable[number])
-    
-  --end
-  
-  --draw_text(0, 2*BIZHAWK_FONT_HEIGHT, "Options_form.sprite_number = " .. forms.gettext(Options_form.sprite_number))
-  --draw_text(0, 2*BIZHAWK_FONT_HEIGHT, "Options_form.warp_level = " .. forms.gettext(Options_form.warp_level) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_level))))
-  --draw_text(0, 3*BIZHAWK_FONT_HEIGHT, "Options_form.warp_x = " .. forms.gettext(Options_form.warp_x) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_x))))
-  --draw_text(0, 4*BIZHAWK_FONT_HEIGHT, "Options_form.warp_y = " .. forms.gettext(Options_form.warp_y) .. fmt(" (%s)", type(forms.gettext(Options_form.warp_y))))
+  --draw_text(0, 2*BIZHAWK_FONT_HEIGHT, "Sprites_info.selected_id  = " .. Sprites_info.selected_id)
   
   -- (End of drawings)
 
@@ -4958,7 +5172,7 @@ while true do
   
   emu.frameadvance()
   
-  -- Cheat: to avoid spawning sprites indefinitely
+  -- Sprite Spawning Cheat: to avoid spawning sprites indefinitely
   if Cheat.sprite_spawning_enabled then
     w16_wram(0x1E06, 0)
   end
@@ -4966,7 +5180,7 @@ end
 
 --[[ TODO LIST #########################################################################################################################
 
-- 
+- Option to show/hide empty sprite slots, and make the according changes inside the sprite() functions
 - 
 - 
 -
