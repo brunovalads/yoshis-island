@@ -43,6 +43,7 @@ local DEFAULT_OPTIONS = {
   display_sprite_spawning_areas = false,
   display_level_info = true,
   display_level_extra = true,
+  display_overworld_info = true,
   display_counters = false,
   display_controller_input = true,
   draw_tiles_with_click = false,
@@ -57,10 +58,6 @@ local DEFAULT_OPTIONS = {
   display_debug_sprite_tweakers = true,
   display_debug_ambient_sprite = true,
   display_debug_controller_data = false,
-  miscellaneous_sprite_table_number = {[1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [6] = true, [7] = true, [8] = true, [9] = true, -- TODO: see if used
-    [10] = true, [11] = true, [12] = true, [13] = true, [14] = true, [15] = true, [16] = true, [17] = true, [18] = true, [19] = true, [20] = true,
-		[21] = true, [22] = true, [23] = true, [24] = true, [25] = true, [26] = true, [27] = true, [28] = true, [29] = true
-  },
 	display_mouse_coordinates = false,
 	draw_tile_map_grid = false,
 	draw_tile_map_type = false,
@@ -70,7 +67,7 @@ local DEFAULT_OPTIONS = {
   left_gap = 150,
   right_gap = 190,
   top_gap = 55,
-  bottom_gap = 24,
+  bottom_gap = 64,
   max_tiles_drawn = 40  -- the max number of tiles to be drawn/registered by the script
 }
 
@@ -544,6 +541,16 @@ local WRAM = {  -- 7E0000~7FFFFF
   screen_exit_data = 0x17E00, -- 512 bytes table, format is level, X, Y, type
   cur_screen_exit = 0x038E, -- 2 bytes
   level_load_type = 0x038C, -- 2 bytes (but just a flag)
+  music_to_play = 0x004D,
+  OW_level_flags = 0x0222, -- 72 bytes table: $00: unavailable, $01: beaten, $80: current (grayed out)
+  OW_cursor_x_pos = 0x1109,
+  OW_cursor_y_pos = 0x110A,
+  OW_cursor_x_pos_next = 0x110C,
+  OW_cursor_y_pos_next = 0x110D,
+  OW_cursor_level = 0x1112,
+  OW_cursor_world = 0x1117, -- world*2
+  OW_world_id = 0x0218,
+  OW_level_tiles = 0x030F, -- 72 bytes
 
   -- Camera
   camera_x = 0x0039,
@@ -1556,7 +1563,7 @@ local function draw_over_text(x, y, value, base, colour_base, colour_value, colo
   value = decode_bits(value, base)
   local x_end, y_end, length = draw_text(x, y, base,  colour_base, colour_bg, always_on_client, always_on_game, ref_x, ref_y)
   --gui.opacity(Text_max_opacity * Text_opacity)
-  gui.text(x_end - length, y_end - BIZHAWK_FONT_HEIGHT, value, colour_value or COLOUR.text)
+  gui.text(Scale_x*(x_end - length), Scale_y*(y_end - BIZHAWK_FONT_HEIGHT), value, colour_value or COLOUR.text)
   --gui.opacity(1.0)
   
   return x_end, y_end, length
@@ -2217,19 +2224,16 @@ end
 
 -- Shows the controller input as the RAM and SNES registers store it
 local function show_controller_data()
-  if not (OPTIONS.display_debug_info and OPTIONS.display_debug_controller_data) then return end
+  --if not (OPTIONS.display_debug_info and OPTIONS.display_debug_controller_data) then return end
+  if not OPTIONS.display_debug_controller_data then return end
   
   -- Font
-  Text_opacity = 0.9
   local height = BIZHAWK_FONT_HEIGHT
-  local x_pos, y_pos, x, y, _ = 0, 0, 0, BIZHAWK_FONT_HEIGHT
+  local x, y = 0, 2*height
   
-  x = x_pos
-  x = draw_over_text(x, y, 256*u8_wram(WRAM.ctrl_1_1) + u8_wram(WRAM.ctrl_1_2), "BYsS^v<>AXLR0123", COLOUR.weak)
-  _, y = draw_text(x, y, " (RAM data)", COLOUR.weak, false, true)
-  
-  x = x_pos
-  draw_over_text(x, y, 256*u8_wram(WRAM.ctrl_1_1_first) + u8_wram(WRAM.ctrl_1_2_first), "BYsS^v<>AXLR0123", 0, "#0xffff", 0) -- Snes9x
+  -- Display controller bits
+  draw_over_text(x, y, 256*u8_wram(WRAM.ctrl_1_1) + u8_wram(WRAM.ctrl_1_2), "BYsS^v<>AXLR0123", COLOUR.weak)
+  draw_over_text(x, y - height, 256*u8_wram(WRAM.ctrl_1_1_first) + u8_wram(WRAM.ctrl_1_2_first), "BYsS^v<>AXLR0123", 0, COLOUR.warning, 0)
 end
 
 
@@ -2249,7 +2253,7 @@ local function level_info()
   local level_str = fmt("Level:$%02X (%d - %s)", Level_index, world_number, level_number)
   
 	--- Current room/translevel
-  local room_str = fmt("Room:$%02X", Room_index)
+  local room_str = Room_index and fmt("Room:$%02X", Room_index) or "Room: GLITCHED/NONEXISTENT" -- just a measure to avoid nil when the game crashes or when you play a modified rom
 	
 	--- Current screen
 	local screen_number, screen_id
@@ -2561,7 +2565,7 @@ local function egg_throw_info(egg_target_x, egg_target_y, direction, x_centered,
 	local target_delta_x, target_delta_y = egg_target_x - egg_throw_origin_x, egg_target_y - egg_throw_origin_y
 	local extended_target_x, extended_target_y =  egg_target_x + target_delta_x, egg_target_y - target_delta_y
 	
-	local egg_throw_effective_timer -- found with tests and math
+	local egg_throw_effective_timer = 0 -- found with tests and math
 	if egg_throw_state == 10 then egg_throw_effective_timer = 27
 	elseif egg_throw_state == 9 then egg_throw_effective_timer = 26
 	elseif egg_throw_state == 8 then egg_throw_effective_timer = 3*egg_throw_state + egg_throw_state_timer - 1
@@ -3164,7 +3168,7 @@ local function sprite_info(id, counter, table_position)
       if yoshi_center_x <= x + activation_line_x then
         draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, fmt("Distance: %02X", x + activation_line_x - yoshi_center_x), info_colour, true, false, 1.0)
       else
-        draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, fmt("Distance: -%02X", 0xFFFFFFFF - x + activation_line_x - yoshi_center_x), info_colour, true, false, 1.0)
+        draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, "Distance: --", info_colour, true, false, 1.0)
       end
       
       -- Warning to best area of activation
@@ -3210,6 +3214,22 @@ local function sprite_info(id, counter, table_position)
         vertex_table[i+1] = {vertex_x + x_screen, vertex_y + y_screen}
       end
       gui.drawPolygon(vertex_table, "cyan")      
+    end
+    
+    -- Middle ring
+    if sprite_type == 0x04F then
+      local direction = u8_sram(SRAM.sprite_table9 + id_off)
+      local left, right
+      if direction == 0 then
+        left, right = x_centered_screen + 1, x_centered_screen + 32
+      else
+        left, right = x_centered_screen - 32, x_centered_screen + 0
+      end
+      local top, bottom = y_centered_screen - 29, y_centered_screen + 40
+      
+      draw_box(left, top, right, bottom, info_colour)
+      
+			special_hitbox = true
     end
     
 		-- Rolling platform/Large log (in 1-8)
@@ -3519,6 +3539,8 @@ local function sprites()
   Text_opacity = 0.8
   draw_text(Screen_width, table_position - BIZHAWK_FONT_HEIGHT, fmt("Sprites:%.2d", counter), COLOUR.weak, true)
   
+  draw_text(Screen_width, table_position + 25*BIZHAWK_FONT_HEIGHT, "FIX NEGATIVE SPEED FOR SPRITES!", COLOUR.warning, true) -- REMOVE/TEST
+  
 end
 
 
@@ -3694,25 +3716,128 @@ local function level_mode()
 end
 
 
-local function overworld_mode() -- TODO
-    --[[if Game_mode ~= YI.game_mode_overworld then return end
+local function overworld_mode()
+  if not OPTIONS.display_overworld_info then return end
+	--if Game_mode == YI.game_mode_overworld or Game_mode == 0x0024 or Game_mode == 0x0026 or Game_mode == 0x0028 then -- then continue to OW info
+	if Game_mode >= 0x001F and Game_mode <= 0x0028 then -- then continue to OW info
+  else return end
+  
+  -- Text
+  local t = 0
+  local delta_x = BIZHAWK_FONT_WIDTH
+  local delta_y = BIZHAWK_FONT_HEIGHT
+  local table_x = 2
+  local table_y = OPTIONS.top_gap + 2*delta_y
+  
+  -- Read ram values
+  local cursor_x_pos = u8_wram(WRAM.OW_cursor_x_pos)
+  local cursor_y_pos = u8_wram(WRAM.OW_cursor_y_pos)
+  local cursor_x_pos_next = u8_wram(WRAM.OW_cursor_x_pos_next)
+  local cursor_y_pos_next = u8_wram(WRAM.OW_cursor_y_pos_next)
+  local cursor_level = u8_wram(WRAM.OW_cursor_level)
+  local cursor_world = u8_wram(WRAM.OW_cursor_world)/2 -- math to match what the game display
+  local world_id = u16_wram(WRAM.OW_world_id)/2 -- math to match what the game display
+  local coin_counter = u16_wram(WRAM.coin_counter)
+  
+  --local level_flags = 0x0222, -- 72 bytes table: $00: unavailable, $01: beaten, $80: current (grayed out)
+  
+  -- Main info table
+  
+  draw_text(table_x, table_y + t*delta_y, fmt("Cursor (%02X, %02X) (%02X, %02X)", cursor_x_pos, cursor_y_pos, cursor_x_pos_next, cursor_y_pos_next))
+  t = t + 1
+  
+  local level_id = bit.band(world_id*0xC + cursor_level, 0xFF) -- bit.band(0xFF) because ADC $1112 at 17E054 is done in 8bit mode
+  draw_text(table_x, table_y + t*delta_y, fmt("Level: $%02X ($%02X)", level_id, cursor_level))
+  t = t + 1
+  
+  if cursor_world ~= 0 then
+    draw_text(table_x, table_y + t*delta_y, fmt("World: $%02X ($%02X)", world_id, cursor_world-1))
+  else
+    draw_text(table_x, table_y + t*delta_y, fmt("World: $%02X (--)", world_id))
+  end
+  t = t + 1
+  
+  local level_real = bit.band(u8_wram(WRAM.OW_level_tiles + level_id), 0x7F) + world_id*0xC - 1 -- bit.band(0x7F) because AND #$7f at $17E061
+  draw_text(table_x, table_y + t*delta_y, fmt("Level when selected: %s", u8_wram(WRAM.OW_level_tiles + level_id) == 0xFF and "--" or fmt("$%02X", level_real))) -- because CMP #$ff at $17E05D
+  t = t + 1
+  
+  draw_text(table_x, table_y + t*delta_y, fmt("Level selected: $%02X", Level_index))
+  t = t + 1
+  
+  local left_right_dest_addr_start = WRAM.OW_level_tiles + level_id -- starting point: the level the cursor currently is
+  local left_right_dest_addr = left_right_dest_addr_start
+  local left_right_dest_level = 0 -- any value that AND(0xF) == 0
+  local offset = 6
+  local inf_loop, is_level = false, true
+  local i = 0 -- REMOVE/TEST
+  -- Loop to check next valid level
+  while bit.band(left_right_dest_level, 0xF) == 0 do -- low nibble should not be zero to be considered a level
+    -- Read level
+    left_right_dest_addr = WRAM.OW_level_tiles + level_id + offset
+    left_right_dest_level = u8_wram(left_right_dest_addr)
+    if left_right_dest_level == 0xFF then is_level = false end -- because CMP #$ff at $17E05D
     
-    -- Font
-    Text_opacity = 1.0
-    Bg_opacity = 1.0
+    -- DEBUG: print all addressed from this loop
+    --draw_text(Border_right_start + 12*delta_x*floor((i+1)*delta_y/Screen_height), (i+1)*delta_y - Screen_height*floor((i+1)*delta_y/Screen_height), fmt("$7E%04X:$%02X", left_right_dest_addr, left_right_dest_level)) -- REMOVE/TEST
     
-    local height = BIZHAWK_FONT_HEIGHT
-    local y_text = BIZHAWK_FONT_HEIGHT
+    -- Loop math
+    i = i + 1 -- REMOVE/TEST
+    offset = offset + 6 -- the effect of pressing left+right
+    if offset > 0x100 then offset = offset - 0x100 end -- ADC at $17E1C3 is done in 8 bit mode, so value wraps at 0x100
     
-    -- Real frame modulo 8
-    local Frame_counter_8 = Frame_counter%8
-    draw_text(Screen_width, y_text, fmt("Real Frame = %3d = %d(mod 8)", Frame_counter, Frame_counter_8), true)
+    -- Failsafe for loop
+    if left_right_dest_addr == left_right_dest_addr_start + 6 and i > 1 then inf_loop = true ; break end -- it has looped
+    if i == 1000 then inf_loop = true ; break end -- REMOVE/TEST (old failsafe for infinite loop)
+  end
+  -- Correctly calculate the destination level
+  left_right_dest_level = bit.band(left_right_dest_level, 0x7F) + world_id*0xC - 1 -- bit.band(0x7F) because AND #$7f at $17E061
+  -- Print info
+  if inf_loop or not is_level then
+    --draw_text(table_x, table_y + t*delta_y, fmt("Level if L+R: %s", inf_loop and "--" or fmt("$%02X", left_right_dest_level)))
+    draw_text(table_x, table_y + t*delta_y, "Level if L+R: --")
+  else
+    draw_text(table_x, table_y + t*delta_y, fmt("Level if L+R: $%02X", left_right_dest_level))
+  end
+  if not inf_loop then
+    draw_text(table_x, table_y + t*delta_y, fmt("\n(at $7E%04X%s)", left_right_dest_addr, left_right_dest_addr == WRAM.coin_counter and fmt(" - Coins:$%02X", coin_counter) or ""), left_right_dest_addr == WRAM.coin_counter and "yellow" or "white")
+  end
+  t = t + 4
+  
+  draw_text(table_x, table_y + t*delta_y, "Levels:")
+  t = t + 1
+  draw_text(table_x + 3*delta_x, table_y + t*delta_y, "-1 -2 -3 -4 -5 -6 -7 -8 Ex Bo Sc Co")
+  local level_flags, colour
+  for i = 0, 72-1 do -- the table used is actually 72 bytes, $7E026A is a 78 byte table of unused RAM but the OW routine actually can handle it    
+    if i%0xC == 0 then
+      t = t + 1
+      draw_text(table_x, table_y + t*delta_y, fmt("W%d", floor(i/0xC) + 1))
+    end
     
-    -- Star Road info
-    local star_speed = u8_wram(WRAM.star_road_speed)
-    local star_timer = u8_wram(WRAM.star_road_timer)
-    y_text = y_text + height
-    draw_text(Screen_width, y_text, fmt("Star Road(%x %x)", star_speed, star_timer), COLOUR.cape, true)]]
+    level_flags = u8_wram(WRAM.OW_level_flags + i)
+    if level_flags == 0x01 then colour = COLOUR.positive elseif level_flags == 0x80 then colour = COLOUR.warning_soft else colour = COLOUR.weak end
+    
+    draw_text(table_x + (i%0xC + 1)*delta_x*3, table_y + t*delta_y, fmt("%02X", level_flags), colour)
+  end
+  
+  table_y = table_y + 2*delta_y
+  draw_text(table_x, table_y + t*delta_y, "Level tiles:")
+  t = t + 1
+  draw_text(table_x + 3*delta_x, table_y + t*delta_y, "-1 -2 -3 -4 -5 -6 -7 -8 Ex Bo Sc Co")
+  local level_tiles
+  for i = 0, 72-1 do
+    if i%0xC == 0 then
+      t = t + 1
+      draw_text(table_x, table_y + t*delta_y, fmt("W%d", floor(i/0xC) + 1))
+    end
+    
+    level_tiles = u8_wram(WRAM.OW_level_tiles + i)
+    if level_tiles == 0x00 then colour = COLOUR.weak else colour = COLOUR.text end
+    
+    draw_text(table_x + (i%0xC + 1)*delta_x*3, table_y + t*delta_y, fmt("%02X", level_tiles), colour)
+  end
+  
+  table_y = table_y + 2*delta_y
+  draw_text(table_x, table_y + t*delta_y, "ACTUALLY MERGE THESE TWO TABLES, SHOWING\nVALUES FROM TILES BUT COLORING ACCORDING\nTO BEATEN FLAGS", COLOUR.warning)
 end
 
 
@@ -4345,6 +4470,10 @@ function Options_form.create_window()
   xform, yform = xform + delta_x, y_section
   forms.label(Options_form.form, "Other:", xform, yform)
   yform = yform + delta_y
+
+  Options_form.overworld_info = forms.checkbox(Options_form.form, "Overworld info", xform, yform)
+  forms.setproperty(Options_form.overworld_info, "Checked", OPTIONS.display_overworld_info)
+  yform = yform + delta_y
   
   Options_form.misc_info = forms.checkbox(Options_form.form, "Miscellaneous", xform, yform)
   forms.setproperty(Options_form.misc_info, "Checked", OPTIONS.display_misc_info)
@@ -4362,12 +4491,6 @@ function Options_form.create_window()
   forms.setproperty(Options_form.cw_helper, "Checked", OPTIONS.display_cw_helper)
   forms.setproperty(Options_form.cw_helper, "Width", 110)
   yform = yform + delta_y
-
-  --[[
-  Options_form.overworld_info = forms.checkbox(Options_form.form, "Overworld info", xform, yform)
-  forms.setproperty(Options_form.overworld_info, "Checked", OPTIONS.display_overworld_info)
-  yform = yform + delta_y
-  ]]
   
   if yform > y_bigger then y_bigger = yform end 
   
@@ -4529,12 +4652,6 @@ function Options_form.create_window()
   -- Stars cheat
   yform = yform + 1.5*delta_y
   y_section = yform
-  --[[
-  Options_form.stars_button = forms.button(Options_form.form, "", function() Cheat.change_address("WRAM", WRAM.star_counter, forms.gettext(Options_form.stars_number), 2, false,
-    nil, "Enter a valid integer (0-65535)", "Stars")
-  end, xform, yform + 1, 22, 22)
-  forms.setproperty(Options_form.stars_button, "Enabled", Cheat.allow_cheats)
-  ]]
   image_button("stars", xform, yform, 16, 16, "black", "images\\star_icon.png",
     function() Cheat.change_address("WRAM", WRAM.star_counter, "stars_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Stars") end, Cheat.allow_cheats)
@@ -4546,11 +4663,6 @@ function Options_form.create_window()
   
   -- Red coins cheat
   xform, yform = 4, yform + 1.5*delta_y
-  --[[
-  Options_form.red_coins_button = forms.button(Options_form.form, "Red coins", function() Cheat.change_address("WRAM", WRAM.red_coin_counter, forms.gettext(Options_form.red_coins_number), 2, false,
-    nil, "Enter a valid integer (0-65535)", "Red coins")
-  end, xform, yform, 64, 24)
-  forms.setproperty(Options_form.red_coins_button, "Enabled", Cheat.allow_cheats)]]
   image_button("red_coins", xform, yform, 16, 16, "black", "images\\red_coin_icon.png",
     function() Cheat.change_address("WRAM", WRAM.red_coin_counter, "red_coins_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Red coins") end, Cheat.allow_cheats)
@@ -4562,11 +4674,6 @@ function Options_form.create_window()
   
   -- Flowers cheat
   xform, yform = 4, yform + 1.5*delta_y
-  --[[
-  Options_form.flowers_button = forms.button(Options_form.form, "Flowers", function() Cheat.change_address("WRAM", WRAM.flower_counter, forms.gettext(Options_form.flowers_number), 2, false,
-    nil, "Enter a valid integer (0-65535)", "Flowers")
-  end, xform, yform, 52, 24)
-  forms.setproperty(Options_form.flowers_button, "Enabled", Cheat.allow_cheats)]]
   image_button("flowers", xform, yform, 16, 16, "black", "images\\flower_icon.png",
     function() Cheat.change_address("WRAM", WRAM.flower_counter, "flowers_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Flowers") end, Cheat.allow_cheats)
@@ -4578,11 +4685,6 @@ function Options_form.create_window()
   
   -- Lives cheat
   xform, yform = 4, yform + 1.5*delta_y
-  --[[
-  Options_form.lives_button = forms.button(Options_form.form, "Lives", function() Cheat.change_address("WRAM", WRAM.lives, forms.gettext(Options_form.lives_number), 2, false,
-    nil, "Enter a valid integer (0-65535)", "Lives")
-  end, xform, yform, 52, 24)
-  forms.setproperty(Options_form.lives_button, "Enabled", Cheat.allow_cheats)]]
   image_button("lives", xform, yform, 16, 16, "black", "images\\yoshi_icon.png",
     function() Cheat.change_address("WRAM", WRAM.lives, "lives_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Lives") end, Cheat.allow_cheats)
@@ -4594,11 +4696,6 @@ function Options_form.create_window()
   
   -- Coins cheat
   xform, yform = 4, yform + 1.5*delta_y
-  --[[
-  Options_form.coins_button = forms.button(Options_form.form, "Coins", function() Cheat.change_address("WRAM", WRAM.coin_counter, forms.gettext(Options_form.coins_number), 2, false,
-    nil, "Enter a valid integer (0-65535)", "Coins")
-  end, xform, yform, 52, 24)
-  forms.setproperty(Options_form.coins_button, "Enabled", Cheat.allow_cheats)]]
   image_button("coins", xform, yform, 16, 16, "black", "images\\coin_icon.png",
     function() Cheat.change_address("WRAM", WRAM.coin_counter, "coins_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Coins") end, Cheat.allow_cheats)
@@ -4685,6 +4782,38 @@ function Options_form.create_window()
     forms.setproperty(Options_form.sprite_number, "Enabled", (Cheat.allow_cheats and Cheat.sprite_spawning_enabled))
   end)
   
+  -- Beat level cheat
+  yform = yform + 1.5*delta_y
+  Options_form.beat_level_button = forms.button(Options_form.form, "Beat level", function()
+    if Game_mode == YI.game_mode_level then
+      Cheat.change_address("WRAM", WRAM.music_to_play, 0x06, 2, false, nil, false, false)
+      Cheat.change_address("WRAM", WRAM.game_mode, 0x31, 2, false, nil, false, false)
+      print("Cheat: beat level!")
+    else
+      print("Only works if game mode = $000F (inside level)")
+    end  
+  end, xform - 1, yform, 40, 24)
+  forms.setproperty(Options_form.beat_level_button, "AutoSize", true)
+  forms.setproperty(Options_form.beat_level_button, "Enabled", Cheat.allow_cheats)
+  
+  -- Unlock all levels cheat
+  xform = xform + forms.getproperty(Options_form.beat_level_button, "Width") + 4
+  Options_form.unlock_levels_button = forms.button(Options_form.form, "Unlock all levels", function()
+    for i = 0, 0x48-1 do -- to make all levels act like passed
+      w8_wram(WRAM.OW_level_flags + i, 0x01)
+    end
+    for i = 0, 6-1 do -- DEBUG: loop 0 thru 11 to "force" glitched worlds
+      for j = 1, 0xC do
+        --w16_wram(WRAM.OW_level_tiles + 8 + i*0xC, 0x0A09)
+        w8_wram(WRAM.OW_level_tiles + i*0xC + j-1, j)
+      end
+    end
+    Cheat.change_address("WRAM", WRAM.game_mode, 0x1F, 2, false, nil, false, false)
+    print("Cheat: unlocked all levels!")
+  end, xform - 1, yform, 40, 24)
+  forms.setproperty(Options_form.unlock_levels_button, "AutoSize", true)
+  forms.setproperty(Options_form.unlock_levels_button, "Enabled", Cheat.allow_cheats)
+  
   -- Menu items cheat
   xform, yform = 200, y_section
   
@@ -4740,9 +4869,7 @@ function Options_form.create_window()
   
   
   --[[TODO CHEATS:
-  [ ] - Sprite select to change ID, delete, etc (id select is already done in Sprites_info.selected_id = id)
   [ ] - Egg inventory editor (could use the Sprite Spawn cheat to spawn eggs on Yoshi, or do like the Practice Cart where only is set in overworld by poking $7E5D98 and $7E5D9A)
-  [ ] - Full save unlock, by writing into SRAM
   [ ] - Tile editor
   ]]
   
@@ -4781,6 +4908,10 @@ function Options_form.create_window()
     
     forms.setproperty(Options_form.sprite_spawning, "Enabled", Cheat.allow_cheats)
     forms.setproperty(Options_form.sprite_number, "Enabled", (Cheat.allow_cheats and Cheat.sprite_spawning_enabled))
+    
+    forms.setproperty(Options_form.beat_level_button, "Enabled", Cheat.allow_cheats)
+    
+    forms.setproperty(Options_form.unlock_levels_button, "Enabled", Cheat.allow_cheats)
     
     forms.setproperty(Options_form.item_button, "Enabled", Cheat.allow_cheats)
     forms.setproperty(Options_form.item_number, "Enabled", Cheat.allow_cheats)
@@ -4986,7 +5117,7 @@ function Options_form.evaluate_form()
   OPTIONS.display_counters = forms.ischecked(Options_form.counters_info) or false
   OPTIONS.display_movie_info = forms.ischecked(Options_form.movie_info) or false
   OPTIONS.display_cw_helper = forms.ischecked(Options_form.cw_helper) or false
---OPTIONS.display_overworld_info = forms.ischecked(Options_form.overworld_info) or false
+  OPTIONS.display_overworld_info = forms.ischecked(Options_form.overworld_info) or false
   
   --- Debug/Extra -------------------------------------------------------------------------------------------
   OPTIONS.display_debug_player_extra = forms.ischecked(Options_form.debug_player_extra) or false
@@ -5048,9 +5179,12 @@ function Sprite_tables_form.evaluate_form()
   
 end
 
-
-function Options_form.write_help() -- TODO
+-- Help text for "Help" button
+function Options_form.write_help() -- TODO: decide if will make console text or will open a window with the info
   print(" - - - TIPS - - - ")
+  
+  print("[work in progress]")
+  --[[
   print("MOUSE:")
   print("Use the left click to draw blocks and to see the Map16 properties.")
   print("Use the right click to toogle the hitbox mode of Mario and sprites.")
@@ -5066,14 +5200,16 @@ function Options_form.write_help() -- TODO
   print("\n")
   print("OTHERS:")
   print("If performance suffers, disable some options that are not needed at the moment.")
+  ]]
   print(" - - - end of tips - - - ")
 end
 
+-- Initialize forms
 Options_form.create_window()
 Options_form.is_form_closed = false
 Sprite_tables_form.is_form_closed = true
 
-
+-- Functions to run when script is stopped or reset
 event.onexit(function()
   
   forms.destroyall()
@@ -5096,7 +5232,7 @@ if not file_exists("images\\star_icon.png") then error(error_str) end
 if not file_exists("images\\yoshi_blocked_status.png") then error(error_str) end
 if not file_exists("images\\yoshi_icon.png") then error(error_str) end
 
-
+-- Script load success message
 print("Yoshi's Island Lua script loaded successfully.\n")
 
 -- Main script loop
@@ -5127,7 +5263,7 @@ while true do
   overworld_mode()
   show_movie_info()
   show_misc_info()
-  --show_controller_data()
+  show_controller_data()
   show_mouse_info()
   
   -- Cheats
@@ -5180,10 +5316,10 @@ end
 
 --[[ TODO LIST #########################################################################################################################
 
-- Option to show/hide empty sprite slots, and make the according changes inside the sprite() functions
-- 
-- 
--
+- Option to show/hide empty sprite slots, and make the according changes inside the sprite() functions.
+- Group show/hide options that can be enabled/disabled by one checkbox, just like the Flintstones script.
+- Fix negative speed for sprites.
+- Make level map tool, a button to a new form that draws the map, the screen, the sprite data (at least), with an option to warp with click (Map16 data read from WRAM) (or at least display the screens like in the snes9x script).
 -
 -
 -
