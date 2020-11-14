@@ -43,6 +43,7 @@ local DEFAULT_OPTIONS = {
   display_sprite_spawning_areas = false,
   display_level_info = true,
   display_level_extra = true,
+  display_level_layout = true,
   display_overworld_info = true,
   display_counters = false,
   display_controller_input = true,
@@ -67,7 +68,7 @@ local DEFAULT_OPTIONS = {
   left_gap = 150,
   right_gap = 190,
   top_gap = 55,
-  bottom_gap = 64,
+  bottom_gap = 154,
   max_tiles_drawn = 40  -- the max number of tiles to be drawn/registered by the script
 }
 
@@ -293,6 +294,7 @@ local draw_image = gui.drawImage
 local draw_image_region = gui.drawImageRegion --gui.drawImageRegion(path, source_x, source_y, source_width, source_height, dest_x, dest_y, [? dest_width], [? dest_height])
 local draw_cross = gui.drawAxis
 local draw_pixel = gui.drawPixel
+local draw_pixel_text = gui.pixelText
 
 -- Compatibility of the memory read/write functions
 local u8_wram =  mainmemory.read_u8
@@ -367,7 +369,7 @@ local YI = {
   ambient_sprite_max = 16
 }
 
-local SRAM = {  -- 700000~707FFF
+local SRAM = {  -- 700000~707FFF -- TODO: wipe out remaining SMW addresses
   -- General
 	level_timer = 0x1974, -- 2 bytes
 	screen_number_to_id = 0x0CAA, -- 128 bytes table
@@ -518,7 +520,7 @@ local SRAM = {  -- 700000~707FFF
 	
 }
 
-local WRAM = {  -- 7E0000~7FFFFF
+local WRAM = {  -- 7E0000~7FFFFF -- TODO: wipe out remaining SMW addresses
   -- I/O
   ctrl_1_1 = 0x093D,
   ctrl_1_2 = 0x093C,
@@ -561,6 +563,7 @@ local WRAM = {  -- 7E0000~7FFFFF
   vertical_scroll_flag_header = 0x1412,  -- #$00 = Disable; #$01 = Enable; #$02 = Enable if flying/climbing/etc.
   vertical_scroll_enabled = 0x13f1,
   camera_scroll_timer = 0x1401,
+  camera_shake_y_offset = 0x0CB0, -- 2 bytes
 
   -- Sprites
   toadies_relative_x = 0x0E38,
@@ -1219,6 +1222,17 @@ YI.sprite_table_descr = {
   [0x1D96] = "Word 1: Timer of being frozen from ice melon, counts down\r\nWord 2: Unused (most likely)"
 }
 
+-- Images (in hex)
+YI.image_hex = {
+  {name = "blocked_status_bits.png", hex = "89504E470D0A1A0A0000000D49484452000000210000002608060000004AE1F2D7000000017352474200AECE1CE90000000467414D410000B18F0BFC6105000000097048597300000EC300000EC301C76FA8640000001974455874536F667477617265007061696E742E6E657420342E302E31364469AFF5000000FE494441545847BD8D510A845010C3F6FE977609748AB37DB25F3510A646C1CF755DBFBEC1FAE77A9070EA4FC2A93F09ABAD0709A7FE249CFA93B0DA7A906FB0FE79FAE9FAA0E462C2FDE5ECA6E01D41B72D7847D06D0BDE1174DB827704DDB6E01D41B72D7847D06D0BDE1174DB827704DDB6E01D41B72D7847D06D0BDE1174DB827704DDB6E03DE1CEBC6CBA98707F39BB297847D06D0BDE1174DB827704DDB6E01D41B72D7847D06D0BDE1174DB827704DDB6E01D41B72D7847D06D0BDE1174DB827704DDB6E01D41B72D7847D06D0BDE13EECCCBA68BBF1F9458FF5C0F124E7D84531FE1D447586D3D4838F5114E7D84531F61B5F520DFE0F6BFEBF305381F993A30BAC7260000000049454E44AE426082"},
+  {name = "coin_icon.png", hex = "89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF61000000017352474200AECE1CE90000000467414D410000B18F0BFC6105000000097048597300000EC300000EC301C76FA8640000001974455874536F667477617265007061696E742E6E657420342E302E31364469AFF50000008849444154384FBD8F510E80200C43BD9257F15CDE19070EF25616347E48F29CADED885B2925E1B091BDCF40AC838D73B711BD20BE608FE9663BD523E17B400C2D2AC8FAEFA05CCF08FA54B0C08118219F46BBA5FB5D3F2ED082EA7C811D04434175BA0021F2E3022CA921A23ECA15080F86B0782876C44081C5B190D99BC9088545B1939AEF29DB051D7C13FD35DBC0600000000049454E44AE426082"},
+  {name = "egg_icons.png", hex = "89504E470D0A1A0A0000000D49484452000000580000000808060000007D1B38C3000000017352474200AECE1CE90000000467414D410000B18F0BFC6105000000097048597300000EC100000EC101B8916BED000001D649444154484BB556DB51C3400CF4F1153AA1383A8099243D4005D4410BE117AA31DA95D6D1C9172730939D117AACA493C561DCE6799E84D61A1D8B35060AEEC9B7F7E93CC873EB72545751FB6CF62F3D2ED50A7FE581E3F1C89CFD7E7FE62C91E2A6192F3B3834B388376B9B3F6DF3A3FEF0A73784E8D1560EB5F51C49CE099B505C42DECE6510E7971968AB3EECCA6FD5430E87037C226CAFE50F282FF8F7007C68A03C3C04F6A501A9C16BC106DA8885E49E5B3E6BE19FB529CB8933E76FE700CDC03C4946705D7D82EA61E6E50A5A32322CAF3437A8D8CDFBF1E2786B432CEA31D3E4B5C022B54786382EF5822067550B3F62233E2F5B67709939CFEC65C15D83E9D32500AEE7CD4EFE8AD7C3072A5F6F42E697C522069B2E39539E473F164B3BB865D949777983E546B1F3026C09DD9ED7FC79C1CBED4D75D2E01E2C699ABE56EF6BBCD5C330645BC8B1517D8AB5D7C7B0CEE862A3FE09362BFE1977492BFFD4EB8CF6B10BCB51FD6BE78FE61F02ABADBD6C5057F8AD0BE63B95FEC4DD778CF85CAF9B94F8EEE6E216044F0D3EBF229C5972E8C14E3753F1CAD51CEAD1ED8D19C84B3282A3A45B2BE467D87A452C9F69F7FE8CD9E22B276CE5DCDCFFC7E3ED891EDEC9047CE55C3BFF96F9F48926F8A7DA34FD02C5FFC4EB13631D010000000049454E44AE426082"},
+  {name = "flower_icon.png", hex = "89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF61000000017352474200AECE1CE90000000467414D410000B18F0BFC6105000000097048597300000EC300000EC301C76FA8640000001974455874536F667477617265007061696E742E6E657420342E302E31364469AFF50000009549444154384F958EE111853008839DCD119CEFCDE44A687A86A6297D9E3FBE0221E4BA4544C9EF8C20AA3BD9B8D90374A60626B32E9595675A729125E9BE4768A84328A4461F1894434FA667DDD30F8AEF77E3AAD79B3F012B46E15BC07EDCD57E303A000AAB723F6F01105AFF1807442B03546C1A0E14F1B107D3B11B946A3F2C74A91A759F4126A9C8D90F7C067950E1E699D82E1BE91C87F7D1CE1C0000000049454E44AE426082"},
+  {name = "red_coin_icon.png", hex = "89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF61000000017352474200AECE1CE90000000467414D410000B18F0BFC6105000000097048597300000EC300000EC301C76FA8640000001974455874536F667477617265007061696E742E6E657420342E302E31364469AFF50000008449444154384FAD8D010E803008037D9B4FF0FF7F41886394AE268B31E1044A3B0F33134453F30A2CD1EA20392F6F5D6BCB17FC131D45AFF813D2EE9D2E709061AF7778C06B1A6146A6B7A8659A7CC540CEA801B5B031CD4A03C6E0C5C6342B0D78063625EA06E1E0A7078217430B8BBB362A0D75A00B1C60D03B5884DD6022C57DECB8017945D640B53734E30000000049454E44AE426082"},
+  {name = "star_icon.png", hex = "89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF61000000017352474200AECE1CE90000000467414D410000B18F0BFC6105000000097048597300000EC300000EC301C76FA8640000001974455874536F667477617265007061696E742E6E657420342E302E31364469AFF50000007749444154384F8D90410EC03008C3F6FF4F33BA169140DAEE60E4F8304D7DCCEC40283646C6094E1A848C32E9383ED0DA0619E30FA839D8D03BB04069A357DA1B9479644AAD8E488D1C589DD09DC74E60807E84A896C0003DC26109B50B1CFCD05E84604372F8E991110906D60B354DA9F507A1E3D8F3024B28FD1F8BF52AF80000000049454E44AE426082"},
+  {name = "yoshi_blocked_status.png", hex = "89504E470D0A1A0A0000000D49484452000000190000001E0806000000D9ECB5DB0000000467414D410000B18F0BFC6105000000097048597300000EC200000EC20115284A800000001974455874536F667477617265007061696E742E6E657420342E302E3137336E9F630000017D49444154484BAD968B7103210C44692525A405B7923E325784DB701B2EC12DA40CA205AD90C83907DCEDCC8E119F7D06CE9FB4A84D0DF9F665DAD2439C35DCB72FD296BE6A70CE39F82C888BAB0562C152F7AFE2696DF9F6B1E5BBBC8A4BAD804B21F74F8108086DD8437A738E7A586D11CE1C76C75582B50E7326EEE79B47C427A88429C8CC5AC30D8EFA00148F898FA90BB12037562CF3CB58051C4360B4CB3BDD7B6C01E821BD8F40E67710EDFF177400811A449C9F8F0691B68D11D4C3508F40EC5E3C8800D71F40DE0310E84F2077E4FBCC0B0028EE461673376F4135FC10E027562B2040C4BB730754BFAF70B9DC81BB48BB78EE624115A0465D4C08C64F402C80ED503B08FB672176146833C085344807D2F690EA025EAC8698D1E7010E241E567BE704F950AD6D4E844C827E5E2D08C1DC550F3E0D71A062A93116400C6FED29B5006703B18E1FC069D90F55F8E3B0FFC95ED62E84EE6BF1B4EC97D040B8130DEEE1E5E158004500C31CC4C6741CFD65E584B868D6034AE917081B720E6E2DD1CB0000000049454E44AE426082"},
+  {name = "yoshi_icon.png", hex = "89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF61000000017352474200AECE1CE90000000467414D410000B18F0BFC6105000000097048597300000EC300000EC301C76FA8640000001974455874536F667477617265007061696E742E6E657420342E302E31364469AFF50000009449444154384FA58F010EC0200803FDC69EB1FF3F6A4F602B881687D98C24A7D094CE1511D922159D721501A3CEF4A69A930514CF013B6CA905508897FA32ECA0450E18E70C3BC84866ADA09D87DD446F2601A85F0113BCD265F01208D4A7168607A12FC5A7579D7E51698D42461CB879A1F628F343E3210B70B01C02FC453A3831A0B9878ABFA4C22A1B01B65897C1685844CA0D1E68E5A8ECA38AF50000000049454E44AE426082"},
+}
 
 --##########################################################################################################################################################
 -- SCRIPT UTILITIES:
@@ -1235,6 +1249,7 @@ local Layer2_tiles = {}
 local Is_lagged = nil
 local Options_form = {}
 local Sprite_tables_form = {}
+local Level_map_form = {}
 local Sprites_info = {}  -- keeps track of useful sprite info that might be used outside the main sprite function
 Sprites_info.selected_id = 0
 
@@ -1390,9 +1405,11 @@ local Lastframe_emulated, Nextframe
 local function bizhawk_status()
   Movie_active = movie.isloaded()  -- BizHawk
   Readonly = movie.getreadonly()  -- BizHawk
-  Framecount = movie.length()  -- BizHawk
+  if Movie_active then
+    Framecount = movie.length()  -- BizHawk
+    Rerecords = movie.getrerecordcount()  -- BizHawk
+  end
   Lagcount = emu.lagcount()  -- BizHawk
-  Rerecords = movie.getrerecordcount()  -- BizHawk
   Is_lagged = emu.islagged()  -- BizHawk
 
   -- Last frame info
@@ -1648,6 +1665,26 @@ local function dark_filter()
 end
 
 
+-- Create a file based on a hex string
+local function hex_to_file(filename, hex)
+  
+  -- Return if file already exist for some reason (it avoid some issue where BizHawk still handles created images even after 
+  if file_exists(filename) then return end
+  
+  -- Create file in binary mode, if possible (it will create in the same folder of the script)
+  local output_file = assert(io.open(filename, "wb"), fmt("CAN'T CREATE %s FILE! Check if the program/user has the permissions for this folder.", filename))
+  
+  -- Read the hex dump, one byte at time, transforming it in chars to write the file
+  for i = 1, string.len(hex)/2 do
+    local char = string.char(tonumber(hex:sub(2*i-1, 2*i), 16))
+    output_file:write(char)
+  end
+  
+  -- Save and close file
+  assert(output_file:close())
+end
+
+
 -- ############################################################
 -- From gocha's
 
@@ -1727,8 +1764,7 @@ function sendJoypad()
 end
 
 
-
---#############################################################################
+--##########################################################################################################################################################
 -- YI FUNCTIONS:
 
 
@@ -1736,6 +1772,7 @@ local Frame_counter, Effective_frame, Game_mode
 local Level_index, Room_index, Sprite_data_pointer, Level_flag
 local Is_paused, Lock_animation_flag, Player_powerup, Player_animation_trigger
 local Camera_x, Camera_y, Yoshi_x, Yoshi_y
+local Camera_x_prev, Camera_y_prev = s16_wram(WRAM.camera_x), s16_wram(WRAM.camera_y) -- init here to avoid being nil in the first frame
 local function scan_yi()
   Frame_counter = u16_wram(WRAM.frame_counter)
   Game_mode = u16_wram(WRAM.game_mode)
@@ -1749,6 +1786,10 @@ local function scan_yi()
       break
     end
   end
+  
+  -- Handle prev values (should always be set before the current values update)
+  if Camera_x then Camera_x_prev = Camera_x end -- conditional to avoid writing nil to prev
+  if Camera_y then Camera_y_prev = Camera_y end -- conditional to avoid writing nil to prev
   
   -- In level frequently used info
   Camera_x = s16_wram(WRAM.camera_x)
@@ -1852,7 +1893,7 @@ local function draw_tile_map(camera_x, camera_y)
 				if screen_region_x >= player_screen_region_x - 1 and screen_region_x <= player_screen_region_x + 1 then -- to not scan the whole level
 				
 					screen_number = screen_region_y*16 + screen_region_x
-					screen_id = bit.band(u8_sram(SRAM.screen_number_to_id + screen_number), 0x7f) -- to exclude high bit (handles special object xFE)
+					screen_id = bit.band(u8_sram(SRAM.screen_number_to_id + screen_number), 0x7f) -- to exclude high bit (handles special objects xFE or xFF)
 					
           if screen_id ~= 0x80 then -- avoid reading garbage from screens that are not used
             
@@ -1954,7 +1995,7 @@ local function draw_tiles_clicked(camera_x, camera_y)
       local screen_region_y = floor(y_game/256)
       
       local screen_number = screen_region_y*16 + screen_region_x
-      local screen_id = u8_sram(SRAM.screen_number_to_id + screen_number)
+      local screen_id = bit.band(u8_sram(SRAM.screen_number_to_id + screen_number), 0x7F) -- to exclude high bit (handles special objects xFE or xFF)
       
       local block_x = (x_game%256)/16
       local block_y = (y_game%256)/16
@@ -2173,23 +2214,23 @@ local function show_misc_info()
 	local temp_str
 	local x_temp, y_temp = OPTIONS.left_gap, 1
   
-  draw_image("images\\star_icon.png", x_temp, y_temp)
+  draw_image("star_icon.png", x_temp, y_temp)
 	temp_str = fmt("%d/30(%d)", star_effective, star_counter)
 	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
 	
-  draw_image("images\\red_coin_icon.png", x_temp, y_temp)
+  draw_image("red_coin_icon.png", x_temp, y_temp)
 	temp_str = fmt("%d/20", red_coin_counter)
 	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
 	
-  draw_image("images\\flower_icon.png", x_temp, y_temp)
+  draw_image("flower_icon.png", x_temp, y_temp)
 	temp_str = fmt("%d/5", flower_counter)
 	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
 	
-  draw_image("images\\yoshi_icon.png", x_temp, y_temp)
+  draw_image("yoshi_icon.png", x_temp, y_temp)
 	temp_str = fmt("%d", life_counter)
 	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
 	
-  draw_image("images\\coin_icon.png", x_temp, y_temp)
+  draw_image("coin_icon.png", x_temp, y_temp)
 	temp_str = fmt("%d", coin_counter)
 	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
 end
@@ -2200,8 +2241,17 @@ local function show_mouse_info()
 	if not OPTIONS.display_mouse_coordinates then return end
 	
 	-- Font
-  Text_opacity = 0.8
+  Text_opacity = 0.5
   Bg_opacity = 0.5
+  
+  --[[
+  local frame = emu.framecount()
+  local base_colour = 0x0000FF00 --green
+  local period = 30 --frames
+  local opacity = (cos(frame*pi/period)+1)/2
+  local opacity_alpha = ceil(0xFF*opacity)*0x1000000
+  local line_colour = base_colour + opacity_alpha]]
+  
 	local line_colour = COLOUR.weak
   local bg_colour = change_transparency(COLOUR.background, Bg_opacity)
   
@@ -2236,7 +2286,7 @@ local function show_controller_data()
   draw_over_text(x, y - height, 256*u8_wram(WRAM.ctrl_1_1_first) + u8_wram(WRAM.ctrl_1_2_first), "BYsS^v<>AXLR0123", 0, COLOUR.warning, 0)
 end
 
-
+local camera_shake_y_offset, camera_shake_y_offset_prev -- REMOVE/TEST 
 local function level_info()
   if not OPTIONS.display_level_info then return end
 	if Game_mode ~= YI.game_mode_level then return end
@@ -2272,6 +2322,77 @@ local function level_info()
 	
   --- Draw whole level info string
   draw_text(Buffer_middle_x, Screen_height, fmt("%s %s %s", level_str, room_str, screen_str), colour, true, false, 0.5)
+  
+  --- Level layout display -- TODO: maybe merge this to the "Current screen" loop above, since they're looping exact the same thing
+  if OPTIONS.display_level_layout then
+    local x_base, y_base = OPTIONS.left_gap, Border_bottom_start + 1.5*BIZHAWK_FONT_HEIGHT
+    local x_temp, y_temp
+    local screen_exit_table = {}
+    
+    draw_text(x_base, y_base - 2*BIZHAWK_FONT_HEIGHT, "Level screen IDs:")		
+    
+    for screen_region_y = 0, 7 do
+      for screen_region_x = 0, 15 do
+        
+        -- Screen ID read
+        screen_number = screen_region_y*16 + screen_region_x
+        screen_id = u8_sram(SRAM.screen_number_to_id + screen_number)
+      
+        x_temp = x_base + 16*screen_region_x
+        y_temp = y_base + 16*screen_region_y
+        
+        -- Highlight used screens 
+        if x_player_simp == 256*screen_region_x and y_player_simp == 256*screen_region_y then -- player current screen
+          draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.warning, 0)
+        elseif screen_id == 0x80 then
+          draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.very_weak, 0)
+        else
+          draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.text, 0)
+        end
+        
+        -- Highlight used screens IDs
+        if screen_id == 0x80 then
+          draw_pixel_text(x_temp + 3, y_temp + 4, fmt("%02X", screen_id), COLOUR.blank_tile)
+        else
+          draw_pixel_text(x_temp + 3, y_temp + 4, fmt("%02X", screen_id), COLOUR.text)				
+        end
+        
+        -- Draw screen "physical" ID labels (screen_number)
+        if screen_region_x == 15 then
+          draw_pixel_text(x_base - 11, y_temp + 4, fmt("%x0", screen_region_y), COLOUR.text)
+        end
+        if screen_region_y == 7 then
+          draw_pixel_text(x_temp + 3, y_base - 9, fmt("%02X", screen_region_x), COLOUR.text)
+        end
+        
+        -- Screen exit read and store
+        local byte_1 = u8_wram(WRAM.screen_exit_data + 4*screen_number + 0)
+        local byte_2 = u8_wram(WRAM.screen_exit_data + 4*screen_number + 1)
+        local byte_3 = u8_wram(WRAM.screen_exit_data + 4*screen_number + 2)
+        local byte_4 = u8_wram(WRAM.screen_exit_data + 4*screen_number + 3)
+        if byte_1 + byte_2 + byte_3 + byte_4 ~= 0 then -- has an exit
+          table.insert(screen_exit_table, {screen_id, screen_number, byte_1, byte_2, byte_3, byte_4})
+        end
+      end
+    end
+    
+    -- Display Yoshi position in the level layout
+    local x_player_16, y_player_16 = floor(Yoshi_x/16), floor(Yoshi_y/16)
+    draw_cross(x_base + x_player_16, y_base + y_player_16, 2, COLOUR.positive)
+    
+    -- Screen adjustment to properly see the table
+    if OPTIONS.bottom_gap < 154 then
+      OPTIONS.bottom_gap = 154 ; 
+      client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
+    end
+    
+    -- Screen exits
+    x_temp, y_temp = Border_right_start + 2, y_base
+    draw_text(x_temp, y_temp - BIZHAWK_FONT_HEIGHT, "Screen exits:\nID room xpos ypos type")
+    for i = 1, #screen_exit_table do
+      draw_text(x_temp, y_temp + i*BIZHAWK_FONT_HEIGHT, fmt("%02X(%02X): %02X   %02X   %02X   %02X", screen_exit_table[i][1], screen_exit_table[i][2], screen_exit_table[i][3], screen_exit_table[i][4], screen_exit_table[i][5], screen_exit_table[i][6]))
+    end
+  end
   
 	--- Extra info
 	if OPTIONS.display_level_extra then
@@ -2334,6 +2455,13 @@ local function level_info()
     end
 	end
 	
+  --[[ REMOVE/TESTS : LAZY LEVEL DISPLAY THING
+  local level_img_path = fmt("yi level display\\images\\levels\\%02X.png", Room_index)  -- REMOVE/TEST
+  camera_shake_y_offset_prev = camera_shake_y_offset  -- REMOVE/TEST
+  if not camera_shake_y_offset_prev then camera_shake_y_offset_prev = 0 end  -- REMOVE/TEST
+  draw_image(level_img_path, OPTIONS.left_gap - Camera_x_prev, OPTIONS.top_gap - Camera_y_prev - 1 - camera_shake_y_offset_prev)  -- REMOVE/TEST
+  camera_shake_y_offset = s16_wram(WRAM.camera_shake_y_offset)  -- REMOVE/TEST
+  ]]
 end
 
 -- Display sprite spawning areas (vertical lines for horizontal spawning)
@@ -2377,10 +2505,10 @@ function draw_blocked_status(x_text, y_text, player_blocked_status, x_speed, y_s
   draw_text(x_text, y_text, block_str, COLOUR.text)
   
   -- Yoshi image
-  draw_image("images\\yoshi_blocked_status.png", xoffset + 4, yoffset)
+  draw_image("yoshi_blocked_status.png", xoffset + 4, yoffset)
   
   -- Bits image
-  draw_image("images\\blocked_status_bits.png", xoffset, yoffset - 4)
+  draw_image("blocked_status_bits.png", xoffset, yoffset - 4)
   
 	-- Bottom (right)
   if bit.check(player_blocked_status, 0) then
@@ -2654,12 +2782,12 @@ local function egg_inventory_info()
 			info_colour = COLOUR.positive
       
       draw_text(x_pos, y_pos + id*BIZHAWK_FONT_HEIGHT, fmt("%d:  <%02d> %03X", id, egg_sprite_id, egg_type), info_colour)
-      draw_image_region("images\\egg_icons.png", 80, 0, 8, 8, x_pos + 2*BIZHAWK_FONT_WIDTH + 1, y_pos + id*BIZHAWK_FONT_HEIGHT)
+      draw_image_region("egg_icons.png", 80, 0, 8, 8, x_pos + 2*BIZHAWK_FONT_WIDTH + 1, y_pos + id*BIZHAWK_FONT_HEIGHT)
 		else
 			info_colour = COLOUR.text
       
       draw_text(x_pos, y_pos + id*BIZHAWK_FONT_HEIGHT, fmt("%d:  <%02d>", id, egg_sprite_id), info_colour)
-      draw_image_region("images\\egg_icons.png", (egg_type - 0x22)*8, 0, 8, 8, x_pos + 2*BIZHAWK_FONT_WIDTH + 1, y_pos + id*BIZHAWK_FONT_HEIGHT)
+      draw_image_region("egg_icons.png", (egg_type - 0x22)*8, 0, 8, 8, x_pos + 2*BIZHAWK_FONT_WIDTH + 1, y_pos + id*BIZHAWK_FONT_HEIGHT)
 		end
 	end
 end
@@ -2698,6 +2826,7 @@ local function player()
   local tongue_x = s16_sram(SRAM.tongue_x)
   local tongue_y = s16_sram(SRAM.tongue_y)
   local tongued_slot = u8_sram(SRAM.tongued_slot)
+  local egg_throw_state = u8_sram(SRAM.egg_throw_state)
   local egg_target_x = s16_sram(SRAM.egg_target_x)
   local egg_target_y = s16_sram(SRAM.egg_target_y)
 	
@@ -2742,7 +2871,7 @@ local function player()
 	draw_text(table_x, table_y + i*delta_y, "Speed (" .. x_spd_str .. ", " .. y_spd_str .. ")")
   i = i + 1
   
-  draw_text(table_x, table_y + i*delta_y, fmt("Target (%+d, %+d)", egg_target_x, egg_target_y))
+  draw_text(table_x, table_y + i*delta_y, fmt("Target (%s)", egg_throw_state ~= 0 and fmt("%04X, %04X", egg_target_x, egg_target_y) or "-, -"))
 	i = i + 1
 	
 	draw_text(table_x, table_y + i*delta_y, fmt("Status: $%02X", status))
@@ -3572,6 +3701,17 @@ local function sprite_level_data()
   -- Sprite data enviroment
   local pointer = Sprite_data_pointer
   
+  
+  error("\n\nTODO: Don't read sprite data every frame, read it just once and store it in a table, read again only when sprite data pointer changes")
+  
+  
+  
+  
+  
+  
+  
+  
+  
   --[[
   Sprite Data Format
   byte 1: iiiiiiii  Low ID
@@ -3621,7 +3761,7 @@ local function sprite_level_data()
     -- Sprite load status
     if OPTIONS.display_sprite_load_status then
       draw_rectangle(x, y, w-1, h-1, colour, 0x80000000)
-      gui.pixelText(x+2, y+2, fmt("%X ", status ~= 0 and 1 or status), colour, 0)
+      draw_pixel_text(x+2, y+2, fmt("%X ", status ~= 0 and 1 or status), colour, 0)
       x = x + w
       if id%16 == 15 then
         x = x_origin
@@ -3739,14 +3879,12 @@ local function overworld_mode()
   local world_id = u16_wram(WRAM.OW_world_id)/2 -- math to match what the game display
   local coin_counter = u16_wram(WRAM.coin_counter)
   
-  --local level_flags = 0x0222, -- 72 bytes table: $00: unavailable, $01: beaten, $80: current (grayed out)
-  
   -- Main info table
   
   draw_text(table_x, table_y + t*delta_y, fmt("Cursor (%02X, %02X) (%02X, %02X)", cursor_x_pos, cursor_y_pos, cursor_x_pos_next, cursor_y_pos_next))
   t = t + 1
   
-  local level_id = bit.band(world_id*0xC + cursor_level, 0xFF) -- bit.band(0xFF) because ADC $1112 at 17E054 is done in 8bit mode
+  local level_id = bit.band(world_id*0xC + cursor_level, 0xFF) -- bit.band(0xFF) because ADC $1112 at $17E054 is done in 8bit mode
   draw_text(table_x, table_y + t*delta_y, fmt("Level: $%02X ($%02X)", level_id, cursor_level))
   t = t + 1
   
@@ -3770,7 +3908,7 @@ local function overworld_mode()
   local offset = 6
   local inf_loop, is_level = false, true
   local i = 0 -- REMOVE/TEST
-  -- Loop to check next valid level
+  -- Loop to check next valid level with left+right
   while bit.band(left_right_dest_level, 0xF) == 0 do -- low nibble should not be zero to be considered a level
     -- Read level
     left_right_dest_addr = WRAM.OW_level_tiles + level_id + offset
@@ -3778,7 +3916,7 @@ local function overworld_mode()
     if left_right_dest_level == 0xFF then is_level = false end -- because CMP #$ff at $17E05D
     
     -- DEBUG: print all addressed from this loop
-    --draw_text(Border_right_start + 12*delta_x*floor((i+1)*delta_y/Screen_height), (i+1)*delta_y - Screen_height*floor((i+1)*delta_y/Screen_height), fmt("$7E%04X:$%02X", left_right_dest_addr, left_right_dest_level)) -- REMOVE/TEST
+    draw_text(Border_right_start + 12*delta_x*floor((i+1)*delta_y/Screen_height), (i+1)*delta_y - Screen_height*floor((i+1)*delta_y/Screen_height), fmt("$7E%04X:$%02X", left_right_dest_addr, left_right_dest_level)) -- REMOVE/TEST
     
     -- Loop math
     i = i + 1 -- REMOVE/TEST
@@ -3793,7 +3931,6 @@ local function overworld_mode()
   left_right_dest_level = bit.band(left_right_dest_level, 0x7F) + world_id*0xC - 1 -- bit.band(0x7F) because AND #$7f at $17E061
   -- Print info
   if inf_loop or not is_level then
-    --draw_text(table_x, table_y + t*delta_y, fmt("Level if L+R: %s", inf_loop and "--" or fmt("$%02X", left_right_dest_level)))
     draw_text(table_x, table_y + t*delta_y, "Level if L+R: --")
   else
     draw_text(table_x, table_y + t*delta_y, fmt("Level if L+R: $%02X", left_right_dest_level))
@@ -3801,6 +3938,8 @@ local function overworld_mode()
   if not inf_loop then
     draw_text(table_x, table_y + t*delta_y, fmt("\n(at $7E%04X%s)", left_right_dest_addr, left_right_dest_addr == WRAM.coin_counter and fmt(" - Coins:$%02X", coin_counter) or ""), left_right_dest_addr == WRAM.coin_counter and "yellow" or "white")
   end
+  t = t + 2
+  draw_text(table_x, table_y + t*delta_y, "TODO: figure out why the result is different if you press L/R > R+L", COLOUR.warning)
   t = t + 4
   
   draw_text(table_x, table_y + t*delta_y, "Levels:")
@@ -3848,6 +3987,9 @@ local function left_click()
   end
   if not Sprite_tables_form.is_form_closed then
     if forms.getproperty(Sprite_tables_form.form, "ContainsFocus") == "True" then return end
+  end
+  if not Level_map_form.is_form_closed then
+    if forms.getproperty(Level_map_form.form, "ContainsFocus") == "True" then return end
   end
 
   -- Call options menu if the form is closed
@@ -3900,6 +4042,8 @@ local function read_raw_input()
   User_input.ymouse = tmp.Y
   User_input.leftclick = tmp.Left
   User_input.rightclick = tmp.Right
+  User_input.middleclick = tmp.Middle
+  User_input.wheel = tmp.Wheel
   -- BizHawk, custom field
   User_input.mouse_inwindow = mouse_onregion(-OPTIONS.left_gap, -OPTIONS.top_gap, Screen_width-OPTIONS.left_gap, Screen_height-OPTIONS.top_gap)
 
@@ -4077,11 +4221,42 @@ function Cheat.spawn_sprite()
   
   -- Hijacks in RAM
   local ram_hijack = {0x22,0x00,0xB9,0x7E,0xEA,0xEA}  --2200B97EEAEA --9C3030AC2D01 in original
+  --[[ in ASM:
+    JSL $7EB900
+    NOP
+    NOP
+    
+    instead of:
+    STZ $3030
+    LDY $012D
+  ]]
   local ram_patch = {
   0x08,0x48,0xDA,0xAD,0x06,0x1E,0xF0,0x15,0xAD,0x00,0x1E,0x22,0x4C, -- all zeros in original
   0xA3,0x03,0x90,0x0C,0xAD,0x02,0x1E,0x99,0xE2,0x70,0xAD,0x04,0x1E,
   0x99,0x82,0x71,0xFA,0x68,0x28,0x9C,0x30,0x30,0xAC,0x2D,0x01,0x6B}
-
+  --[[ in ASM:
+    PHP          ; \
+    PHA          ;  | Handle stack push
+    PHX          ; /
+    LDA $1E06    ; \ If $1E06 = 01, will run the code,
+    BEQ .return  ; / if = 00, will return (00 is set in the end of the script main loop, to prevent spawning the sprite indefinitely in the frame)
+    LDA $1E00    ; \  Spawn sprite ID ($1E00 range could be any address not used by the game, if changed the w16_wram below should be changed too!)
+    JSL $03A34C  ;  | in the next available slot,
+    BCC .return  ; /  will return if no free slot
+    LDA $1E02    ; \ Set x position to spawn
+    STA $70E2,y  ; /
+    LDA $1E04    ; \ Set y position to spawn
+    STA $7182,y  ; /
+    
+    .return      ;
+    PLX          ; \
+    PLA          ;  | Handle stack pull
+    PLP          ; /
+    STZ $3030    ; \ Re-do what was in $7EDE68 originally
+    LDY $012D    ; /
+    RTL          ; Return to original code
+  ]]
+  
   local ram_hijack_dest = 0xDE68 -- in WRAM
   local ram_code_dest = 0xB900 -- in WRAM
 
@@ -4102,7 +4277,6 @@ function Cheat.spawn_sprite()
   local sprite_id = tonumber(forms.getproperty(Options_form.sprite_number, "SelectedIndex"))
   
   -- Write values in ram (Note: these addresses are used only by the ram_patch)
-  --w16_wram(0x1E06, 0)
   w16_wram(0x1E00, sprite_id)
   w16_wram(0x1E02, xgame)
   w16_wram(0x1E04, ygame)
@@ -4132,10 +4306,10 @@ function Cheat.level_warp(level_id, x, y)
     y = tonumber(y, 16)
     
     -- Write memory to do the warp
-    w8_wram(WRAM.screen_exit_data + 0, level_id)
-    w8_wram(WRAM.screen_exit_data + 1, x)
-    w8_wram(WRAM.screen_exit_data + 2, y)
-    w8_wram(WRAM.screen_exit_data + 3, 0x00) -- normal Yoshi control
+    w8_wram(WRAM.screen_exit_data + 0, level_id) -- \  
+    w8_wram(WRAM.screen_exit_data + 1, x)        --  | This is entry 00 in the screen exit data, could be any, this is just a less used screen exit
+    w8_wram(WRAM.screen_exit_data + 2, y)        --  | If ever change this entry make sure to change the w16_wram(WRAM.cur_screen_exit, 0xXXXX) accordingly!
+    w8_wram(WRAM.screen_exit_data + 3, 0x00)     -- / 
     w16_wram(WRAM.cur_screen_exit, 0x0000)
     w16_wram(WRAM.level_load_type, 0x0001)
     w16_wram(WRAM.game_mode, 0x000B)
@@ -4255,6 +4429,9 @@ function Cheat.main()
       if not Sprite_tables_form.is_form_closed then
         if forms.getproperty(Sprite_tables_form.form, "ContainsFocus") == "True" then return end
       end
+      if not Level_map_form.is_form_closed then
+        if forms.getproperty(Level_map_form.form, "ContainsFocus") == "True" then return end
+      end
       
       Cheat.spawn_sprite()
       Cheat.is_cheating = true
@@ -4306,6 +4483,12 @@ Keys.registerkeypress(OPTIONS.hotkey_decrease_opacity, decrease_opacity)
 -- Key releases:
 Keys.registerkeyrelease("mouse_inwindow", function() Cheat.is_dragging_sprite = false ; Cheat.is_spawning_sprite = false end)
 Keys.registerkeyrelease("leftclick", function() Cheat.is_dragging_sprite = false ; Cheat.is_spawning_sprite = false end)
+
+-- Create the images used in the script (ALL IMAGES MUST BE IN HEX IN YI.image_hex)
+for i = 1, #YI.image_hex do
+  hex_to_file(YI.image_hex[i].name, YI.image_hex[i].hex)
+end
+
 
 -- Options menu window
 function Options_form.create_window()
@@ -4425,6 +4608,13 @@ function Options_form.create_window()
   
   Options_form.tile_map_screen = forms.checkbox(Options_form.form, "Screen", xform, yform)
   forms.setproperty(Options_form.tile_map_screen, "Checked", OPTIONS.draw_tile_map_screen)
+  yform = yform + delta_y
+  
+  Options_form.level_layout = forms.checkbox(Options_form.form, "Layout", xform, yform)
+  forms.setproperty(Options_form.level_layout, "Checked", OPTIONS.display_level_layout)
+  yform = yform + delta_y
+
+  Options_form.level_map_button = forms.button(Options_form.form, "Level map", Level_map_form.create_window, xform, yform + 4)
   yform = yform + delta_y
 
   if yform > y_bigger then y_bigger = yform end
@@ -4652,7 +4842,7 @@ function Options_form.create_window()
   -- Stars cheat
   yform = yform + 1.5*delta_y
   y_section = yform
-  image_button("stars", xform, yform, 16, 16, "black", "images\\star_icon.png",
+  image_button("stars", xform, yform, 16, 16, "black", "star_icon.png",
     function() Cheat.change_address("WRAM", WRAM.star_counter, "stars_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Stars") end, Cheat.allow_cheats)
     
@@ -4663,7 +4853,7 @@ function Options_form.create_window()
   
   -- Red coins cheat
   xform, yform = 4, yform + 1.5*delta_y
-  image_button("red_coins", xform, yform, 16, 16, "black", "images\\red_coin_icon.png",
+  image_button("red_coins", xform, yform, 16, 16, "black", "red_coin_icon.png",
     function() Cheat.change_address("WRAM", WRAM.red_coin_counter, "red_coins_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Red coins") end, Cheat.allow_cheats)
     
@@ -4674,7 +4864,7 @@ function Options_form.create_window()
   
   -- Flowers cheat
   xform, yform = 4, yform + 1.5*delta_y
-  image_button("flowers", xform, yform, 16, 16, "black", "images\\flower_icon.png",
+  image_button("flowers", xform, yform, 16, 16, "black", "flower_icon.png",
     function() Cheat.change_address("WRAM", WRAM.flower_counter, "flowers_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Flowers") end, Cheat.allow_cheats)
     
@@ -4685,7 +4875,7 @@ function Options_form.create_window()
   
   -- Lives cheat
   xform, yform = 4, yform + 1.5*delta_y
-  image_button("lives", xform, yform, 16, 16, "black", "images\\yoshi_icon.png",
+  image_button("lives", xform, yform, 16, 16, "black", "yoshi_icon.png",
     function() Cheat.change_address("WRAM", WRAM.lives, "lives_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Lives") end, Cheat.allow_cheats)
     
@@ -4696,7 +4886,7 @@ function Options_form.create_window()
   
   -- Coins cheat
   xform, yform = 4, yform + 1.5*delta_y
-  image_button("coins", xform, yform, 16, 16, "black", "images\\coin_icon.png",
+  image_button("coins", xform, yform, 16, 16, "black", "coin_icon.png",
     function() Cheat.change_address("WRAM", WRAM.coin_counter, "coins_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Coins") end, Cheat.allow_cheats)
     
@@ -4934,9 +5124,9 @@ function Options_form.create_window()
     --forms.clearImageCache(Options_form.stars_picture_box) -- REMOVE/TEST
     --[[
     if Cheat.allow_cheats then
-      forms.drawImage(Options_form.stars_picture_box, "images\\star_icon.png", 1, 1)
+      forms.drawImage(Options_form.stars_picture_box, "star_icon.png", 1, 1)
     else
-      forms.drawImage(Options_form.stars_picture_box, "images\\star_icon_disabled.png", 1, 1)
+      forms.drawImage(Options_form.stars_picture_box, "star_icon_disabled.png", 1, 1)
     end
     forms.refresh(Options_form.stars_picture_box) -- REMOVE/TEST]] -- TODO: report issue: after any refresh all the images are drawn over all the picture boxes
   
@@ -5089,6 +5279,41 @@ function Sprite_tables_form.create_window()
 end
 
 
+function Level_map_form.create_window()
+  if not Level_map_form.is_form_closed then return end
+
+  -- Create the level map form
+  local default_width, default_height = 800, 600
+  if Level_map_form.width == nil and Level_map_form.height == nil then
+    Level_map_form.width, Level_map_form.height = default_width, default_height
+  end
+  Level_map_form.form = forms.newform(Level_map_form.width, Level_map_form.height, "Level Map", function () Level_map_form.is_form_closed = true end )
+  
+  -- Map drawing
+  Level_map_form.picture_box = forms.pictureBox(Level_map_form.form, 200, 2, 4096, 2048)
+  forms.clear(Level_map_form.picture_box, 0xffFF0000) -- REMOVE/TEST
+  local level_img_path = fmt("yi level display\\images\\levels\\%02X.png", Room_index)  -- TODO: failsafe for bad rooms
+  forms.drawImage(Level_map_form.picture_box, level_img_path, 0, 0, 4096/4, 2048/4) -- REMOVE/TEST
+  
+  
+  -- GONNA NEED THESE MAYBE
+  --forms.getMouseX(int componenthandle)
+  --forms.getMouseY(int componenthandle)
+  
+  
+  -- Make option to show Yoshi, screen grid, tile grid, screen exits (maybe), pan drag
+  
+  
+  Level_map_form.is_form_closed = false
+  
+  --- DEBUG ---------------------------------------------------------------------------------------
+  
+  -- Background for dev/debug tests
+  Level_map_form.picture_box = forms.pictureBox(Level_map_form.form, 0, 0, Level_map_form.width, tonumber(forms.getproperty(Level_map_form.form, "Height")))
+  --forms.clear(Level_map_form.picture_box, 0xffFF0000) -- red
+end
+
+
 function Options_form.evaluate_form()
   --- Show/hide -------------------------------------------------------------------------------------------
   -- Player
@@ -5111,7 +5336,8 @@ function Options_form.evaluate_form()
   OPTIONS.display_level_extra =  forms.ischecked(Options_form.level_extra_info) or false
   OPTIONS.draw_tile_map_grid =  forms.ischecked(Options_form.tile_map_grid) or false
   OPTIONS.draw_tile_map_type =  forms.ischecked(Options_form.tile_map_type) or false
-  OPTIONS.draw_tile_map_screen =  forms.ischecked(Options_form.tile_map_screen) or false  
+  OPTIONS.draw_tile_map_screen =  forms.ischecked(Options_form.tile_map_screen) or false
+  OPTIONS.display_level_layout =  forms.ischecked(Options_form.level_layout) or false
   -- Other
   OPTIONS.display_misc_info = forms.ischecked(Options_form.misc_info) or false
   OPTIONS.display_counters = forms.ischecked(Options_form.counters_info) or false
@@ -5179,6 +5405,14 @@ function Sprite_tables_form.evaluate_form()
   
 end
 
+
+function Level_map_form.evaluate_form()
+
+  -- TODO
+  
+end
+
+
 -- Help text for "Help" button
 function Options_form.write_help() -- TODO: decide if will make console text or will open a window with the info
   print(" - - - TIPS - - - ")
@@ -5205,9 +5439,11 @@ function Options_form.write_help() -- TODO: decide if will make console text or 
 end
 
 -- Initialize forms
+forms.destroyall() -- to prevent more than one forms (usually happens when script has an error)
 Options_form.create_window()
 Options_form.is_form_closed = false
 Sprite_tables_form.is_form_closed = true
+Level_map_form.is_form_closed = true
 
 -- Functions to run when script is stopped or reset
 event.onexit(function()
@@ -5218,22 +5454,26 @@ event.onexit(function()
   
 	client.SetGameExtraPadding(0, 0, 0, 0)
   
-  print("Finishing Yoshi's Island script.")
+  for i = 1, #YI.image_hex do
+    os.remove(YI.image_hex[i].name)
+  end
+  
+  print("Finishing Yoshi's Island script.\n------------------------------------")
 end)
 
--- Check if images files exist
+--[[ Check if images files exist -- TODO: REMOVE NOW THAT IMPLEMENTED HEX TO PNG
 local error_str = "\nCouldn't find the script images! Make sure to download the whole 'BizHawk' folder on https://github.com/brunovalads/yoshis-island/tree/master/BizHawk"
-if not file_exists("images\\blocked_status_bits.png") then error(error_str) end
-if not file_exists("images\\coin_icon.png") then error(error_str) end
-if not file_exists("images\\egg_icons.png") then error(error_str) end
-if not file_exists("images\\flower_icon.png") then error(error_str) end
-if not file_exists("images\\red_coin_icon.png") then error(error_str) end
-if not file_exists("images\\star_icon.png") then error(error_str) end
-if not file_exists("images\\yoshi_blocked_status.png") then error(error_str) end
-if not file_exists("images\\yoshi_icon.png") then error(error_str) end
+if not file_exists("blocked_status_bits.png") then error(error_str) end
+if not file_exists("coin_icon.png") then error(error_str) end
+if not file_exists("egg_icons.png") then error(error_str) end
+if not file_exists("flower_icon.png") then error(error_str) end
+if not file_exists("red_coin_icon.png") then error(error_str) end
+if not file_exists("star_icon.png") then error(error_str) end
+if not file_exists("yoshi_blocked_status.png") then error(error_str) end
+if not file_exists("yoshi_icon.png") then error(error_str) end]]
 
 -- Script load success message
-print("Yoshi's Island Lua script loaded successfully.\n")
+print("Yoshi's Island Lua script loaded successfully at " .. os.date("%X") .. ".\n") -- %c for date and time
 
 -- Main script loop
 while true do
@@ -5241,7 +5481,8 @@ while true do
   Options_form.is_form_closed = forms.gettext(Options_form.form) == ""
   if not Options_form.is_form_closed then Options_form.evaluate_form() end
   if not Sprite_tables_form.is_form_closed then Sprite_tables_form.evaluate_form() end
- 
+  if not Level_map_form.is_form_closed then Level_map_form.evaluate_form() end
+  
   -- Initial values, don't make drawings here
   bizhawk_status()
   bizhawk_screen_info()
@@ -5316,12 +5557,13 @@ end
 
 --[[ TODO LIST #########################################################################################################################
 
+- Don't read sprite data every frame, read it just once and store it in a table, read again only when sprite data pointer changes
 - Option to show/hide empty sprite slots, and make the according changes inside the sprite() functions.
 - Group show/hide options that can be enabled/disabled by one checkbox, just like the Flintstones script.
 - Fix negative speed for sprites.
 - Make level map tool, a button to a new form that draws the map, the screen, the sprite data (at least), with an option to warp with click (Map16 data read from WRAM) (or at least display the screens like in the snes9x script).
--
--
+- Please, PLEASE, fix the config file thing, or start from scratch.
+- Mouth ammo value display, showing also which ammo Yoshi has
 -
 
 ]]
