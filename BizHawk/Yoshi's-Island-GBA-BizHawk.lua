@@ -432,7 +432,7 @@ Biz.check_emulator()
 Biz.ROM_domain = Biz.check_ROM_domain()
 
 -- Check if it's Yoshi's Island (GBA, any version or hack)
-if Biz.game_name(0x0000A0, 0x0E) ~= "SUPER MARIOCA3" then -- U: SUPER MARIOCA3AE, E: SUPER MARIOCA3AP, J: SUPER MARIOCA3AJ
+if Biz.game_name(0x0000A0, 0x0E) ~= "SUPER MARIOCA3" and Biz.game_name(0x3FFFE0, 8) ~= "Advynia3" then -- U: SUPER MARIOCA3AE, E: SUPER MARIOCA3AP, J: SUPER MARIOCA3AJ
     error("\n\nThis script is for Yoshi's Island (GBA) only!")
 end
 
