@@ -2407,28 +2407,34 @@ local function level_info()
         x_temp = x_base + 16*screen_region_x
         y_temp = y_base + 16*screen_region_y
         
+        -- Draw screen grid
+        if screen_region_x == 0 then
+          draw_line(x_temp, y_temp, x_temp + 16*16-1, y_temp, COLOUR.very_weak)
+          draw_line(x_temp, y_temp + 15, x_temp + 16*16-1, y_temp + 15, COLOUR.very_weak)
+        end
+        if screen_region_y == 0 then
+          draw_line(x_temp, y_temp, x_temp, y_temp + 16*8-1, COLOUR.very_weak)
+          draw_line(x_temp + 15, y_temp, x_temp + 15, y_temp + 16*8-1, COLOUR.very_weak)
+        end
+        
         -- Highlight used screens 
         if x_player_simp == 256*screen_region_x and y_player_simp == 256*screen_region_y then -- player current screen
-          draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.warning, 0)
-        elseif screen_id == 0x80 then
-          draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.very_weak, 0)
-        else
+          draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.warning2, 0)
+        elseif screen_id ~= 0x80 then
           draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.text, 0)
         end
         
         -- Highlight used screens IDs
-        if screen_id == 0x80 then
-          draw_pixel_text(x_temp + 3, y_temp + 4, fmt("%02X", screen_id), COLOUR.blank_tile)
-        else
-          draw_pixel_text(x_temp + 3, y_temp + 4, fmt("%02X", screen_id), COLOUR.text)				
+        if screen_id ~= 0x80 then
+          draw_text(x_temp + 8, y_temp + 8, fmt("%02X", screen_id), COLOUR.text, false, false, 0.5, 0.5)
         end
         
         -- Draw screen "physical" ID labels (screen_number)
         if screen_region_x == 15 then
-          draw_pixel_text(x_base - 11, y_temp + 4, fmt("%x0", screen_region_y), COLOUR.text)
+          draw_text(x_base - 8, y_temp + 8, fmt("%X0", screen_region_y), COLOUR.text, false, false, 0.5, 0.5)
         end
         if screen_region_y == 7 then
-          draw_pixel_text(x_temp + 3, y_base - 9, fmt("%02X", screen_region_x), COLOUR.text)
+          draw_text(x_temp + 3, y_base - 9, fmt("%02X", screen_region_x), COLOUR.text)
         end
         
         -- Screen exit read and store
