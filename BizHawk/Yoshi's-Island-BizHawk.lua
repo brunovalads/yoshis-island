@@ -530,21 +530,21 @@ local SRAM = {  -- 700000~707FFF
   ambsprite_y_sub = 0x1141, -- 1 byte [table 05, second byte]
 	
   -- Ambient sprite tables (each table consists of 16 groups of 4 bytes)
-	ambsprite_table1 = 0x0EC0,
+	ambsprite_table1 = 0x0EC0, -- amb sprite status
 	ambsprite_table2 = 0x0F60,
 	ambsprite_table3 = 0x1000,
-	ambsprite_table4 = 0x10A0,
-	ambsprite_table5 = 0x1140,
-	ambsprite_table6 = 0x11E0,
-	ambsprite_table7 = 0x1280,
-	ambsprite_table8 = 0x1320,
-	ambsprite_table9 = 0x13C0,
+	ambsprite_table4 = 0x10A0, -- amb sprite x positions
+	ambsprite_table5 = 0x1140, -- amb sprite y positions
+	ambsprite_table6 = 0x11E0, -- amb sprite speeds
+	ambsprite_table7 = 0x1280, -- amb sprite position deltas
+	ambsprite_table8 = 0x1320, -- amb sprite type/ID
+	ambsprite_table9 = 0x13C0, -- word 2: current animation frame
 	ambsprite_table10 = 0x1460,
 	ambsprite_table11 = 0x1500,
 	ambsprite_table12 = 0x15A0,
 	ambsprite_table13 = 0x1640,
 	ambsprite_table14 = 0x16E0,
-	ambsprite_table15 = 0x1780,
+	ambsprite_table15 = 0x1780, -- word 2: timer for each animation frame
 	ambsprite_table16 = 0x1820,
 	ambsprite_table17 = 0x18C0
 	
@@ -574,7 +574,7 @@ local WRAM = {  -- 7E0000~7FFFFF
   cur_screen_exit = 0x038E, -- 2 bytes
   level_load_type = 0x038C, -- 2 bytes (but just a flag)
   music_to_play = 0x004D,
-  OW_level_flags = 0x0222, -- 72 bytes table: $00: unavailable, $01: beaten, $80: current (grayed out)
+  OW_level_flags = 0x0222, -- 72 bytes table: $00: unavailable, $01: beaten, $80: unbeaten (grayed out)
   OW_cursor_x_pos = 0x1109,
   OW_cursor_y_pos = 0x110A,
   OW_cursor_x_pos_next = 0x110C,
@@ -585,8 +585,8 @@ local WRAM = {  -- 7E0000~7FFFFF
   OW_level_tiles = 0x030F, -- 72 bytes
 
   -- Camera
-  camera_x = 0x0039,
-  camera_y = 0x003B,
+  camera_x = 0x0039, -- 2 bytes
+  camera_y = 0x003B, -- 2 bytes
   camera_shake_y_offset = 0x0CB0, -- 2 bytes
 
   -- Sprites
