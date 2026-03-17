@@ -3694,7 +3694,9 @@ local function sprites()
 	local valid_game_mode = false
 	if Game_mode == YI.game_mode_level then valid_game_mode = true
 	elseif Game_mode == 0x0007 then valid_game_mode = true -- Intro (0x0007) too
-	elseif Game_mode == 0x0010 then valid_game_mode = true end -- Level end (0x0010) too
+	elseif Game_mode == 0x0010 then valid_game_mode = true -- Level end (0x0010) too
+	elseif Game_mode == 0x0030 then valid_game_mode = true -- Mini Battles too
+    end
 	if valid_game_mode == false then return end
   
   local counter = 0
