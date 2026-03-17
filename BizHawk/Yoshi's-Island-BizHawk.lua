@@ -3078,28 +3078,19 @@ local function ambient_sprites()
 			-- Prints
 			
 			-- Table
-			--local ambspr_string = fmt("<%.2d> %.2X (%d.%02x(%+.2d), %d.%02x(%+.2d))", id, ambspr_type, x, x_sub, x_speed, y, y_sub, y_speed)
-			
 			local debug_str = ""
-			local debug_address = 0x1E4C
-			local debug_str = fmt("[%02X,%02X,%02X,%02X] ", u8_sram(debug_address + 0 + id_off), u8_sram(debug_address + 1 + id_off),
-                                                      u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
+      local debug_address = SRAM.ambsprite_table9
+      local debug_str = fmt("[%02X,%02X,%02X,%02X] ", u8_sram(debug_address + 0 + id_off), u8_sram(debug_address + 1 + id_off), u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
 			--if ambspr_type == 0x1E1 then w16(debug_address + id_off, 0x90FF) end -- REMOVE TESTS/DEBUG
 			--w16_sram(debug_address + id_off, 0xFF) -- REMOVE TESTS/DEBUG
-			
-			local ambspr_string = fmt("<%.2d> %.4X %s(%d.%02x, %d.%02x)", id, ambspr_type, debug_str, x, x_sub, y, y_sub)
+      local ambspr_string = fmt("{%.2d} %.4X %s(%d.%02x, %d.%02x)", id, ambspr_type, debug_str, x, x_sub, y, y_sub)
 			if OPTIONS.display_ambient_sprite_table then
 				draw_text(Screen_width, y_pos + counter*height, ambspr_string, ambspr_colour, true, false)
 			end
 		
 			-- Prints information next to the exteded sprite
 			if OPTIONS.display_ambient_sprite_slot_in_screen then
-				draw_text(x_screen + 6, y_screen - 5, fmt("<%02d>", id), ambspr_colour, COLOUR.background, COLOUR.halo, true)
-			end
-		
-			-- Ambient sprite position pixel and cross
-			draw_pixel(x_screen, y_screen, ambspr_colour)
-			if OPTIONS.display_debug_ambient_sprite then
+        draw_text(x_screen + 6, y_screen - 5, fmt("{%02d}", id), ambspr_colour, COLOUR.background, COLOUR.halo)
 				draw_cross(x_screen, y_screen, 2, ambspr_colour)
 			end
             
@@ -3112,8 +3103,9 @@ local function ambient_sprites()
 				end
 			end
 			if new_ambsprite then
-				local new_id_str = fmt(" NEW ID!!! %3X in <%.2d> ", ambspr_type, id)
+        local new_id_str = fmt(" NEW AMB. SPRITE ID!!! %3X in {%.2d} ", ambspr_type, id)
 				alert_text(Buffer_middle_x - floor(4*string.len(new_id_str)/2), 190, new_id_str, COLOUR.warning, COLOUR.warning_bg)
+        print(new_id_str)
 				draw_box(x_screen - 4, y_screen - 4, x_screen + 20, y_screen + 20, COLOUR.warning)
 			end
 			
@@ -3149,8 +3141,10 @@ local function ambient_sprites()
         end
     end
     
+  if OPTIONS.display_ambient_sprite_table then
     Text_opacity = 0.5
-    local x_pos, y_pos, length = draw_text(Screen_width, y_pos, fmt("Ambient sprites:%2d ", counter), COLOUR.weak, true, false, 0.0, 1.0)
+    local x_pos, y_pos, length = draw_text(Screen_width, y_pos, fmt("Ambient sprites:%2d", counter), COLOUR.weak, true, false, 0.0, 1.0)
+  end
 end
 
 
