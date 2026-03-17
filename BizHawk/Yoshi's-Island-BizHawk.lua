@@ -5687,15 +5687,42 @@ while true do
   end
 end
 
+
+
 --[[ TODO LIST #########################################################################################################################
 
-- Don't read sprite data every frame, read it just once and store it in a table, read again only when sprite data pointer changes
+- Don't read sprite data every frame, read it just once and store it in a table, read again only when sprite data pointer changes.
 - Option to show/hide empty sprite slots, and make the according changes inside the sprite() functions.
 - Group show/hide options that can be enabled/disabled by one checkbox, just like the Flintstones script.
 - Fix negative speed for sprites.
 - Make level map tool, a button to a new form that draws the map, the screen, the sprite data (at least), with an option to warp with click (Map16 data read from WRAM) (or at least display the screens like in the snes9x script).
-- Please, PLEASE, fix the config file thing, or start from scratch.
-- Mouth ammo value display, showing also which ammo Yoshi has
+- Fix the config file thing, or start from scratch (using MUGG's GuiSaveSettings from his MLSS script).
+- Mouth ammo value display, showing also which ammo Yoshi has.
+- Refactor the option forms to minimize lines, by creating various functions for the repetitive stuff.
+- Lagmeter.
+- Minigames and Bonus Challenges info.
+- Use base64 or base85 to encode/decode images (https://stackoverflow.com/questions/34618946/lua-base64-encode or http://lua-users.org/wiki/BaseSixtyFour or https://github.com/iskolbin/lbase64 or https://github.com/SatheeshJM/Ascii85-Encoding-in-Pure-Lua)
+- Option to change between hexadecimal and decimal (only affecting the ones that are interesting for hex)
+- Bowser fight display.
+- Improve interaction points using the docs https://github.com/brunovalads/yoshisisland-disassembly/wiki/Yoshi-Block-Interaction
+- Make GBA version
+- 
+- Check the possibility of avoid drawing some stuff every frame, with gui.DrawNew() and gui.DrawFinish(), such as this example:
+  x = 0;
+  while true do
+    if (x == 500) then
+      gui.DrawNew("native");
+      console.writeline("making single drawText call");
+      gui.drawText(16, 32, "A string");
+      gui.DrawFinish();
+    end
+    if (x % 100 == 0) then
+      console.writeline("100 frames elapsed");
+    end
+    x = x + 1;
+    emu.frameadvance();
+  end
+-
 -
 
 ]]
