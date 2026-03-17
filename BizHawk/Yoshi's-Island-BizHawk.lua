@@ -3163,17 +3163,11 @@ local function sprite_info(id, counter, table_position)
   local despawn_threshold_id = bit.band(u8_sram(SRAM.sprite_table3 + id_off), 0xC)/4
   local x_relative_cam = s16_sram(SRAM.sprite_x_relative_cam + id_off)
   local y_relative_cam = s16_sram(SRAM.sprite_y_relative_cam + id_off)
+  local sprite_half_width = s16_sram(SRAM.sprite_hitbox_half_width + id_off)  --HITBOX_SPRITE[boxid].width
+  local sprite_half_height = s16_sram(SRAM.sprite_hitbox_half_height + id_off)   --HITBOX_SPRITE[boxid].height
   local special_hitbox = false
   
-  local special = ""
-  --[[if (OPTIONS.display_debug_info and OPTIONS.display_debug_sprite_extra) or
-  ((sprite_status ~= 0x8 and sprite_status ~= 0x9 and sprite_status ~= 0xa and sprite_status ~= 0xb) or stun ~= 0) then
-    special = string.format("(%d %d) ", sprite_status, stun)
-  end]] -- TODO
-  
-  ---**********************************************
-  -- Calculates the sprites dimensions and screen positions
-  
+  -- Calculates dimensions and screen positions
   local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
 	local x_centered_screen, y_centered_screen = screen_coordinates(x_centered, y_centered, Camera_x, Camera_y)
   
@@ -3185,15 +3179,10 @@ local function sprite_info(id, counter, table_position)
 	--elseif Game_mode == 0x002C then y_screen = y_screen - 256
 	end 
 	
-  -- Sprite clipping vs mario and sprites
-  --local boxid = bit.band(u8_wram(WRAM.sprite_2_tweaker + id_off), 0x3f)  -- This is the type of box of the sprite
-  --local xoff = HITBOX_SPRITE[boxid].xoff
-  --local yoff = HITBOX_SPRITE[boxid].yoff
-  local sprite_half_width = s16_sram(SRAM.sprite_hitbox_half_width + id_off)  --HITBOX_SPRITE[boxid].width
-  local sprite_half_height = s16_sram(SRAM.sprite_hitbox_half_height + id_off)   --HITBOX_SPRITE[boxid].height
-  local x_scaling = s16_sram(0x1A36 + id_off) -- TODO 
-	local y_scaling = s16_sram(0x1A38 + id_off) -- TODO
-	--[[if x_scaling ~= 0 then
+  --[[ -- TODO: remove if don't use
+  local x_scaling = s16_sram(0x1A36 + id_off)
+	local y_scaling = s16_sram(0x1A38 + id_off)
+	if x_scaling ~= 0 then
 		sprite_half_width = floor(sprite_half_width*x_scaling/256)
 	end
 	if x_scaling ~= 0 then
@@ -3583,12 +3572,10 @@ local function sprite_info(id, counter, table_position)
   
 
   ---**********************************************
-  -- Displays sprites hitboxes -- TODO
-  if OPTIONS.display_sprite_hitbox and not special_hitbox then
-		draw_box(x_centered_screen - sprite_half_width, y_centered_screen - sprite_half_height, x_centered_screen + sprite_half_width, y_centered_screen + sprite_half_height, info_colour, colour_background)
+  -- Displays sprites hitboxes
 		
-		local interaction_x = s16_sram(SRAM.sprite_table14)
-		--draw_line(x_centered_screen + interaction_x, y_centered_screen, x_centered_screen + interaction_x, y_centered_screen + 32, COLOUR.text) -- TODO
+  if OPTIONS.display_sprite_hitbox and not special_hitbox and sprite_status ~= 0 then
+		draw_box(x_centered_screen - sprite_half_width, y_centered_screen - sprite_half_height, x_centered_screen + sprite_half_width, y_centered_screen + sprite_half_height, info_colour, colour_background)
   end
 
   ---**********************************************
@@ -3596,13 +3583,13 @@ local function sprite_info(id, counter, table_position)
 	
 	if OPTIONS.display_sprite_slot_in_screen then
 		local slot_str = fmt("<%02d>", id)
-		draw_text(x_centered_screen, y_centered_screen - sprite_half_height - 10, slot_str, info_colour, COLOUR.background, true, false, 0.5)
+		draw_text(x_centered_screen, y_centered_screen - sprite_half_height - 14, slot_str, info_colour, COLOUR.background, sprite_status ~= 0 and true or false, false, 0.5)
 	end
 	
 	-- Sprite position pixel and cross
 	if OPTIONS.display_debug_sprite_extra then
-		draw_cross(x_centered_screen, y_centered_screen, 2, COLOUR.text) -- TODO: figure out a better colour
-		draw_cross(x_screen, y_screen, 2, info_colour)
+		if sprite_status ~= 0 then draw_cross(x_screen, y_screen, 2, info_colour) end
+		draw_cross(x_centered_screen, y_centered_screen, 2, sprite_status ~= 0 and COLOUR.text or info_colour)
 	end
   
   ---**********************************************
