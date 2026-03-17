@@ -1804,17 +1804,31 @@ end
 -- YI FUNCTIONS:
 
 
-local Frame_counter, Effective_frame, Game_mode
-local Level_index, Room_index, Sprite_data_pointer, Level_flag
-local Is_paused, Lock_animation_flag, Player_powerup, Player_animation_trigger
+-- Read main game variables
+local Frame_counter, Game_mode, Is_paused
+local Level_index, Room_index, Sprite_data_pointer
 local Camera_x, Camera_y, Yoshi_x, Yoshi_y
-local Camera_x_prev, Camera_y_prev = s16_wram(WRAM.camera_x), s16_wram(WRAM.camera_y) -- init here to avoid being nil in the first frame
+Previous.Camera_x, Previous.Camera_y = s16_wram(WRAM.camera_x), s16_wram(WRAM.camera_y) -- init here to avoid being nil in the first frame
+Previous.Sprite_data_pointer = u24_sram(SRAM.sprite_data_pointer)
 local function scan_yi()
+  -- Game general
   Frame_counter = u16_wram(WRAM.frame_counter)
   Game_mode = u16_wram(WRAM.game_mode)
+  
+  -- In level frequently used info
   Is_paused = u8_wram(WRAM.is_paused) == 1
   Level_index = u16_wram(WRAM.level_index)
+	Yoshi_x = s16_sram(SRAM.x)
+	Yoshi_y = s16_sram(SRAM.y)
   
+  -- Camera
+  if Camera_x then Previous.Camera_x = Camera_x end -- conditional to avoid writing nil to prev
+  if Camera_y then Previous.Camera_y = Camera_y end -- conditional to avoid writing nil to prev
+  Camera_x = s16_wram(WRAM.camera_x)
+  Camera_y = s16_wram(WRAM.camera_y)
+  
+  -- Sprite data and room index
+  if Sprite_data_pointer then Previous.Sprite_data_pointer = Sprite_data_pointer end  -- conditional to avoid writing nil to prev
   Sprite_data_pointer = u24_sram(SRAM.sprite_data_pointer)
   for i = 1, #YI.sprite_data_pointers do
     if Sprite_data_pointer == YI.sprite_data_pointers[i] then
@@ -1822,16 +1836,6 @@ local function scan_yi()
       break
     end
   end
-  
-  -- Handle prev values (should always be set before the current values update)
-  if Camera_x then Camera_x_prev = Camera_x end -- conditional to avoid writing nil to prev
-  if Camera_y then Camera_y_prev = Camera_y end -- conditional to avoid writing nil to prev
-  
-  -- In level frequently used info
-  Camera_x = s16_wram(WRAM.camera_x)
-  Camera_y = s16_wram(WRAM.camera_y)
-	Yoshi_x = s16_sram(SRAM.x)
-	Yoshi_y = s16_sram(SRAM.y)
 end
 
 
@@ -3706,15 +3710,9 @@ local function sprite_level_data()
   -- Sprite data enviroment
   local pointer = Sprite_data_pointer
   
-  
-  error("\n\nTODO: Don't read sprite data every frame, read it just once and store it in a table, read again only when sprite data pointer changes")
-  
-  
-  
-  
-  
-  
-  
+  if Sprite_data_pointer ~= Previous.Sprite_data_pointer then -- pointer changed, so level changed
+    --read sprite data
+  end
   
   
   --[[
@@ -3809,9 +3807,7 @@ local function show_counters()
     draw_text(2, y_pos + (text_counter * height), fmt("%s: %d", label, (value * mult) - frame), colour)
   end
   
-  if Player_animation_trigger == 5 or Player_animation_trigger == 6 then
-    display_counter("Pipe", pipe_entrance_timer, -1, 1, 0, COLOUR.counter_pipe)
-  end
+  -- List of counter calls with their conditions
 	if not Cheat.under_free_move then
 		display_counter("Invincibility", invincibility_timer, 0, 1, 0, COLOUR.counter_invincibility)
   end
@@ -3822,7 +3818,7 @@ local function show_counters()
 		display_counter("Switch", switch_timer, 0, 1, 0, COLOUR.counter_switch)
   end
   
-  --if Lock_animation_flag ~= 0 then display_counter("Animation", animation_timer, 0, 1, 0) end  -- shows when player is getting hurt or dying
+
   
 end
 
