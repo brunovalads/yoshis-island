@@ -4212,19 +4212,37 @@ function Cheat.is_cheat_active()
 end
 
 
--- Called from Cheat.beat_level()
-function Cheat.activate_next_level() -- TODO
-
-  
-  Cheat.is_cheating = true
+-- Cheat to beat the level
+function Cheat.beat_level()
+  if Game_mode == YI.game_mode_level then
+    Cheat.change_address("WRAM", WRAM.music_to_play, 0x06, 2, false, nil, false, false)
+    Cheat.change_address("WRAM", WRAM.game_mode, 0x31, 2, false, nil, false, false)
+    print("Cheat: beat level!")
+  else
+    print("Only works if game mode = $000F (inside level)")
+  end
 end
 
-
--- Cheat to beat the level
-function Cheat.beat_level() -- TODO
-
-  Cheat.activate_next_level()
   
+-- Cheat to unlock all levels
+function Cheat.unlock_levels()
+  -- Force all levels act like passed
+  for i = 0, 0x48-1 do
+    w8_wram(WRAM.OW_level_flags + i, 0x01)
+end
+
+  -- Force all worlds to have correct level tiles
+  for i = 0, 6-1 do -- DEBUG: loop 0 thru 11 to "force" glitched worlds
+    for j = 1, 0xC do
+      --w16_wram(WRAM.OW_level_tiles + 8 + i*0xC, 0x0A09)
+      w8_wram(WRAM.OW_level_tiles + i*0xC + j-1, j)
+    end
+  end
+
+  -- Force overworld loading game mode
+  Cheat.change_address("WRAM", WRAM.game_mode, 0x1F, 2, false, nil, false, false)
+
+  print("Cheat: unlocked all levels!")
 end
 
 
