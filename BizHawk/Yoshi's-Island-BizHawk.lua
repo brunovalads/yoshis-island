@@ -2565,12 +2565,11 @@ local function draw_sprite_spawning_areas()
 end
 
 -- Display Yoshi's blocked status
-function draw_blocked_status(x_text, y_text, player_blocked_status, x_speed, y_speed)
+function draw_blocked_status(x_text, y_text, player_blocked_status)
   local bitmap_width  = 25
   local bitmap_height = 30
   local block_str = "Blocked:"
-  local str_len = string.len(block_str)
-  local xoffset = x_text + str_len*BIZHAWK_FONT_WIDTH
+  local xoffset = x_text + string.len(block_str)*BIZHAWK_FONT_WIDTH
   local yoffset = y_text + 2
   local colour_set = COLOUR.warning
   
@@ -2968,7 +2967,7 @@ local function player()
 	i = i + 1  
 	
 	if OPTIONS.display_blocked_status then
-		draw_blocked_status(table_x, table_y + i*delta_y + 2, player_blocked_status, x_speed, y_speed)
+		draw_blocked_status(table_x, table_y + i*delta_y + 2, player_blocked_status)
 		i = i + 2.5*Scale_y
 	end
   
