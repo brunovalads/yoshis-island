@@ -3194,7 +3194,7 @@ local function sprite_info(id, counter, table_position)
   
   -- Calculates the correct colour to use, according to id
   local info_colour = COLOUR.sprites[id%(#COLOUR.sprites) + 1]
-  local colour_background = COLOUR.sprites_bg
+  local colour_background = change_transparency(info_colour, 0.5)--info_colour - 0x7f000000 -- same colour, but with 50% transparency
   
   Bg_opacity = 1.0
   
@@ -3206,6 +3206,7 @@ local function sprite_info(id, counter, table_position)
   -- Text opacity due being offscreen
   if is_offscreen then
     info_colour = change_transparency(info_colour, 0.5)
+    colour_background = change_transparency(info_colour, 0.25)
 	else
     info_colour = change_transparency(info_colour, 0.8)
 	end
