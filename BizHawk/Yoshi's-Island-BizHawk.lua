@@ -35,7 +35,7 @@ local DEFAULT_OPTIONS = {
   display_sprite_slot_in_screen = true,
   display_sprite_hitbox = true,
   display_sprite_special_info = true,
-  display_ambient_sprite_info = false,
+  display_ambient_sprite_info = true,
   display_ambient_sprite_table = true,
   display_ambient_sprite_slot_in_screen = true,
   display_sprite_data = false,
@@ -43,14 +43,14 @@ local DEFAULT_OPTIONS = {
   display_sprite_spawning_areas = false,
   display_level_info = true,
   display_level_extra = true,
-  display_level_layout = true,
+  display_level_layout = false,
   display_overworld_info = true,
-  display_counters = false,
+  display_counters = true,
   display_controller_input = true,
   draw_tiles_with_click = false,
   draw_dark_filter = false,
   dark_filter_opacity = 8,
-  display_cw_helper = false,
+  display_credits_warp_helper = false,
 
   -- Some extra/debug info
   display_debug_info = false,  -- shows useful info while investigating the game, but not very useful while TASing
@@ -64,9 +64,9 @@ local DEFAULT_OPTIONS = {
 	draw_tile_map_type = false,
 	draw_tile_map_screen = false,
   
-  -- Script settings
+  -- Emu borders
   left_gap = 150,
-  right_gap = 190,
+  right_gap = 200,
   top_gap = 55,
   bottom_gap = 154,
   max_tiles_drawn = 40  -- the max number of tiles to be drawn/registered by the script
@@ -83,7 +83,7 @@ local DEFAULT_COLOUR = {
   positive = 0xff00FF00, -- green
   warning = 0xffFF0000, -- red
   warning_bg = 0xff000000,
-  warning2 = 0xffFF00FF, -- purple
+  warning2 = 0xffFF00FF, -- magenta
   warning_soft = 0xffFFA500, -- orange
   warning_transparent = 0x80FF0000, -- red (transparent)
   weak = 0xa0A9A9A9, -- gray (transparent)
@@ -125,7 +125,7 @@ local DEFAULT_COLOUR = {
     0xffFFFF80, -- yellow
     0xff40FF40  -- green
   },
-  sprites_bg = 0x0000b050,
+  sprites_bg = 0x8000b050,
   sprites_interaction_pts = 0xffffffff,
   sprites_clipping_bg = 0x000000a0,
   ambient_sprites = {
