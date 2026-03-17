@@ -3877,6 +3877,72 @@ local function show_counters()
   
 
   
+-- Display useful info for Credits Warp 
+local function credits_warp_helper()
+  if not OPTIONS.display_credits_warp_helper then return end
+  
+  for id = 6, 9 do -- current strat for Credits Warp includes the info for sprites in slots 06 thru 09
+  
+    -- Text
+    local info_y = Screen_height - 18*BIZHAWK_FONT_HEIGHT
+    local info_x = 2
+    local colour = COLOUR.warning
+    local str_tmp
+    
+    -- Reads RAM
+    local id_off = 4*id
+    local sprite_type = u16_sram(SRAM.sprite_type + id_off)
+    local sprite_x_subpos = u8_sram(SRAM.sprite_x_sub + id_off)
+    local sprite_x_pos = u8_sram(SRAM.sprite_x + id_off)
+    local sprite_x_screen = u8_sram(SRAM.sprite_x + 1 + id_off)
+    
+    -- Correct values to get Credits Warp (current strat)
+    local credits_warp_values = {}
+    if id == 6 then
+      credits_warp_values.x_subpos = 0x00 -- $7010F9
+      credits_warp_values.x_pos = 0xA9 -- $7010FA
+      credits_warp_values.x_screen = 0x0D -- $7010FB
+    elseif id == 7 then
+      credits_warp_values.x_subpos = 0x18 -- $7010FD
+      credits_warp_values.x_pos = 0x0A -- $7010FE
+      credits_warp_values.x_screen = 0x02 -- $7010FF
+    elseif id == 8 then
+      credits_warp_values.x_subpos = 0x99 -- $701101
+      credits_warp_values.x_pos = 0x4C -- $701102
+      credits_warp_values.x_screen = 0x00 -- $701103
+    elseif id == 9 then
+      credits_warp_values.x_subpos = 0x00 -- $701105
+      credits_warp_values.x_pos = 0x6B -- $701106
+      credits_warp_values.x_screen = 0x02 -- $701107
+end
+
+    -- Label
+    if id == 6 then -- to draw this only once
+      draw_text(info_x + 9*BIZHAWK_FONT_WIDTH, info_y + (id-1)*BIZHAWK_FONT_HEIGHT, "Xsub Xpos Xscr")
+    end
+
+    -- Sprite slot and type
+    str_tmp = fmt("<%02d> %03X ", id, sprite_type)
+    draw_text(info_x, info_y + id*BIZHAWK_FONT_HEIGHT, str_tmp)
+    
+    -- Sprite x subpos
+    if sprite_x_subpos == credits_warp_values.x_subpos then colour = COLOUR.positive else colour = COLOUR.warning end
+    info_x = info_x + string.len(str_tmp)*BIZHAWK_FONT_WIDTH
+    str_tmp = fmt(" %02X  ", sprite_x_subpos)
+    draw_text(info_x, info_y + id*BIZHAWK_FONT_HEIGHT, str_tmp, colour)
+    
+    -- Sprite x pos
+    if sprite_x_pos == credits_warp_values.x_pos then colour = COLOUR.positive else colour = COLOUR.warning end
+    info_x = info_x + string.len(str_tmp)*BIZHAWK_FONT_WIDTH
+    str_tmp = fmt(" %02X  ", sprite_x_pos)
+    draw_text(info_x, info_y + id*BIZHAWK_FONT_HEIGHT, str_tmp, colour)
+    
+    -- Sprite x screen
+    if sprite_x_screen == credits_warp_values.x_screen then colour = COLOUR.positive else colour = COLOUR.warning end
+    info_x = info_x + string.len(str_tmp)*BIZHAWK_FONT_WIDTH
+    str_tmp = fmt(" %02X  ", sprite_x_screen)
+    draw_text(info_x, info_y + id*BIZHAWK_FONT_HEIGHT, str_tmp, colour)
+  end
 end
 
 
@@ -3904,7 +3970,7 @@ local function level_mode()
     
     show_counters()
     
-    -- Draws/Erases the hitbox for objects
+    credits_warp_helper()
     if true or User_input.mouse_inwindow == 1 then
       --select_object(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y) REMOVE?
     end
