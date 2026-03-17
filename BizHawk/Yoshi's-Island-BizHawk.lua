@@ -4272,8 +4272,10 @@ function Cheat.free_movement()
   w8_sram(SRAM.y_speed, -1) -----\ to account for gravity, otherwise it keeps falling
   w8_sram(SRAM.y_subspeed, 96) --/
   w8_sram(SRAM.invincibility_timer, 120) -- to avoid taking damage
-  w16_sram(SRAM.player_blocked_status, 1) -- TODO: figure out why it doesn't work
   w16_sram(SRAM.on_sprite_platform, 1) -- to make the game think you're in a platform, so the camera scrolls vertically too
+  w16_sram(SRAM.tongue_state, 0) -- to disable tongue during the cheat, preventing a possible Tongue Glitch
+  w16_sram(SRAM.tongue_x, 0) --\ to prevent displaced tongue after disabling the cheat
+  w16_sram(SRAM.tongue_y, 0) --/
 
   Cheat.is_cheating = true
   Previous.under_free_move = true
