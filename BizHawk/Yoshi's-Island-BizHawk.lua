@@ -3751,7 +3751,9 @@ local function sprite_level_data()
       indexes[index] = true
     end
   end
-  local status_table = memory.readbyterange(SRAM.sprite_load_status_table, 0x100)
+  local status_table
+  Previous.status_table = status_table
+  status_table = memory.readbyterange(SRAM.sprite_load_status_table, 0x100)
 
   local x_origin = Border_right_start + 1
   local y_origin = Border_bottom_start - 5*BIZHAWK_FONT_HEIGHT
@@ -3765,6 +3767,7 @@ local function sprite_level_data()
     --read sprite data
   end
   
+  --error("\n\nTODO: Don't read sprite data every frame, read it just once and store it in a table, read again only when sprite data pointer changes")
   
   --[[
   Sprite Data Format
@@ -3772,10 +3775,12 @@ local function sprite_level_data()
   byte 2: YYYYYYYI  High ID and Y Tile Coordinate
   byte 3: XXXXXXXX  X Tile Coordinate
   ]]
+  
   local sprite_counter = 0
   for id = 0, 0x100 - 1 do
     local byte_1 = memory.readbyte(pointer + 0 + id*3, "System Bus")
-    if byte_1==0xff then break end -- end of sprite data for this level
+    local byte_2 = memory.readbyte(pointer + 1 + id*3, "System Bus")
+    if byte_1 == 0xFF and byte_2 == 0xFF then break end -- end of sprite data for this level
     sprite_counter = sprite_counter + 1
   end
   --sprite_counter = 0
@@ -3784,9 +3789,10 @@ local function sprite_level_data()
   
     -- Sprite data
     local byte_1 = memory.readbyte(pointer + 0 + id*3, "System Bus")
-    if byte_1==0xff then break end -- end of sprite data for this level -- TODO: check if true for YI
     local byte_2 = memory.readbyte(pointer + 1 + id*3, "System Bus")
     local byte_3 = memory.readbyte(pointer + 2 + id*3, "System Bus")
+    if byte_1 == 0xFF and byte_2 == 0xFF then break end -- end of sprite data for this level
+    
 
     local sxpos = 16*byte_3
     local sypos = 8*bit.band(byte_2, 0xfe)
@@ -3828,7 +3834,7 @@ local function sprite_level_data()
 
   Text_opacity = 1.0
   if OPTIONS.display_sprite_load_status then
-    draw_text(x_origin, y_origin - BIZHAWK_FONT_HEIGHT, fmt("Sprite load status ($%02X sprites)", sprite_counter), COLOUR.weak)
+    draw_text(x_origin, y_origin - BIZHAWK_FONT_HEIGHT, fmt("Sprite load status (%d sprites)", sprite_counter), COLOUR.weak)
   end
 end
 
