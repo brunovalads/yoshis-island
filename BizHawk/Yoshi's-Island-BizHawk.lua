@@ -5621,6 +5621,8 @@ event.onexit(function()
   
   gui.clearImageCache()
   
+  gui.clearGraphics()
+  
 	client.SetGameExtraPadding(0, 0, 0, 0)
   
   for i = 1, #YI.image_hex do
