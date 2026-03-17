@@ -214,9 +214,9 @@ end
 
 -- Check if the script is running on BizHawk
 function Biz.check_emulator()
-if tastudio == nil then
+    if tastudio == nil then
         error("\n\nThis script only works with BizHawk emulator.\nVisit http://tasvideos.org/Bizhawk/ReleaseHistory.html to download the latest version.")
-end
+    end
 end
 Biz.check_emulator()
 
@@ -225,7 +225,7 @@ Biz.memory_domain_list = memory.getmemorydomainlist()
 function Biz.check_ROM_domain()
     for key, domain in ipairs(Biz.memory_domain_list) do
         if domain:find("ROM") then return domain end
-end
+    end
     --if didn't find ROM domain then
     error("This core doesn't have ROM domain exposed for the script, please change the core!")
 end
@@ -592,12 +592,12 @@ local WRAM = {  -- 7E0000~7FFFFF
   -- Sprites
   toadies_relative_x = 0x0E38,
   toadies_relative_y = 0x0E4A,
-
+    
     -- Bosses
     bowser_true_x_pos = 0x1068,
     bowser_vertical_pos = 0x106A,
     bowser_horizontal_pos = 0x106C,
-
+    
   -- Timers
   switch_timer = 0x0CEC, -- 2 bytes
 
@@ -2254,50 +2254,50 @@ end
 
 
 local function show_misc_info()
-  if not OPTIONS.display_misc_info then return end
-  
-  -- Font
-  Text_opacity = 1.0
-  Bg_opacity = 1.0
-	
-	-- Display
-	local RNG = u16_sram(SRAM.RNG)
-	draw_text(Screen_width, 0, fmt("RNG:$%04X  Game mode:$%04X", RNG, Game_mode), true)
-	
-  local camera_str = fmt("Camera (%04X, %04X)", Camera_x, Camera_y)
-  draw_text(Buffer_middle_x, OPTIONS.top_gap - 2, camera_str, true, false, 0.5)
-	
-	if Game_mode ~= YI.game_mode_level or Is_paused then return end
-  
-	local star_counter = u16_wram(WRAM.star_counter)
-	local red_coin_counter = u16_wram(WRAM.red_coin_counter)
-	local flower_counter = u16_wram(WRAM.flower_counter)
-  local life_counter = u16_wram(WRAM.lives)
-	local coin_counter = u16_wram(WRAM.coin_counter)
-	local star_effective = math.floor(star_counter/10)
-  
-	local temp_str
+    if not OPTIONS.display_misc_info then return end
+
+    -- Font
+    Text_opacity = 1.0
+    Bg_opacity = 1.0
+
+    -- Display
+    local RNG = u16_sram(SRAM.RNG)
+    draw_text(Screen_width, 0, fmt("RNG:$%04X  Game mode:$%04X", RNG, Game_mode), true)
+
+    local camera_str = fmt("Camera (%04X, %04X)", Camera_x, Camera_y)
+    draw_text(Buffer_middle_x, OPTIONS.top_gap - 2, camera_str, true, false, 0.5)
+
+    if Game_mode ~= YI.game_mode_level or Is_paused then return end
+
+    local star_counter = u16_wram(WRAM.star_counter)
+    local red_coin_counter = u16_wram(WRAM.red_coin_counter)
+    local flower_counter = u16_wram(WRAM.flower_counter)
+    local life_counter = u16_wram(WRAM.lives)
+    local coin_counter = u16_wram(WRAM.coin_counter)
+    local star_effective = math.floor(star_counter/10)
+
+    local temp_str
     local x_temp, y_temp = OPTIONS.left_gap, BIZHAWK_FONT_HEIGHT
-  
-  draw_image("star_icon.png", x_temp, y_temp)
-	temp_str = fmt("%d/30(%d)", star_effective, star_counter)
-	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
-	
-  draw_image("red_coin_icon.png", x_temp, y_temp)
-	temp_str = fmt("%d/20", red_coin_counter)
-	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
-	
-  draw_image("flower_icon.png", x_temp, y_temp)
-	temp_str = fmt("%d/5", flower_counter)
-	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
-	
-  draw_image("yoshi_icon.png", x_temp, y_temp)
-	temp_str = fmt("%d", life_counter)
-	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
-	
-  draw_image("coin_icon.png", x_temp, y_temp)
-	temp_str = fmt("%d", coin_counter)
-	x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
+
+    draw_image("star_icon.png", x_temp, y_temp)
+    temp_str = fmt("%d/30(%d)", star_effective, star_counter)
+    x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
+
+    draw_image("red_coin_icon.png", x_temp, y_temp)
+    temp_str = fmt("%d/20", red_coin_counter)
+    x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
+
+    draw_image("flower_icon.png", x_temp, y_temp)
+    temp_str = fmt("%d/5", flower_counter)
+    x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
+
+    draw_image("yoshi_icon.png", x_temp, y_temp)
+    temp_str = fmt("%d", life_counter)
+    x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
+
+    draw_image("coin_icon.png", x_temp, y_temp)
+    temp_str = fmt("%d", coin_counter)
+    x_temp = draw_text(x_temp + 17, y_temp + BIZHAWK_FONT_HEIGHT/2, temp_str, COLOUR.weak, true) + 8
 end
 
 
@@ -2489,8 +2489,8 @@ local function level_info()
     -- Sluggy The Unshaven boss activation line
     elseif Room_index == 0x8A then
       
-      local line_x_screen, _ = screen_coordinates(0x0231, 0, Camera_x, Camera_y)
-      local yoshi_center_x = s16_sram(SRAM.x_centered)
+        local line_x_screen, _ = screen_coordinates(0x0231, 0, Camera_x, Camera_y)
+        local yoshi_center_x = s16_sram(SRAM.x_centered)
 			local yoshi_center_x_screen, _ = screen_coordinates(yoshi_center_x, 0, Camera_x, Camera_y)
 			local fight_activated = u8_wram(0x003E) -- address serves for this
 			
@@ -2504,8 +2504,8 @@ local function level_info()
     -- Prince Froggy's boss activation line
     elseif Room_index == 0xBF then
       
-      local line_x_screen, _ = screen_coordinates(0x0149, 0, Camera_x, Camera_y)
-      local yoshi_center_x = s16_sram(SRAM.x_centered)
+        local line_x_screen, _ = screen_coordinates(0x0149, 0, Camera_x, Camera_y)
+        local yoshi_center_x = s16_sram(SRAM.x_centered)
 			local yoshi_center_x_screen, _ = screen_coordinates(yoshi_center_x, 0, Camera_x, Camera_y)
 			local fight_activated = u8_wram(0x0042) -- address serves for this
 			
@@ -2519,11 +2519,11 @@ local function level_info()
     -- Baby Bowser boss activation line
     elseif Room_index == 0xDD then
       
-      local line_x_screen, _ = screen_coordinates(0x0068, 0, Camera_x, Camera_y)
-      local fight_activated -- TODO: figure out
-      --if fight_activated ==  then
-        draw_line(line_x_screen, OPTIONS.top_gap + 8, line_x_screen, Border_bottom_start, COLOUR.warning) -- red
-      --end
+        local line_x_screen, _ = screen_coordinates(0x0068, 0, Camera_x, Camera_y)
+        local fight_activated -- TODO: figure out
+        --if fight_activated ==  then
+            draw_line(line_x_screen, OPTIONS.top_gap + 8, line_x_screen, Border_bottom_start, COLOUR.warning) -- red
+        --end
     end
 	end
 	
@@ -3025,110 +3025,110 @@ local function ambient_sprites()
 	elseif Game_mode == 0x0007 then valid_game_mode = true -- Intro (0x0007) too
 	elseif Game_mode == 0x0010 then valid_game_mode = true end -- Level end (0x0010) too
 	if valid_game_mode == false then return end
-    
-    -- Font
-    Text_opacity = 1.0
+  
+  -- Font
+  Text_opacity = 1.0
   local height = BIZHAWK_FONT_HEIGHT*0.8
   local y_pos = Border_bottom_start + 2*height
+  
+  local counter = 0
+  for id = 0, YI.ambient_sprite_max - 1 do
+
+    local id_off = 4*id
+
+    local ambspr_status = u8_sram(SRAM.ambsprite_status + id_off) -- usually $0E for active
     
-    local counter = 0
-    for id = 0, YI.ambient_sprite_max - 1 do
-	
-		local id_off = 4*id
-	
-        local ambspr_status = u8_sram(SRAM.ambsprite_status + id_off) -- usually $0E for active
-        
-        if ambspr_status ~= 0 then
-			
-			---**********************************************
-			-- Reads SRAM addresses
-			
-			local ambspr_type = u16_sram(SRAM.ambsprite_type + id_off)
+    if ambspr_status ~= 0 then
+      
+      ---**********************************************
+      -- Reads SRAM addresses
+      
+      local ambspr_type = u16_sram(SRAM.ambsprite_type + id_off)
       local x = s16_sram(SRAM.ambsprite_x + id_off)
       local y = s16_sram(SRAM.ambsprite_y + id_off)
       local x_sub = u8_sram(SRAM.ambsprite_x_sub + id_off)
       local y_sub = u8_sram(SRAM.ambsprite_y_sub + id_off)
       --local x_speed = s8_sram(SRAM.ambsprite_table6 + id_off)
       --local y_speed = s8_sram(SRAM.ambsprite_table6 + id_off + 2)
-            
-			---**********************************************
-			-- Display
-			
-			-- Calculates the ambient sprites screen positions
-			local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
-			
-			-- Calculates the correct colour to use, according to id
+      
+      ---**********************************************
+      -- Display
+      
+      -- Calculates the ambient sprites screen positions
+      local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
+      
+      -- Calculates the correct colour to use, according to id
       local ambspr_colour = COLOUR.sprites[id%(#COLOUR.sprites) + 1] -- TODO: change?
-			
-			-- Adjusts the opacity if it's offscreen
-			if x_screen >= OPTIONS.left_gap and x_screen <= Border_right_start and y_screen >= OPTIONS.top_gap and y_screen <= Border_bottom_start then
-				Text_opacity = 0.8
-			else
-				Text_opacity = 0.5
-			end
-			
-			---**********************************************
-			-- Prints
-			
-			-- Table
-			local debug_str = ""
+      
+      -- Adjusts the opacity if it's offscreen
+      if x_screen >= OPTIONS.left_gap and x_screen <= Border_right_start and y_screen >= OPTIONS.top_gap and y_screen <= Border_bottom_start then
+        Text_opacity = 0.8
+      else
+        Text_opacity = 0.5
+      end
+      
+      ---**********************************************
+      -- Prints
+      
+      -- Table
+      local debug_str = ""
       local debug_address = SRAM.ambsprite_table9
       local debug_str = fmt("[%02X,%02X,%02X,%02X] ", u8_sram(debug_address + 0 + id_off), u8_sram(debug_address + 1 + id_off), u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
-			--if ambspr_type == 0x1E1 then w16(debug_address + id_off, 0x90FF) end -- REMOVE TESTS/DEBUG
-			--w16_sram(debug_address + id_off, 0xFF) -- REMOVE TESTS/DEBUG
+      --if ambspr_type == 0x1E1 then w16(debug_address + id_off, 0x90FF) end -- REMOVE TESTS/DEBUG
+      --w16_sram(debug_address + id_off, 0xFF) -- REMOVE TESTS/DEBUG
       local ambspr_string = fmt("{%.2d} %.4X %s(%d.%02x, %d.%02x)", id, ambspr_type, debug_str, x, x_sub, y, y_sub)
-			if OPTIONS.display_ambient_sprite_table then
-				draw_text(Screen_width, y_pos + counter*height, ambspr_string, ambspr_colour, true, false)
-			end
-		
-			-- Prints information next to the exteded sprite
-			if OPTIONS.display_ambient_sprite_slot_in_screen then
-        draw_text(x_screen + 6, y_screen - 5, fmt("{%02d}", id), ambspr_colour, COLOUR.background, COLOUR.halo)
-				draw_cross(x_screen, y_screen, 2, ambspr_colour)
-			end
-            
-			-- Alert of new ambient sprite (for documentation purposes)
-			local new_ambsprite = true
-			for i = 1, #YI.ambient_sprite_ids do
-				if ambspr_type == YI.ambient_sprite_ids[i] then
-					new_ambsprite = false
-					break
-				end
-			end
-			if new_ambsprite then
-        local new_id_str = fmt(" NEW AMB. SPRITE ID!!! %3X in {%.2d} ", ambspr_type, id)
-				alert_text(Buffer_middle_x - floor(4*string.len(new_id_str)/2), 190, new_id_str, COLOUR.warning, COLOUR.warning_bg)
-        print(new_id_str)
-				draw_box(x_screen - 4, y_screen - 4, x_screen + 20, y_screen + 20, COLOUR.warning)
-			end
-			
-			---**********************************************
-			-- Save occurrences
-			--local occurr_file = io.open("Ambient sprites occurrences.txt", "w")
-			-- gui.gdscreenshot() RETURN SCREENSHOT AS A STRING
-			
-			--[[
-      if (OPTIONS.display_debug_info and OPTIONS.display_debug_ambient_sprite) or not UNINTERESTING_ambient_sprites[ambspr_number] or (ambspr_number == 1 and ambspr_table2 == 0xf) then
-                local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
-                
-        local t = HITBOX_EXTENDED_SPRITE[ambspr_number] or {xoff = 0, yoff = 0, width = 16, height = 16, colour_line = COLOUR.awkward_hitbox, colour_bg = COLOUR.awkward_hitbox_bg}
-                local xoff = t.xoff
-                local yoff = t.yoff
-                local xrad = t.width
-                local yrad = t.height
-                
-                local colour_line = t.colour_line or COLOUR.ambient_sprites
-                local colour_bg = t.colour_bg or COLOUR.ambient_sprites_bg
-                if ambspr_number == 0x5 or ambspr_number == 0x11 then
-                    colour_bg = (Frame_counter - id_off)%4 == 0 and COLOUR.special_ambient_sprite_bg or 0
-                end
-                draw_rectangle(x_screen+xoff, y_screen+yoff, xrad, yrad, colour_line, colour_bg) -- regular hitbox
-            end]]
-            
-            counter = counter + 1
-        end
-    end
+      if OPTIONS.display_ambient_sprite_table then
+        draw_text(Screen_width, y_pos + counter*height, ambspr_string, ambspr_colour, true, false)
+      end
     
+      -- Prints information next to the exteded sprite
+      if OPTIONS.display_ambient_sprite_slot_in_screen then
+        draw_text(x_screen + 6, y_screen - 5, fmt("{%02d}", id), ambspr_colour, COLOUR.background, COLOUR.halo)
+        draw_cross(x_screen, y_screen, 2, ambspr_colour)
+      end
+      
+      -- Alert of new ambient sprite (for documentation purposes)
+      local new_ambsprite = true
+      for i = 1, #YI.ambient_sprite_ids do
+        if ambspr_type == YI.ambient_sprite_ids[i] then
+          new_ambsprite = false
+          break
+        end
+      end
+      if new_ambsprite then
+        local new_id_str = fmt(" NEW AMB. SPRITE ID!!! %3X in {%.2d} ", ambspr_type, id)
+        alert_text(Buffer_middle_x - floor(4*string.len(new_id_str)/2), 190, new_id_str, COLOUR.warning, COLOUR.warning_bg)
+        print(new_id_str)
+        draw_box(x_screen - 4, y_screen - 4, x_screen + 20, y_screen + 20, COLOUR.warning)
+      end
+      
+      ---**********************************************
+      -- Save occurrences
+      --local occurr_file = io.open("Ambient sprites occurrences.txt", "w")
+      -- gui.gdscreenshot() RETURN SCREENSHOT AS A STRING
+      
+      --[[
+      if (OPTIONS.display_debug_info and OPTIONS.display_debug_ambient_sprite) or not UNINTERESTING_ambient_sprites[ambspr_number] or (ambspr_number == 1 and ambspr_table2 == 0xf) then
+        local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
+        
+        local t = HITBOX_EXTENDED_SPRITE[ambspr_number] or {xoff = 0, yoff = 0, width = 16, height = 16, colour_line = COLOUR.awkward_hitbox, colour_bg = COLOUR.awkward_hitbox_bg}
+        local xoff = t.xoff
+        local yoff = t.yoff
+        local xrad = t.width
+        local yrad = t.height
+        
+        local colour_line = t.colour_line or COLOUR.ambient_sprites
+        local colour_bg = t.colour_bg or COLOUR.ambient_sprites_bg
+        if ambspr_number == 0x5 or ambspr_number == 0x11 then
+          colour_bg = (Frame_counter - id_off)%4 == 0 and COLOUR.special_ambient_sprite_bg or 0
+        end
+        draw_rectangle(x_screen+xoff, y_screen+yoff, xrad, yrad, colour_line, colour_bg) -- regular hitbox
+      end]]
+      
+      counter = counter + 1
+    end
+  end
+  
   if OPTIONS.display_ambient_sprite_table then
     Text_opacity = 0.5
     local x_pos, y_pos, length = draw_text(Screen_width, y_pos, fmt("Ambient sprites:%2d", counter), COLOUR.weak, true, false, 0.0, 1.0)
@@ -3177,8 +3177,8 @@ local function sprite_info(id, counter, table_position)
 			y_screen = y_screen + Camera_y
 		end
 	--elseif Game_mode == 0x002C then y_screen = y_screen - 256
-	end 
-	
+	end
+  
   --[[ -- TODO: remove if don't use
   local x_scaling = s16_sram(0x1A36 + id_off)
 	local y_scaling = s16_sram(0x1A38 + id_off)
@@ -3213,7 +3213,7 @@ local function sprite_info(id, counter, table_position)
   
   if sprite_status == 0 then info_colour = change_transparency(COLOUR.disabled, 0.5) end -- TODO: make an option if the player wants all visible slots or only active
   
-    
+  
   -- Depawning position
   if is_offscreen and OPTIONS.display_sprite_spawning_areas then
   
@@ -3265,8 +3265,8 @@ local function sprite_info(id, counter, table_position)
 			local activation_line_x = 32
 			local activation_line_y_top = -92
 			local activation_line_y_bottom = -13
-      local tmp_colour = COLOUR.warning
-      
+            local tmp_colour = COLOUR.warning
+            
             -- Timer
             local timer = s16_sram(SRAM.sprite_table21 + id_off)
             draw_text(x_screen + activation_line_x, y_screen + activation_line_y_top - 32, fmt("Timer: %d", timer), info_colour, false, false, 0.5)
@@ -3274,29 +3274,29 @@ local function sprite_info(id, counter, table_position)
             -- Lines and distances
             if Game_mode == YI.game_mode_level then
                 
-      -- Activation line (checks Yoshi's center point)
-			draw_line(x_screen + activation_line_x, y_screen + activation_line_y_top, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour); tmp_colour = COLOUR.positive
-      draw_line(x_screen + activation_line_x, y_screen + activation_line_y_bottom - 5, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour)
-			
-      -- Distance relative to Yoshi's center point
-      local yoshi_center_x, yoshi_center_y = s16_sram(SRAM.x_centered), s16_sram(SRAM.y_centered)
-      local yoshi_center_x_screen, yoshi_center_y_screen = screen_coordinates(yoshi_center_x, yoshi_center_y, Camera_x, Camera_y)
-      if yoshi_center_x <= x + activation_line_x then
-        draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, fmt("Distance: %02X", x + activation_line_x - yoshi_center_x), info_colour, true, false, 1.0)
-      else
-        draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, "Distance: --", info_colour, true, false, 1.0)
-      end
-      
-      -- Warning to best area of activation
-      if yoshi_center_y < y + activation_line_y_bottom - 5 then tmp_colour = COLOUR.warning else tmp_colour = COLOUR.positive end
-      draw_line(yoshi_center_x_screen, yoshi_center_y_screen, x_screen + activation_line_x, y_screen + activation_line_y_bottom - 5, tmp_colour)
-      if yoshi_center_y > y + activation_line_y_bottom then tmp_colour = COLOUR.warning else tmp_colour = COLOUR.positive end
-      draw_line(yoshi_center_x_screen, yoshi_center_y_screen, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour)
+                -- Activation line (checks Yoshi's center point)
+                draw_line(x_screen + activation_line_x, y_screen + activation_line_y_top, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour); tmp_colour = COLOUR.positive
+                draw_line(x_screen + activation_line_x, y_screen + activation_line_y_bottom - 5, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour)
+
+                -- Distance relative to Yoshi's center point
+                local yoshi_center_x, yoshi_center_y = s16_sram(SRAM.x_centered), s16_sram(SRAM.y_centered)
+                local yoshi_center_x_screen, yoshi_center_y_screen = screen_coordinates(yoshi_center_x, yoshi_center_y, Camera_x, Camera_y)
+                if yoshi_center_x <= x + activation_line_x then
+                    draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, fmt("Distance: %02X", x + activation_line_x - yoshi_center_x), info_colour, true, false, 1.0)
+                else
+                    draw_text(x_screen + activation_line_x - 1, y_screen + activation_line_y_top, "Distance: --", info_colour, true, false, 1.0)
+                end
+
+                -- Warning to best area of activation
+                if yoshi_center_y < y + activation_line_y_bottom - 5 then tmp_colour = COLOUR.warning else tmp_colour = COLOUR.positive end
+                draw_line(yoshi_center_x_screen, yoshi_center_y_screen, x_screen + activation_line_x, y_screen + activation_line_y_bottom - 5, tmp_colour)
+                if yoshi_center_y > y + activation_line_y_bottom then tmp_colour = COLOUR.warning else tmp_colour = COLOUR.positive end
+                draw_line(yoshi_center_x_screen, yoshi_center_y_screen, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour)
             end
       
 			special_hitbox = true
 		end
-		
+	
     -- Giant Egg, for battle with Bowser
     if sprite_type == 0x026 then
         -- Show visual position
@@ -3311,53 +3311,53 @@ local function sprite_info(id, counter, table_position)
     -- Roger the Potted Ghost
     if sprite_type == 0x035 then
         -- Timers and modes (TODO)
-      
-      -- Polygon collision lines
-      local vertex_x, vertex_y
-      local vertex_table = {}
-      for i = 0, 15 do
-        vertex_x = s8_sram(SRAM.froggy_stomach_collision + 2*i)
-        vertex_y = s8_sram(SRAM.froggy_stomach_collision + 2*i + 1)
-        vertex_table[i+1] = {vertex_x + x_screen, vertex_y + y_screen}
-      end
-      gui.drawPolygon(vertex_table, "cyan") 
+
+        -- Polygon collision lines
+        local vertex_x, vertex_y
+        local vertex_table = {}
+        for i = 0, 15 do
+            vertex_x = s8_sram(SRAM.froggy_stomach_collision + 2*i)
+            vertex_y = s8_sram(SRAM.froggy_stomach_collision + 2*i + 1)
+            vertex_table[i+1] = {vertex_x + x_screen, vertex_y + y_screen}
+        end
+        gui.drawPolygon(vertex_table, "cyan") 
     end
     
     -- Prince Froggy's uvula (BOSS FIGHT)
     if sprite_type == 0x045 then	
-      -- Info
-      local x_pos = OPTIONS.left_gap + 112
-      local damage = u16_sram(0x1A94) -- Unlisted SRAM
-      draw_text(x_pos, OPTIONS.top_gap + BIZHAWK_FONT_HEIGHT, fmt("Damage: $%04X/$FFFF", damage), COLOUR.memory, true, false, 1.0)
-      
-      local stun_timer = u16_sram(SRAM.sprite_table21 + id_off)
-      draw_text(x_pos, OPTIONS.top_gap + 2*BIZHAWK_FONT_HEIGHT, fmt("Stun timer: %d", stun_timer), COLOUR.memory, true, false, 1.0)
-    
-      -- Stomach polygon collision lines
-      local vertex_x, vertex_y
-      local vertex_table = {}
-      for i = 0, 15 do
-        vertex_x = s8_sram(SRAM.froggy_stomach_collision + 2*i)
-        vertex_y = s8_sram(SRAM.froggy_stomach_collision + 2*i + 1)
-        vertex_table[i+1] = {vertex_x + x_screen, vertex_y + y_screen}
-      end
-      gui.drawPolygon(vertex_table, "cyan")      
+        -- Info
+        local x_pos = OPTIONS.left_gap + 112
+        local damage = u16_sram(0x1A94) -- Unlisted SRAM
+        draw_text(x_pos, OPTIONS.top_gap + BIZHAWK_FONT_HEIGHT, fmt("Damage: $%04X/$FFFF", damage), COLOUR.memory, true, false, 1.0)
+
+        local stun_timer = u16_sram(SRAM.sprite_table21 + id_off)
+        draw_text(x_pos, OPTIONS.top_gap + 2*BIZHAWK_FONT_HEIGHT, fmt("Stun timer: %d", stun_timer), COLOUR.memory, true, false, 1.0)
+
+        -- Stomach polygon collision lines
+        local vertex_x, vertex_y
+        local vertex_table = {}
+        for i = 0, 15 do
+            vertex_x = s8_sram(SRAM.froggy_stomach_collision + 2*i)
+            vertex_y = s8_sram(SRAM.froggy_stomach_collision + 2*i + 1)
+            vertex_table[i+1] = {vertex_x + x_screen, vertex_y + y_screen}
+        end
+        gui.drawPolygon(vertex_table, "cyan")      
     end
     
     -- Middle ring
     if sprite_type == 0x04F then
-      local direction = u8_sram(SRAM.sprite_table9 + id_off)
-      local left, right
-      if direction == 0 then
-        left, right = x_centered_screen + 1, x_centered_screen + 32
-      else
-        left, right = x_centered_screen - 32, x_centered_screen + 0
-      end
-      local top, bottom = y_centered_screen - 29, y_centered_screen + 40
-      
-      draw_box(left, top, right, bottom, info_colour)
-      
-			special_hitbox = true
+        local direction = u8_sram(SRAM.sprite_table9 + id_off)
+        local left, right
+        if direction == 0 then
+            left, right = x_centered_screen + 1, x_centered_screen + 32
+        else
+            left, right = x_centered_screen - 32, x_centered_screen + 0
+        end
+        local top, bottom = y_centered_screen - 29, y_centered_screen + 40
+
+        draw_box(left, top, right, bottom, info_colour)
+
+        special_hitbox = true
     end
     
 		-- Rolling platform/Large log (in 1-8)
@@ -3383,7 +3383,7 @@ local function sprite_info(id, counter, table_position)
 				draw_line(effective_platform_x2, yoshi_y_screen + 32, effective_platform_x2, effective_platform_y2, info_colour)	
 			end	
 
-      special_hitbox = true			
+            special_hitbox = true			
 		end
 		
 		-- Upside down Wild Piranha and Wild Piranha
@@ -3630,13 +3630,13 @@ local function sprite_info(id, counter, table_position)
             
             draw_line(x_centered_screen, y_centered_screen, x_centered_screen + x_off_curr_aim, y_centered_screen + y_off_curr_aim, "cyan")
             
-	end
+        end
 	end
   
 
   ---**********************************************
   -- Displays sprites hitboxes
-		
+  
   if OPTIONS.display_sprite_hitbox and not special_hitbox and sprite_status ~= 0 then
 		draw_box(x_centered_screen - sprite_half_width, y_centered_screen - sprite_half_height, x_centered_screen + sprite_half_width, y_centered_screen + sprite_half_height, info_colour, colour_background)
   end
@@ -3771,7 +3771,7 @@ local function sprite_level_data()
     local byte_3 = memory.readbyte(pointer + 2 + id*3, "System Bus")
     if byte_1 == 0xFF and byte_2 == 0xFF then break end -- end of sprite data for this level
     
-
+    
     local sxpos = 16*byte_3
     local sypos = 8*bit.band(byte_2, 0xfe)
     local sprite_id = byte_1 + 0x100*bit.band(byte_2, 0x01)
@@ -3856,7 +3856,7 @@ local function show_counters()
   
 end
 
-  
+
 -- Display useful info for Credits Warp 
 local function credits_warp_helper()
   if not OPTIONS.display_credits_warp_helper then return end
@@ -3894,13 +3894,13 @@ local function credits_warp_helper()
       credits_warp_values.x_subpos = 0x00 -- $701105
       credits_warp_values.x_pos = 0x6B -- $701106
       credits_warp_values.x_screen = 0x02 -- $701107
-end
-
+    end
+    
     -- Label
     if id == 6 then -- to draw this only once
       draw_text(info_x + 9*BIZHAWK_FONT_WIDTH, info_y + (id-1)*BIZHAWK_FONT_HEIGHT, "Xsub Xpos Xscr")
     end
-
+    
     -- Sprite slot and type
     str_tmp = fmt("<%02d> %03X ", id, sprite_type)
     draw_text(info_x, info_y + id*BIZHAWK_FONT_HEIGHT, str_tmp)
@@ -4064,7 +4064,7 @@ local function overworld_mode()
     
     -- Calculate the level id
     level_id = bit.band(level_tile, 0x7F) + world_id*0xC - 1 -- bit.band(0x7F) because highest bit is for the level you start after beating a world
-  
+    
     -- Get level flag
     level_flag = u8_wram(WRAM.OW_level_flags + level_id)
     if level_flag == 0x01 then colour = COLOUR.positive elseif level_flag == 0x80 then colour = COLOUR.warning_soft elseif level_flag == 0x00 then colour = COLOUR.weak end -- $00: unavailable, $01: beaten, $80: unbeaten (grayed out)
@@ -4081,7 +4081,7 @@ local function overworld_mode()
     draw_rectangle(table_x + (curr_level_id%0xC + 1)*delta_x*3 - 1, table_y + (floor(curr_level_id/0xC)+2)*delta_y - 1, delta_x*2 + 2, delta_y, COLOUR.memory)
   else
     draw_rectangle(table_x - 2, table_y + (cursor_world+1)*delta_y - 1, delta_x*2 + 3, delta_y, COLOUR.memory)
-end
+  end
 end
 
 
@@ -4225,14 +4225,14 @@ function Cheat.beat_level()
   end
 end
 
-  
+
 -- Cheat to unlock all levels
 function Cheat.unlock_levels()
   -- Force all levels act like passed
   for i = 0, 0x48-1 do
     w8_wram(WRAM.OW_level_flags + i, 0x01)
-end
-
+  end
+  
   -- Force all worlds to have correct level tiles
   for i = 0, 6-1 do -- DEBUG: loop 0 thru 11 to "force" glitched worlds
     for j = 1, 0xC do
@@ -4240,10 +4240,10 @@ end
       w8_wram(WRAM.OW_level_tiles + i*0xC + j-1, j)
     end
   end
-
+  
   -- Force overworld loading game mode
   Cheat.change_address("WRAM", WRAM.game_mode, 0x1F, 2, false, nil, false, false)
-
+ 
   print("Cheat: unlocked all levels!")
 end
 
@@ -4747,42 +4747,7 @@ function Options_form.create_window()
   
   -- General
   xform, yform = 4, y_section
-  
-  forms.label(Options_form.form, "Debug info:", xform, yform, 62, 22)
-  yform = yform + delta_y
-  
-  Options_form.debug_player_extra = forms.checkbox(Options_form.form, "Player extra", xform, yform)
-  forms.setproperty(Options_form.debug_player_extra, "Checked", OPTIONS.display_debug_player_extra)
-  yform = yform  + delta_y
-
-  Options_form.debug_sprite_extra = forms.checkbox(Options_form.form, "Sprite extra", xform, yform)
-  forms.setproperty(Options_form.debug_sprite_extra, "Checked", OPTIONS.display_debug_sprite_extra)
-  yform = yform + delta_y
-  
-  Options_form.sprite_load_status = forms.checkbox(Options_form.form, "Sprite load stat", xform, yform)
-  forms.setproperty(Options_form.sprite_load_status, "Checked", OPTIONS.display_sprite_load_status)
-  yform = yform + delta_y
-  
-  Options_form.debug_controller_data = forms.checkbox(Options_form.form, "Controller data", xform, yform)
-  forms.setproperty(Options_form.debug_controller_data, "Checked", OPTIONS.display_debug_controller_data)
-  yform = yform + delta_y
-  
-  if yform > y_bigger then y_bigger = yform end 
-
-  -- Ambient sprites -- TODO
-  
-  xform, yform = xform + delta_x, y_section
-  forms.label(Options_form.form, "Ambient sprites:", xform, yform)
-  yform = yform + delta_y
-  
-  Options_form.todo_label = forms.label(Options_form.form, "> TODO <", xform, yform + delta_y) -- REMOVE once done
-  forms.setproperty(Options_form.todo_label, "Enabled", false) -- REMOVE once done
-  
-  if yform > y_bigger then y_bigger = yform end 
-  
-  -- Other
-  xform, yform = xform + delta_x, y_section
-  forms.label(Options_form.form, "Other:", xform, yform)
+  forms.label(Options_form.form, "General:", xform, yform)
   yform = yform + delta_y
 
   Options_form.overworld_info = forms.checkbox(Options_form.form, "Overworld info", xform, yform)
@@ -4801,9 +4766,52 @@ function Options_form.create_window()
   forms.setproperty(Options_form.movie_info, "Checked", OPTIONS.display_movie_info)
   yform = yform + delta_y
   
-  Options_form.cw_helper = forms.checkbox(Options_form.form, "Credis Warp help", xform, yform)
-  forms.setproperty(Options_form.cw_helper, "Checked", OPTIONS.display_cw_helper)
-  forms.setproperty(Options_form.cw_helper, "Width", 110)
+  Options_form.credits_warp_helper = forms.checkbox(Options_form.form, "Credis Warp help", xform, yform)
+  forms.setproperty(Options_form.credits_warp_helper, "Checked", OPTIONS.display_credits_warp_helper)
+  forms.setproperty(Options_form.credits_warp_helper, "Width", 110)
+  yform = yform + delta_y
+  
+  if yform > y_bigger then y_bigger = yform end 
+
+  -- Ambient sprites
+  
+  xform, yform = xform + delta_x, y_section
+  forms.label(Options_form.form, "Ambient sprites:", xform, yform)
+  yform = yform + delta_y
+  
+  Options_form.ambient_sprite_info = forms.checkbox(Options_form.form, "Info", xform, yform)
+  forms.setproperty(Options_form.ambient_sprite_info, "Checked", OPTIONS.display_ambient_sprite_info)
+  yform = yform + delta_y
+  
+  Options_form.ambient_sprite_table = forms.checkbox(Options_form.form, "Table", xform, yform)
+  forms.setproperty(Options_form.ambient_sprite_table, "Checked", OPTIONS.display_ambient_sprite_table)
+  yform = yform + delta_y
+  
+  Options_form.ambient_sprite_slot_in_screen = forms.checkbox(Options_form.form, "Slot on screen", xform, yform)
+  forms.setproperty(Options_form.ambient_sprite_slot_in_screen, "Checked", OPTIONS.display_ambient_sprite_slot_in_screen)
+  yform = yform + delta_y
+  
+  if yform > y_bigger then y_bigger = yform end 
+  
+  -- Debug/Extra
+  xform, yform = xform + delta_x, y_section
+  forms.label(Options_form.form, "Debug info:", xform, yform, 62, 22)
+  yform = yform + delta_y
+  
+  Options_form.debug_player_extra = forms.checkbox(Options_form.form, "Player extra", xform, yform)
+  forms.setproperty(Options_form.debug_player_extra, "Checked", OPTIONS.display_debug_player_extra)
+  yform = yform  + delta_y
+
+  Options_form.debug_sprite_extra = forms.checkbox(Options_form.form, "Sprite extra", xform, yform)
+  forms.setproperty(Options_form.debug_sprite_extra, "Checked", OPTIONS.display_debug_sprite_extra)
+  yform = yform + delta_y
+  
+  Options_form.sprite_load_status = forms.checkbox(Options_form.form, "Sprite load stat", xform, yform)
+  forms.setproperty(Options_form.sprite_load_status, "Checked", OPTIONS.display_sprite_load_status)
+  yform = yform + delta_y
+  
+  Options_form.debug_controller_data = forms.checkbox(Options_form.form, "Controller data", xform, yform)
+  forms.setproperty(Options_form.debug_controller_data, "Checked", OPTIONS.display_debug_controller_data)
   yform = yform + delta_y
   
   if yform > y_bigger then y_bigger = yform end 
@@ -5095,6 +5103,8 @@ function Options_form.create_window()
   forms.setproperty(Options_form.coordinates_label, "AutoSize", true)
   forms.setproperty(Options_form.coordinates_label, "Enabled", Cheat.allow_cheats)
   
+  if yform > y_bigger then y_bigger = yform end
+  
   -- Free movement cheat
   xform, yform = 80, y_section
   Options_form.free_movement = forms.checkbox(Options_form.form, "Free movement", xform, yform)
@@ -5136,33 +5146,13 @@ function Options_form.create_window()
   
   -- Beat level cheat
   yform = yform + 1.5*delta_y
-  Options_form.beat_level_button = forms.button(Options_form.form, "Beat level", function()
-    if Game_mode == YI.game_mode_level then
-      Cheat.change_address("WRAM", WRAM.music_to_play, 0x06, 2, false, nil, false, false)
-      Cheat.change_address("WRAM", WRAM.game_mode, 0x31, 2, false, nil, false, false)
-      print("Cheat: beat level!")
-    else
-      print("Only works if game mode = $000F (inside level)")
-    end  
-  end, xform - 1, yform, 40, 24)
+  Options_form.beat_level_button = forms.button(Options_form.form, "Beat level", Cheat.beat_level, xform - 1, yform, 40, 24)
   forms.setproperty(Options_form.beat_level_button, "AutoSize", true)
   forms.setproperty(Options_form.beat_level_button, "Enabled", Cheat.allow_cheats)
   
   -- Unlock all levels cheat
   xform = xform + forms.getproperty(Options_form.beat_level_button, "Width") + 4
-  Options_form.unlock_levels_button = forms.button(Options_form.form, "Unlock all levels", function()
-    for i = 0, 0x48-1 do -- to make all levels act like passed
-      w8_wram(WRAM.OW_level_flags + i, 0x01)
-    end
-    for i = 0, 6-1 do -- DEBUG: loop 0 thru 11 to "force" glitched worlds
-      for j = 1, 0xC do
-        --w16_wram(WRAM.OW_level_tiles + 8 + i*0xC, 0x0A09)
-        w8_wram(WRAM.OW_level_tiles + i*0xC + j-1, j)
-      end
-    end
-    Cheat.change_address("WRAM", WRAM.game_mode, 0x1F, 2, false, nil, false, false)
-    print("Cheat: unlocked all levels!")
-  end, xform - 1, yform, 40, 24)
+  Options_form.unlock_levels_button = forms.button(Options_form.form, "Unlock all levels", Cheat.unlock_levels, xform - 1, yform, 40, 24)
   forms.setproperty(Options_form.unlock_levels_button, "AutoSize", true)
   forms.setproperty(Options_form.unlock_levels_button, "Enabled", Cheat.allow_cheats)
   
@@ -5190,6 +5180,9 @@ function Options_form.create_window()
   yform = yform + 2*delta_y
   Options_form.warp_button = forms.button(Options_form.form, "Warp", function()
     Cheat.level_warp(forms.gettext(Options_form.warp_level), forms.gettext(Options_form.warp_x), forms.gettext(Options_form.warp_y))
+    forms.settext(Options_form.warp_level, "")
+    forms.settext(Options_form.warp_x, "")
+    forms.settext(Options_form.warp_y, "")
   end, xform, yform, 40, 24)
   forms.setproperty(Options_form.warp_button, "AutoSize", true)
   forms.setproperty(Options_form.warp_button, "Enabled", Cheat.allow_cheats)
@@ -5296,12 +5289,12 @@ function Options_form.create_window()
   end)
   
   -- Resize options form height base on the amount of options
-  --forms.setproperty(Options_form.form, "Height", y_bigger + 70) -- TODO
+  forms.setproperty(Options_form.form, "Height", y_bigger + 70)
   
   --- DEBUG ---------------------------------------------------------------------------------------
   
   -- Background for dev/debug tests
-  Options_form.picture_box = forms.pictureBox(Options_form.form, 0, 0, form_width, tonumber(forms.getproperty(Options_form.form, "Height")))
+  --Options_form.picture_box = forms.pictureBox(Options_form.form, 0, 0, form_width, tonumber(forms.getproperty(Options_form.form, "Height")))
   --forms.clear(Options_form.picture_box, 0xffFF0000)
 end
 
@@ -5450,7 +5443,9 @@ function Level_map_form.create_window()
   Level_map_form.form = forms.newform(Level_map_form.width, Level_map_form.height, "Level Map", function () Level_map_form.is_form_closed = true end )
   
   -- Map drawing
-  Level_map_form.picture_box = forms.pictureBox(Level_map_form.form, 200, 2, 4096, 2048)
+  Level_map_form.picture_box_x = 200
+  Level_map_form.picture_box_y = 2
+  Level_map_form.picture_box = forms.pictureBox(Level_map_form.form, Level_map_form.picture_box_x, Level_map_form.picture_box_y, 4096, 2048)
   forms.clear(Level_map_form.picture_box, 0xffFF0000) -- REMOVE/TEST
   local level_img_path = fmt("yi level display\\images\\levels\\%02X.png", Room_index)  -- TODO: failsafe for bad rooms
   forms.drawImage(Level_map_form.picture_box, level_img_path, 0, 0, 4096/4, 2048/4) -- REMOVE/TEST
@@ -5469,7 +5464,7 @@ function Level_map_form.create_window()
   --- DEBUG ---------------------------------------------------------------------------------------
   
   -- Background for dev/debug tests
-  Level_map_form.picture_box = forms.pictureBox(Level_map_form.form, 0, 0, Level_map_form.width, tonumber(forms.getproperty(Level_map_form.form, "Height")))
+  --Level_map_form.picture_box = forms.pictureBox(Level_map_form.form, 0, 0, Level_map_form.width, tonumber(forms.getproperty(Level_map_form.form, "Height")))
   --forms.clear(Level_map_form.picture_box, 0xffFF0000) -- red
 end
 
@@ -5502,20 +5497,21 @@ function Options_form.evaluate_form()
   OPTIONS.display_misc_info = forms.ischecked(Options_form.misc_info) or false
   OPTIONS.display_counters = forms.ischecked(Options_form.counters_info) or false
   OPTIONS.display_movie_info = forms.ischecked(Options_form.movie_info) or false
-  OPTIONS.display_cw_helper = forms.ischecked(Options_form.cw_helper) or false
+  OPTIONS.display_credits_warp_helper = forms.ischecked(Options_form.credits_warp_helper) or false
   OPTIONS.display_overworld_info = forms.ischecked(Options_form.overworld_info) or false
-  
-  --- Debug/Extra -------------------------------------------------------------------------------------------
+  -- Ambient sprite
+  OPTIONS.display_ambient_sprite_info = forms.ischecked(Options_form.ambient_sprite_info) or false
+  OPTIONS.display_ambient_sprite_table = forms.ischecked(Options_form.ambient_sprite_table) or false
+  OPTIONS.display_ambient_sprite_slot_in_screen = forms.ischecked(Options_form.ambient_sprite_slot_in_screen) or false
+  -- Debug/Extra
   OPTIONS.display_debug_player_extra = forms.ischecked(Options_form.debug_player_extra) or false
   OPTIONS.display_debug_sprite_extra = forms.ischecked(Options_form.debug_sprite_extra) or false
   OPTIONS.display_sprite_load_status =  forms.ischecked(Options_form.sprite_load_status) or false
   OPTIONS.display_debug_controller_data = forms.ischecked(Options_form.debug_controller_data) or false
-  
   --- Settings -------------------------------------------------------------------------------------------
   OPTIONS.draw_tiles_with_click = forms.ischecked(Options_form.draw_tiles_with_click) or false
   OPTIONS.display_mouse_coordinates = forms.ischecked(Options_form.mouse_info) or false
   OPTIONS.draw_dark_filter = forms.ischecked(Options_form.dark_filter) or false
-  
   --- Cheats -------------------------------------------------------------------------------------------
   Cheat.allow_cheats = forms.ischecked(Options_form.allow_cheats) or false
   Cheat.under_free_move = forms.ischecked(Options_form.free_movement) or false
