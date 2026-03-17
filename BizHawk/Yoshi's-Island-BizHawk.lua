@@ -3960,9 +3960,9 @@ local function level_mode()
     
     sprite_level_data()
     
-    sprites()
-    
     ambient_sprites()
+    
+    sprites()
     
     level_info()
     
