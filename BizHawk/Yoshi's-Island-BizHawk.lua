@@ -3984,8 +3984,8 @@ local function overworld_mode()
   draw_text(table_x, table_y + t*delta_y, fmt("Cursor (%02X, %02X) (%02X, %02X)", cursor_x_pos, cursor_y_pos, cursor_x_pos_next, cursor_y_pos_next))
   t = t + 1
   
-  local level_id = bit.band(world_id*0xC + cursor_level, 0xFF) -- bit.band(0xFF) because ADC $1112 at $17E054 is done in 8bit mode
-  draw_text(table_x, table_y + t*delta_y, fmt("Level: $%02X ($%02X)", level_id, cursor_level))
+  local curr_level_id = bit.band(world_id*0xC + cursor_level, 0xFF) -- bit.band(0xFF) because ADC $1112 at $17E054 is done in 8bit mode
+  draw_text(table_x, table_y + t*delta_y, fmt("Level: $%02X ($%02X)", curr_level_id, cursor_level))
   t = t + 1
   
   if cursor_world ~= 0 then
@@ -3995,14 +3995,14 @@ local function overworld_mode()
   end
   t = t + 1
   
-  local level_real = bit.band(u8_wram(WRAM.OW_level_tiles + level_id), 0x7F) + world_id*0xC - 1 -- bit.band(0x7F) because AND #$7f at $17E061
-  draw_text(table_x, table_y + t*delta_y, fmt("Level when selected: %s", u8_wram(WRAM.OW_level_tiles + level_id) == 0xFF and "--" or fmt("$%02X", level_real))) -- because CMP #$ff at $17E05D
+  local level_real = bit.band(u8_wram(WRAM.OW_level_tiles + curr_level_id), 0x7F) + world_id*0xC - 1 -- bit.band(0x7F) because AND #$7f at $17E061
+  draw_text(table_x, table_y + t*delta_y, fmt("Level when selected: %s", u8_wram(WRAM.OW_level_tiles + curr_level_id) == 0xFF and "--" or fmt("$%02X", level_real))) -- because CMP #$ff at $17E05D
   t = t + 1
   
   draw_text(table_x, table_y + t*delta_y, fmt("Level selected: $%02X", Level_index))
   t = t + 1
   
-  local left_right_dest_addr_start = WRAM.OW_level_tiles + level_id -- starting point: the level the cursor currently is
+  local left_right_dest_addr_start = WRAM.OW_level_tiles + curr_level_id -- starting point: the level the cursor currently is
   local left_right_dest_addr = left_right_dest_addr_start
   local left_right_dest_level = 0 -- any value that AND(0xF) == 0
   local offset = 6
@@ -4011,7 +4011,7 @@ local function overworld_mode()
   -- Loop to check next valid level with left+right
   while bit.band(left_right_dest_level, 0xF) == 0 do -- low nibble should not be zero to be considered a level
     -- Read level
-    left_right_dest_addr = WRAM.OW_level_tiles + level_id + offset
+    left_right_dest_addr = WRAM.OW_level_tiles + curr_level_id + offset
     left_right_dest_level = u8_wram(left_right_dest_addr)
     if left_right_dest_level == 0xFF then is_level = false end -- because CMP #$ff at $17E05D
     
@@ -4040,8 +4040,6 @@ local function overworld_mode()
   if not inf_loop then
     draw_text(table_x, table_y + t*delta_y, fmt("\n(at $7E%04X%s)", left_right_dest_addr, left_right_dest_addr == WRAM.coin_counter and fmt(" - Coins:$%02X", coin_counter) or ""), left_right_dest_addr == WRAM.coin_counter and "yellow" or "white")
   end
-  t = t + 2
-  draw_text(table_x, table_y + t*delta_y, "TODO: figure out why the result is different if you press L/R > R+L", COLOUR.warning)
   t = t + 4
   
   -- Display levels with flags
@@ -4050,38 +4048,40 @@ local function overworld_mode()
   draw_text(table_x, table_y + t*delta_y, "Levels:")
   t = t + 1
   draw_text(table_x + 3*delta_x, table_y + t*delta_y, "-1 -2 -3 -4 -5 -6 -7 -8 Ex Bo Sc Co")
-  local level_flags, colour
-  for i = 0, 72-1 do -- the table used is actually 72 bytes, $7E026A is a 78 byte table of unused RAM but the OW routine actually can handle it    
-    if i%0xC == 0 then
-      t = t + 1
-      draw_text(table_x, table_y + t*delta_y, fmt("W%d", floor(i/0xC) + 1))
-    end
-    
-    level_flags = u8_wram(WRAM.OW_level_flags + i)
-    if level_flags == 0x01 then colour = COLOUR.positive elseif level_flags == 0x80 then colour = COLOUR.warning_soft else colour = COLOUR.weak end
-    
-    draw_text(table_x + (i%0xC + 1)*delta_x*3, table_y + t*delta_y, fmt("%02X", level_flags), colour)
-  end
-  
-  table_y = table_y + 2*delta_y
-  draw_text(table_x, table_y + t*delta_y, "Level tiles:")
-  t = t + 1
-  draw_text(table_x + 3*delta_x, table_y + t*delta_y, "-1 -2 -3 -4 -5 -6 -7 -8 Ex Bo Sc Co")
-  local level_tiles
+  local level_tile, level_id, level_flag, colour, level_str
   for i = 0, 72-1 do
+    -- Calculate the world
+    world_id = floor(i/0xC)
+    
+    -- Draw the world label
     if i%0xC == 0 then
       t = t + 1
-      draw_text(table_x, table_y + t*delta_y, fmt("W%d", floor(i/0xC) + 1))
+      draw_text(table_x, table_y + t*delta_y, fmt("W%d", world_id + 1))
     end
     
-    level_tiles = u8_wram(WRAM.OW_level_tiles + i)
-    if level_tiles == 0x00 then colour = COLOUR.weak else colour = COLOUR.text end
+    -- Get the level tile
+    level_tile = u8_wram(WRAM.OW_level_tiles + i)
     
-    draw_text(table_x + (i%0xC + 1)*delta_x*3, table_y + t*delta_y, fmt("%02X", level_tiles), colour)
+    -- Calculate the level id
+    level_id = bit.band(level_tile, 0x7F) + world_id*0xC - 1 -- bit.band(0x7F) because highest bit is for the level you start after beating a world
+  
+    -- Get level flag
+    level_flag = u8_wram(WRAM.OW_level_flags + level_id)
+    if level_flag == 0x01 then colour = COLOUR.positive elseif level_flag == 0x80 then colour = COLOUR.warning_soft elseif level_flag == 0x00 then colour = COLOUR.weak end -- $00: unavailable, $01: beaten, $80: unbeaten (grayed out)
+    if level_tile == 0x00 or level_tile == 0xF0 then level_str = "[]" ; colour = COLOUR.weak else level_str = fmt("%02X", level_id) end -- empty or "?"
+    
+    -- Display the level id properly
+    draw_text(table_x + (i%0xC + 1)*delta_x*3, table_y + t*delta_y, level_str, colour)
   end
   
-  table_y = table_y + 2*delta_y
-  draw_text(table_x, table_y + t*delta_y, "ACTUALLY MERGE THESE TWO TABLES, SHOWING\nVALUES FROM TILES BUT COLORING ACCORDING\nTO BEATEN FLAGS", COLOUR.warning)
+  -- Display the current cursor level on the table
+  --table_y = table_y + 4*delta_y
+  if cursor_world == 0 then
+    --draw_rectangle(table_x + (curr_level_id%0xC + 1)*delta_x*3 - 1, table_y + (floor(curr_level_id/0xC)+1)*delta_y/Scale_y - 2, delta_x*2 + 2, delta_y, COLOUR.memory)
+    draw_rectangle(table_x + (curr_level_id%0xC + 1)*delta_x*3 - 1, table_y + (floor(curr_level_id/0xC)+2)*delta_y - 1, delta_x*2 + 2, delta_y, COLOUR.memory)
+  else
+    draw_rectangle(table_x - 2, table_y + (cursor_world+1)*delta_y - 1, delta_x*2 + 3, delta_y, COLOUR.memory)
+end
 end
 
 
