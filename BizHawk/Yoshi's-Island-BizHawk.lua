@@ -1955,7 +1955,9 @@ end
 local function draw_tile_map(camera_x, camera_y)
 	local valid_game_mode = false
 	if Game_mode == YI.game_mode_level then valid_game_mode = true
-	elseif Game_mode == 0x000B then valid_game_mode = true end -- Level transition
+	elseif Game_mode == 0x000B then valid_game_mode = true -- Level transition
+  elseif Game_mode == 0x0030 then valid_game_mode = true -- Mini Battle
+  end
 	if not valid_game_mode then return end
   
 	if not OPTIONS.draw_tile_map_type and not OPTIONS.draw_tile_map_grid and not OPTIONS.draw_tile_map_screen then return end
@@ -2053,8 +2055,12 @@ end
 
 
 local function draw_tiles_clicked(camera_x, camera_y)
-	if Game_mode ~= YI.game_mode_level then return end
-	if not OPTIONS.draw_tiles_with_click then return end
+  local valid_game_mode = false
+  if Game_mode == YI.game_mode_level then valid_game_mode = true
+  elseif Game_mode == 0x000B then valid_game_mode = true -- Level transition
+  elseif Game_mode == 0x0030 then valid_game_mode = true -- Mini Battle
+  end
+  if not valid_game_mode then return end
 
   local x_mouse, y_mouse = game_coordinates(User_input.xmouse + OPTIONS.left_gap, User_input.ymouse + OPTIONS.top_gap, camera_x, camera_y)
   x_mouse = 16*floor((x_mouse)/16)
@@ -2866,7 +2872,9 @@ local function player()
 	if Game_mode == YI.game_mode_level then valid_game_mode = true
 	elseif Game_mode == 0x0007 then valid_game_mode = true -- Intro (0x0007) too
 	elseif Game_mode == 0x000B then valid_game_mode = true -- Level transition too
-	elseif Game_mode == 0x0010 then valid_game_mode = true end -- Level end (0x0010) too
+	elseif Game_mode == 0x0010 then valid_game_mode = true -- Level end (0x0010) too
+	elseif Game_mode == 0x0030 then valid_game_mode = true -- Mini Battles too
+    end
 	if valid_game_mode == false then return end
 	
   -- Font
