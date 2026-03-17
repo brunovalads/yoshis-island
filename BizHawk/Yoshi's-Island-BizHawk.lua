@@ -2818,16 +2818,17 @@ local function egg_throw_info(egg_target_x, egg_target_y, direction, x_centered,
 	end
 end
 
-local function egg_inventory_info()
+local function egg_inventory_info(i)
 	if Is_paused then return end
 	
 	local egg_inventory_size = u8_sram(SRAM.egg_inventory_size)/2
 	local egg_sprite_id, egg_type, egg_type_str, sprite_status
 	
 	local info_colour = COLOUR.text
+  local delta_y = BIZHAWK_FONT_HEIGHT
 	local x_pos = 2
-	local y_pos = Screen_height - 6*BIZHAWK_FONT_HEIGHT
-	draw_text(x_pos, y_pos - BIZHAWK_FONT_HEIGHT, fmt("Egg inventory: %d", egg_inventory_size), COLOUR.weak)
+	local y_pos = OPTIONS.top_gap + (i+1)*delta_y
+	draw_text(x_pos, y_pos - delta_y, fmt("Egg inventory: %d", egg_inventory_size), COLOUR.weak)
 	
 	for id = 0, egg_inventory_size - 1 do
 		egg_sprite_id = u8_sram(SRAM.egg_sprite_id + 2*id)
@@ -2853,13 +2854,13 @@ local function egg_inventory_info()
 		if egg_type_str == "null egg" then
 			info_colour = COLOUR.positive
       
-      draw_text(x_pos, y_pos + id*BIZHAWK_FONT_HEIGHT, fmt("%d:  <%02d> %03X", id, egg_sprite_id, egg_type), info_colour)
-      draw_image_region("egg_icons.png", 80, 0, 8, 8, x_pos + 2*BIZHAWK_FONT_WIDTH + 1, y_pos + id*BIZHAWK_FONT_HEIGHT)
+      draw_text(x_pos, y_pos + id*delta_y, fmt("%d:  <%02d> %03X", id, egg_sprite_id, egg_type), info_colour)
+      draw_image_region("egg_icons.png", 80, 0, 8, 8, x_pos + 2*BIZHAWK_FONT_WIDTH + 1, y_pos + id*delta_y)
 		else
 			info_colour = COLOUR.text
       
-      draw_text(x_pos, y_pos + id*BIZHAWK_FONT_HEIGHT, fmt("%d:  <%02d>", id, egg_sprite_id), info_colour)
-      draw_image_region("egg_icons.png", (egg_type - 0x22)*8, 0, 8, 8, x_pos + 2*BIZHAWK_FONT_WIDTH + 1, y_pos + id*BIZHAWK_FONT_HEIGHT)
+      draw_text(x_pos, y_pos + id*delta_y, fmt("%d:  <%02d>", id, egg_sprite_id), info_colour)
+      draw_image_region("egg_icons.png", (egg_type - 0x22)*8, 0, 8, 8, x_pos + 2*BIZHAWK_FONT_WIDTH + 1, y_pos + id*delta_y)
 		end
 	end
 end
@@ -3000,7 +3001,7 @@ local function player()
 	
 	-- Egg stack info
   if OPTIONS.display_egg_info then
-		egg_inventory_info()
+		egg_inventory_info(i)
 	end
 	
 	
