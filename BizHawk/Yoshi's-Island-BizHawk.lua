@@ -1721,6 +1721,55 @@ local function hex_to_file(filename, hex)
 end
 
 
+-- Function to decode a `memory.readbyterange` table into different data sizes, with different endianness and signedness:
+-- `values` is the table you want to decode, the `memory.readbyterange` return
+-- `size` is the split size, an integer between 1 and 6 bytes (Lua has precision issue with numbers bigger than 2^53, i guess you won't need that)
+-- `big_endian`, if you pass as `true` it will treat as big endian, if false (or nil, empty) will be little endian
+-- `signed`, if you pass as `true` it will treat as signed, if false (or nil, empty) will be unsigned
+local function byterange_decode(values, size, big_endian, signed)
+  -- Error handling
+  if type(values) ~= "table" then print("Insert correct memory.readbyterange table!") ; return end
+  if not size or size < 1 or size > 6 then print("Insert correct size value! Can accept values between 1 and 6.") ; return end
+  if size > #values+1 then print("Size is bigger than the memory.readbyterange table!") ; return end -- +1 due table 0 indexed
+  
+  local output = {}
+  
+  -- Loop thru table
+  for i = 0, (math.floor((#values+1)/3)*3-1), size do -- math to handle table size divisibility by the data size
+    
+    local out_value = 0
+    
+    -- Loop to correctly calculate the number based on the endianess
+    for j = 0, size-1 do
+      if big_endian then
+        out_value = out_value + values[i+j]*(0x100^(size-1-j))   -- {AA, BB} -> AA00 + BB = AABB
+      else
+        out_value = out_value + values[i+j]*(0x100^j) -- {AA, BB} -> AA + BB00 = BBAA
+      end
+    end
+    
+    -- Check signedness
+    if signed then
+      local maxval = (0x100^size)/2
+      if out_value >= maxval then out_value = out_value - 2*maxval end
+    end
+    
+    -- Save final value
+    output[i/size] = out_value
+  end
+  
+  -- Warning if there were remaining bytes
+  if (#values+1)%size ~= 0 then print(string.format("%d byte(s) left, due to the selected size or memory.readbyterange size!", (#values+1)%size)) end -- +1 due table 0 indexed
+
+  return output
+end
+
+-- Simple Lua "wait/sleep" function, using seconds
+function wait(n)  -- seconds
+    local t0 = os.clock()
+    while os.clock() - t0 <= n do end
+end
+
 -- ############################################################
 -- From gocha's
 
