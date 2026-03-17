@@ -2283,7 +2283,7 @@ local function show_misc_info()
 	local star_effective = math.floor(star_counter/10)
   
 	local temp_str
-	local x_temp, y_temp = OPTIONS.left_gap, 1
+    local x_temp, y_temp = OPTIONS.left_gap, BIZHAWK_FONT_HEIGHT
   
   draw_image("star_icon.png", x_temp, y_temp)
 	temp_str = fmt("%d/30(%d)", star_effective, star_counter)
@@ -3035,9 +3035,9 @@ local function ambient_sprites()
     
     -- Font
     Text_opacity = 1.0
-    local height = BIZHAWK_FONT_HEIGHT
+  local height = BIZHAWK_FONT_HEIGHT*0.8
+  local y_pos = Border_bottom_start + 2*height
     
-    local y_pos = Scale_y*24
     local counter = 0
     for id = 0, YI.ambient_sprite_max - 1 do
 	
@@ -3847,7 +3847,7 @@ local function show_counters()
   Bg_opacity = 1.0
   local height = BIZHAWK_FONT_HEIGHT
   local text_counter = 0
-  local y_pos = Screen_height - 12*BIZHAWK_FONT_HEIGHT
+  local y_pos = OPTIONS.top_gap + 20*BIZHAWK_FONT_HEIGHT
 
   local invincibility_timer = u16_sram(SRAM.invincibility_timer)
   local eat_timer = u16_sram(SRAM.eat_timer)
@@ -4462,9 +4462,9 @@ function Cheat.main()
     Cheat.mouse_click = User_input.leftclick
     
     -- Warning
-    gui.drawText(Buffer_middle_x - 57, Border_bottom_start, "Cheats allowed!", COLOUR.warning, 0xA00040FF)
+    gui.drawText(Buffer_middle_x - 57, Border_bottom_start - 8, "Cheats allowed!", COLOUR.warning, 0xA00040FF)
     if Movie_active then
-      gui.drawText(Buffer_middle_x - 124, Border_bottom_start + 15, "Disable it while recording movies", COLOUR.warning, 0xA00040FF)
+      gui.drawText(Buffer_middle_x - 124, Border_bottom_start + 7, "Disable it while recording movies", COLOUR.warning, 0xA00040FF)
     end
     
     -- Passive cheats
