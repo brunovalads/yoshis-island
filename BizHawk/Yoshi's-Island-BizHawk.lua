@@ -398,7 +398,7 @@ end]]
 
 
 --##########################################################################################################################################################
--- GAME AND SNES SPECIFIC MACROS:
+-- GAME AND SNES SPECIFIC PARAMETERS:
 
 local NTSC_FRAMERATE = 60.0988138974405
 local PAL_FRAMERATE = 50.0069789081886
@@ -406,7 +406,7 @@ local PAL_FRAMERATE = 50.0069789081886
 local YI = {
   -- Game Modes
   game_mode_overworld = 0x0022,
-  game_mode_level = 0x000F,
+  game_mode_level = 0x000F, --- TODO: 0x0013 is for the (E) version, need to make a conditional
   
   -- Sprites
   sprite_max = 24,
@@ -1576,9 +1576,7 @@ local function draw_text(x, y, text, ...)
 
   text_colour = change_transparency(text_colour, Text_opacity)
   
-  --gui.drawText(x_pos, y_pos, text, text_colour) --, bg_colour) -- TODO FOR REAL
-  
-  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_colour) --, bg_colour) -- TODO FOR REAL
+  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_colour)
   
   return x_pos + length, y_pos + font_height, length
 end
@@ -1938,13 +1936,11 @@ local function display_boundaries(x_game, y_game, width, height, camera_x, camer
   draw_text(right + 2, (top+bottom)/2, right_text, false, false, 0.0, 0.5)
   
   -- Top
-  local value = (Yoshi_riding_flag and y_game - 16) or y_game
-  local top_text = fmt("%04X.ff", width*floor(value/width) - 32)
+  local top_text = fmt("%04X.ff", width*floor(y_game/width) - 32)
   draw_text((left+right)/2, top, top_text, false, false, 0.5, 1.0)
   
   -- Bottom
-  value = y_game + height - 4 --height*floor(y_game/height) - 3
-  local bottom_text = fmt("%04X.ff", value)
+  local bottom_text = fmt("%04X.ff", y_game + height - 4)
   draw_text((left+right)/2, bottom + 1, bottom_text, false, false, 0.5, 0.0)
   
   return left, top
@@ -2170,7 +2166,7 @@ local function select_tile()
 end
 
 
--- uses the mouse to select an object
+-- Uses the mouse left click to select an object
 local function select_object(mouse_x, mouse_y, camera_x, camera_y)
   -- Font
   Text_opacity = 1.0
@@ -2186,8 +2182,6 @@ local function select_object(mouse_x, mouse_y, camera_x, camera_y)
         -- Import some values
         local x_centered, y_centered = Sprites_info[id].x_centered, Sprites_info[id].y_centered
         local half_width, half_height = Sprites_info[id].sprite_half_width, Sprites_info[id].sprite_half_height
-        
-        -- TODO: initialize Sprites_info table, or simply avoid this if not during game_mode_level and not OPTIONS.display_sprite_info
         
         -- Exception for sprites with no hitboxes
         if half_width < 4 then half_width = 4 end
@@ -2229,7 +2223,7 @@ local function show_movie_info()
   
   -- Read-only or read-write?
   local movie_type = (not Movie_active and "No movie ") or (Readonly and "Movie " or "REC ")
-  alert_text(x_text, y_text, movie_type, rec_colour, recording_bg)
+  draw_text(x_text, y_text, movie_type, rec_colour, recording_bg)
   x_text = x_text + width*(string.len(movie_type) + 1)
 
   -- Frame count
@@ -2337,8 +2331,8 @@ local function show_mouse_info()
     draw_line(x, 0, x, Screen_height, line_colour)
     draw_cross(x, y, 3, "cyan")
     -- Coordinates
-    alert_text(x, y - 9, fmt("emu ($%X, $%X)", x, y), COLOUR.text, bg_colour, false, 0.5) -- TODO: fix negative hex values
-		alert_text(x, y + 9, fmt("game ($%02X, $%X)", x_game, y_game), COLOUR.text, bg_colour, false, 0.5)
+    alert_text(x, y - 9, fmt("emu ($%X, $%X)", x, y), COLOUR.text, bg_colour, false, 0.5)
+		alert_text(x, y + 9, fmt("game ($%04X, $%04X)", x_game, y_game), COLOUR.text, bg_colour, false, 0.5)
 	end
 end
 
@@ -2395,7 +2389,7 @@ local function level_info()
   --- Draw whole level info string
   draw_text(Buffer_middle_x, Screen_height, fmt("%s %s %s", level_str, room_str, screen_str), colour, true, false, 0.5)
   
-  --- Level layout display -- TODO: maybe merge this to the "Current screen" loop above, since they're looping exact the same thing
+  --- Level layout display
   if OPTIONS.display_level_layout then
     local x_base, y_base = OPTIONS.left_gap, Border_bottom_start + 1.5*BIZHAWK_FONT_HEIGHT
     local x_temp, y_temp
@@ -2527,13 +2521,6 @@ local function level_info()
     end
 	end
 	
-  --[[ REMOVE/TESTS : LAZY LEVEL DISPLAY THING
-  local level_img_path = fmt("yi level display\\images\\levels\\%02X.png", Room_index)  -- REMOVE/TEST
-  camera_shake_y_offset_prev = camera_shake_y_offset  -- REMOVE/TEST
-  if not camera_shake_y_offset_prev then camera_shake_y_offset_prev = 0 end  -- REMOVE/TEST
-  draw_image(level_img_path, OPTIONS.left_gap - Camera_x_prev, OPTIONS.top_gap - Camera_y_prev - 1 - camera_shake_y_offset_prev)  -- REMOVE/TEST
-  camera_shake_y_offset = s16_wram(WRAM.camera_shake_y_offset)  -- REMOVE/TEST
-  ]]
 end
 
 -- Display sprite spawning areas (vertical lines for horizontal spawning)
@@ -2928,7 +2915,7 @@ local function player()
 		x_speed = x_speed + 1
 		x_subspeed = 0x100 - x_subspeed
 		if x_subspeed == 0x100 then x_subspeed = 0 ; x_speed = x_speed - 1 end
-		if x_speed == 0 then x_spd_str = fmt("-%d.%02x", x_speed, x_subspeed) -- force negative signal due to previous math
+		if x_speed == 0 then x_spd_str = fmt("-%d.%02x", x_speed, x_subspeed) -- force negative signal due to previous math -- TODO: speed is in decimal, should be hex
 		else x_spd_str = fmt("%d.%02x", x_speed, x_subspeed) end
 	else
 		x_spd_str = fmt("%+d.%02x", x_speed, x_subspeed)
@@ -3003,7 +2990,7 @@ local function player()
 		egg_inventory_info(i)
 	end
 	
-	
+	-- Show pixel position
 	if OPTIONS.display_debug_player_extra then
 		draw_cross(x_screen, y_screen, 2, COLOUR.text)
 		draw_cross(x_screen, y_screen - 31, 2, COLOUR.memory)
@@ -3051,7 +3038,7 @@ local function ambient_sprites()
 			-- Reads SRAM addresses
 			
 			local ambspr_type = u16_sram(SRAM.ambsprite_type + id_off)
-      local x = s16_sram(SRAM.ambsprite_x + id_off) -- TODO: change address names
+      local x = s16_sram(SRAM.ambsprite_x + id_off)
       local y = s16_sram(SRAM.ambsprite_y + id_off)
       local x_sub = u8_sram(SRAM.ambsprite_x_sub + id_off)
       local y_sub = u8_sram(SRAM.ambsprite_y_sub + id_off)
@@ -3065,7 +3052,7 @@ local function ambient_sprites()
 			local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
 			
 			-- Calculates the correct colour to use, according to id
-			local ambspr_colour = COLOUR.sprites[id%(#COLOUR.sprites) + 1] -- TODO: change
+      local ambspr_colour = COLOUR.sprites[id%(#COLOUR.sprites) + 1] -- TODO: change?
 			
 			-- Adjusts the opacity if it's offscreen
 			if x_screen >= OPTIONS.left_gap and x_screen <= Border_right_start and y_screen >= OPTIONS.top_gap and y_screen <= Border_bottom_start then
@@ -3114,16 +3101,11 @@ local function ambient_sprites()
 			--local occurr_file = io.open("Ambient sprites occurrences.txt", "w")
 			-- gui.gdscreenshot() RETURN SCREENSHOT AS A STRING
 			
-			
-			
 			--[[
-            if (OPTIONS.display_debug_info and OPTIONS.display_debug_ambient_sprite) or not UNINTERESTING_ambient_sprites[ambspr_number]
-                or (ambspr_number == 1 and ambspr_table2 == 0xf)
-            then
+      if (OPTIONS.display_debug_info and OPTIONS.display_debug_ambient_sprite) or not UNINTERESTING_ambient_sprites[ambspr_number] or (ambspr_number == 1 and ambspr_table2 == 0xf) then
                 local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
                 
-                local t = HITBOX_EXTENDED_SPRITE[ambspr_number] or
-                    {xoff = 0, yoff = 0, width = 16, height = 16, colour_line = COLOUR.awkward_hitbox, colour_bg = COLOUR.awkward_hitbox_bg}
+        local t = HITBOX_EXTENDED_SPRITE[ambspr_number] or {xoff = 0, yoff = 0, width = 16, height = 16, colour_line = COLOUR.awkward_hitbox, colour_bg = COLOUR.awkward_hitbox_bg}
                 local xoff = t.xoff
                 local yoff = t.yoff
                 local xrad = t.width
@@ -3148,7 +3130,7 @@ local function ambient_sprites()
 end
 
 
-Pinwheel_counter = 0
+Pinwheel_counter = 0 -- TODO: do this or scrap out
 
 local function sprite_info(id, counter, table_position)
   Text_opacity = 1.0
@@ -3212,7 +3194,10 @@ local function sprite_info(id, counter, table_position)
 		sprite_half_height = floor(sprite_half_height*y_scaling/256)
 	end]]
   
-  -- calculates the correct colour to use, according to id
+  -- TODO: FIX NEGATIVE SPEED FOR SPRITES!
+  
+  
+  -- Calculates the correct colour to use, according to id
   local info_colour = COLOUR.sprites[id%(#COLOUR.sprites) + 1]
   local colour_background = COLOUR.sprites_bg
   
@@ -3225,10 +3210,8 @@ local function sprite_info(id, counter, table_position)
   
   -- Text opacity due being offscreen
   if is_offscreen then
-		--Text_opacity = 0.5
     info_colour = change_transparency(info_colour, 0.5)
 	else
-		--Text_opacity = 0.8
     info_colour = change_transparency(info_colour, 0.8)
 	end
   
@@ -3427,7 +3410,6 @@ local function sprite_info(id, counter, table_position)
 			local effective_platform_x2, effective_platform_y2 = x_screen + 51, y_screen + 32
 			local on_platform = u8_sram(SRAM.sprite_table20 + 2 + id_off)
 			local _, yoshi_y_screen = screen_coordinates(0, Yoshi_y, Camera_x, Camera_y)
-			
 			
 			if on_platform == 0 then -- not on the platform
 				-- Horizontal lines
@@ -3849,13 +3831,14 @@ local function show_counters()
   local text_counter = 0
   local y_pos = OPTIONS.top_gap + 20*BIZHAWK_FONT_HEIGHT
 
+  -- Read RAM
   local invincibility_timer = u16_sram(SRAM.invincibility_timer)
   local eat_timer = u16_sram(SRAM.eat_timer)
   local transform_timer = u16_sram(SRAM.transform_timer)
   local star_timer = u16_sram(SRAM.star_timer)
   local switch_timer = u16_wram(WRAM.switch_timer)
-  --local end_level_timer = u8_sram(SRAM.end_level_timer)
   
+  -- Local function to properly display counters in sequence
   local display_counter = function(label, value, default, mult, frame, colour)
     if value == default then return end
     text_counter = text_counter + 1
@@ -3948,7 +3931,7 @@ end
 
 -- Main function to run inside a level
 local function level_mode()
-  --if Game_mode == YI.game_mode_level then
+  --if Game_mode == YI.game_mode_level then -- TODO: make all possible interesting game mode conditions here, and remove them from these functions
     
     -- Draws the leve tile map
     draw_tile_map(Camera_x, Camera_y)
@@ -3971,14 +3954,11 @@ local function level_mode()
     show_counters()
     
     credits_warp_helper()
-    if true or User_input.mouse_inwindow == 1 then
-      --select_object(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y) REMOVE?
-    end
     
   --end
 end
 
-
+-- Main function to run in the overworld
 local function overworld_mode()
   if not OPTIONS.display_overworld_info then return end
 	--if Game_mode == YI.game_mode_overworld or Game_mode == 0x0024 or Game_mode == 0x0026 or Game_mode == 0x0028 then -- then continue to OW info
@@ -4049,6 +4029,8 @@ local function overworld_mode()
     -- Failsafe for loop
     if left_right_dest_addr == left_right_dest_addr_start + 6 and i > 1 then inf_loop = true ; break end -- it has looped
     if i == 1000 then inf_loop = true ; break end -- REMOVE/TEST (old failsafe for infinite loop)
+    
+    -- TODO: figure out why the result is different if you press L/R > R+L
   end
   -- Correctly calculate the destination level
   left_right_dest_level = bit.band(left_right_dest_level, 0x7F) + world_id*0xC - 1 -- bit.band(0x7F) because AND #$7f at $17E061
@@ -4065,6 +4047,9 @@ local function overworld_mode()
   draw_text(table_x, table_y + t*delta_y, "TODO: figure out why the result is different if you press L/R > R+L", COLOUR.warning)
   t = t + 4
   
+  -- Display levels with flags
+  table_x, table_y = OPTIONS.left_gap, Border_bottom_start
+  t = 0
   draw_text(table_x, table_y + t*delta_y, "Levels:")
   t = t + 1
   draw_text(table_x + 3*delta_x, table_y + t*delta_y, "-1 -2 -3 -4 -5 -6 -7 -8 Ex Bo Sc Co")
@@ -4265,13 +4250,13 @@ function Cheat.free_movement()
   if Joypad["Down"] then y_pos = y_pos + pixels end
 
   -- Manipulate the addresses
-  w16_sram(SRAM.x, x_pos)
-  w16_sram(SRAM.y, y_pos)
-  w8_sram(SRAM.x_speed, 0) -- TODO: figure out why it doesn't work
-  w8_sram(SRAM.x_subspeed, 0) -- TODO: figure out why it doesn't work
-  w8_sram(SRAM.y_speed, -1)
-  w8_sram(SRAM.y_subspeed, 96)
-  w8_sram(SRAM.invincibility_timer, 120)
+  w16_sram(SRAM.x, x_pos) --\ setting the coordinates
+  w16_sram(SRAM.y, y_pos) --/
+  w8_sram(SRAM.x_speed, 0) -----\ to prevent horizontal speed after disabling the cheat
+  w8_sram(SRAM.x_subspeed, 0) --/
+  w8_sram(SRAM.y_speed, -1) -----\ to account for gravity, otherwise it keeps falling
+  w8_sram(SRAM.y_subspeed, 96) --/
+  w8_sram(SRAM.invincibility_timer, 120) -- to avoid taking damage
   w16_sram(SRAM.player_blocked_status, 1) -- TODO: figure out why it doesn't work
   w16_sram(SRAM.on_sprite_platform, 1) -- to make the game think you're in a platform, so the camera scrolls vertically too
 
@@ -4462,7 +4447,7 @@ function Cheat.change_address(domain, address, value_form, size, is_hex, criteri
 
       value = tonumber(number, is_hex and 16 or 10) -- take first number of the string
     else
-      value = tonumber(value, is_hex and 16 or 10)
+      --value = tonumber(value, is_hex and 16 or 10)
     end
 
     if not value or value%1 ~= 0 or value < 0 or value > max_value then
@@ -4741,9 +4726,9 @@ function Options_form.create_window()
 
   if yform > y_bigger then y_bigger = yform end
   
-  -- Debug/Extra
-  
   y_section = y_bigger + delta_y  -- 2nd row
+  
+  -- General
   xform, yform = 4, y_section
   
   forms.label(Options_form.form, "Debug info:", xform, yform, 62, 22)
@@ -4959,7 +4944,27 @@ function Options_form.create_window()
     -- Disables the button, optionally
     if enabled == false then forms.setproperty(Options_form[name.."_button"], "Enabled", enabled) end
     
+    --print(Options_form[name.."_picture_box"]) -- DEBUG
+    --wait(0.5)
+    --forms.refresh(Options_form[name.."_picture_box"])
+    --emu.frameadvance()
   end
+  --[[
+  Options_form.picture_box = forms.pictureBox(Options_form.form, yform + 1.5*delta_y, 0, form_width, 1080)
+  local function image_button(name, x, y, width, height, colour, image, button_fn, enabled)
+    -- Picture box handle, mandatory to draw images
+    --Options_form[name.."_picture_box"] = forms.pictureBox(Options_form.form, x + 2, y + 3, width + 2, height + 2)
+    -- Optional background colour of the picture box
+    --forms.clear(Options_form.picture_box, 0x0000FF00)
+    -- Draw the image
+    forms.drawImage(Options_form.picture_box, image, x + 3, y + 4)
+    -- Disable the image so it can't be select, this is needed to the mouse can click the button under
+    --forms.setproperty(Options_form.picture_box, "Enabled", false)------------------------------------------------------------?
+    -- Creates the button
+    Options_form[name.."_button"] = forms.button(Options_form.form, "", button_fn, x, y + 1, width + 6, height + 6)
+    -- Disables the button, optionally
+    if enabled == false then forms.setproperty(Options_form[name.."_button"], "Enabled", enabled) end
+  end]]
   
   -- Stars cheat
   yform = yform + 1.5*delta_y
@@ -5011,6 +5016,24 @@ function Options_form.create_window()
   image_button("coins", xform, yform, 16, 16, "black", "coin_icon.png",
     function() Cheat.change_address("WRAM", WRAM.coin_counter, "coins_number", 2, false,
     nil, "Enter a valid integer (0-65535)", "Coins") end, Cheat.allow_cheats)
+   --[[ 
+    -- Picture box handle, mandatory to draw images
+    Options_form.coins_picture_box = forms.pictureBox(Options_form.form, xform + 2, yform + 3, 16 + 2, 16 + 2)
+    -- Optional background colour of the picture box
+    forms.clear(Options_form.coins_picture_box, "black")
+    -- Draw the image
+    forms.drawImage(Options_form.coins_picture_box, "coin_icon.png", 1, 1)
+    -- Disable the image so it can't be select, this is needed to the mouse can click the button under
+    forms.setproperty(Options_form.coins_picture_box, "Enabled", false)
+    -- Creates the button
+    Options_form.coins_button = forms.button(Options_form.form, "", function()
+        Cheat.change_address("WRAM", WRAM.coin_counter, "coins_number", 2, false, nil, "Enter a valid integer (0-65535)", "Coins")
+    end, xform, yform + 1, 16 + 6, 16 + 6)
+    -- Disables the button, optionally
+    forms.setproperty(Options_form.coins_button, "Enabled", Cheat.allow_cheats)
+    ]]
+    --wait(2)
+    --print(Options_form)
     
   xform = xform + 24
   Options_form.coins_number = forms.textbox(Options_form.form, "", 40, 16, "UNSIGNED", xform, yform + 2, false, false)
@@ -5181,7 +5204,6 @@ function Options_form.create_window()
   
   
   --[[TODO CHEATS:
-  [ ] - Egg inventory editor (could use the Sprite Spawn cheat to spawn eggs on Yoshi, or do like the Practice Cart where only is set in overworld by poking $7E5D98 and $7E5D9A)
   [ ] - Tile editor
   ]]
   
@@ -5255,7 +5277,6 @@ function Options_form.create_window()
   
   
   end)
-  
   
   -- Resize options form height base on the amount of options
   --forms.setproperty(Options_form.form, "Height", y_bigger + 70) -- TODO
@@ -5460,7 +5481,7 @@ function Options_form.evaluate_form()
   OPTIONS.draw_tile_map_type =  forms.ischecked(Options_form.tile_map_type) or false
   OPTIONS.draw_tile_map_screen =  forms.ischecked(Options_form.tile_map_screen) or false
   OPTIONS.display_level_layout =  forms.ischecked(Options_form.level_layout) or false
-  -- Other
+  -- General
   OPTIONS.display_misc_info = forms.ischecked(Options_form.misc_info) or false
   OPTIONS.display_counters = forms.ischecked(Options_form.counters_info) or false
   OPTIONS.display_movie_info = forms.ischecked(Options_form.movie_info) or false
@@ -5581,17 +5602,6 @@ event.onexit(function()
   
   print("Finishing Yoshi's Island script.\n------------------------------------")
 end)
-
---[[ Check if images files exist -- TODO: REMOVE NOW THAT IMPLEMENTED HEX TO PNG
-local error_str = "\nCouldn't find the script images! Make sure to download the whole 'BizHawk' folder on https://github.com/brunovalads/yoshis-island/tree/master/BizHawk"
-if not file_exists("blocked_status_bits.png") then error(error_str) end
-if not file_exists("coin_icon.png") then error(error_str) end
-if not file_exists("egg_icons.png") then error(error_str) end
-if not file_exists("flower_icon.png") then error(error_str) end
-if not file_exists("red_coin_icon.png") then error(error_str) end
-if not file_exists("star_icon.png") then error(error_str) end
-if not file_exists("yoshi_blocked_status.png") then error(error_str) end
-if not file_exists("yoshi_icon.png") then error(error_str) end]]
 
 -- Script load success message
 print("Yoshi's Island Lua script loaded successfully at " .. os.date("%X") .. ".\n") -- %c for date and time
