@@ -136,9 +136,6 @@ local DEFAULT_COLOUR = {
   },
   ambient_sprites_bg = 0x5000FF00,
   special_ambient_sprite_bg = 0x6000FF00,
-  cluster_sprites = 0xffFF80A0,
-  sumo_brother_flame = 0xff0040A0,
-  minor_ambient_sprites = 0xffFF90B0,
   awkward_hitbox = 0xff204060,
   awkward_hitbox_bg = 0x60FF8000,
 
@@ -152,9 +149,6 @@ local DEFAULT_COLOUR = {
   block = 0xff00008B,
   blank_tile = 0x70FFFFFF,
   block_bg = 0xa022CC88,
-  layer2_line = 0xffFF2060,
-  layer2_bg = 0x40FF2060,
-  static_camera_region = 0x40400020
 }
 
 -- Font settings
@@ -369,7 +363,7 @@ local YI = {
   ambient_sprite_max = 16
 }
 
-local SRAM = {  -- 700000~707FFF -- TODO: wipe out remaining SMW addresses
+local SRAM = {  -- 700000~707FFF
   -- General
 	level_timer = 0x1974, -- 2 bytes
 	screen_number_to_id = 0x0CAA, -- 128 bytes table
@@ -382,8 +376,6 @@ local SRAM = {  -- 700000~707FFF -- TODO: wipe out remaining SMW addresses
 	-- Player
   x = 0x008C, -- 2 bytes
   y = 0x0090, -- 2 bytes
-  --previous_x = 0x00d1,
-  --previous_y = 0x00d3,
   x_sub = 0x008A,
   y_sub = 0x008E,
   x_speed = 0x00A9,
@@ -416,23 +408,9 @@ local SRAM = {  -- 700000~707FFF -- TODO: wipe out remaining SMW addresses
 	egg_sprite_id = 0x1DF8,
   ducking_state = 0x00C2,
   swimming_state = 0x00C6,
-  --is_ducking = 0x0073,
-  --p_meter = 0x13e4,
-  --take_off = 0x149f,
-  --powerup = 0x0019,
-  --diving_status = 0x1409,
-  --player_animation_trigger = 0x0071,
-  --climbing_status = 0x0074,
-  --on_ground = 0x13ef,
-  --on_ground_delay = 0x008d,
-  --on_air = 0x0072,
-  --can_jump_from_water = 0x13fa,
-  --carrying_item = 0x148f,
-  --player_looking_up = 0x13de,
   
   -- Baby Mario
   mario_status = 0x0F00,
-
 
   -- Timer
 	invincibility_timer = 0x01D6,
@@ -520,7 +498,7 @@ local SRAM = {  -- 700000~707FFF -- TODO: wipe out remaining SMW addresses
 	
 }
 
-local WRAM = {  -- 7E0000~7FFFFF -- TODO: wipe out remaining SMW addresses
+local WRAM = {  -- 7E0000~7FFFFF
   -- I/O
   ctrl_1_1 = 0x093D,
   ctrl_1_2 = 0x093C,
@@ -557,26 +535,18 @@ local WRAM = {  -- 7E0000~7FFFFF -- TODO: wipe out remaining SMW addresses
   -- Camera
   camera_x = 0x0039,
   camera_y = 0x003B,
-  screens_number = 0x005d,
-  hscreen_number = 0x005e,
-  vscreen_number = 0x005f,
-  vertical_scroll_flag_header = 0x1412,  -- #$00 = Disable; #$01 = Enable; #$02 = Enable if flying/climbing/etc.
-  vertical_scroll_enabled = 0x13f1,
-  camera_scroll_timer = 0x1401,
   camera_shake_y_offset = 0x0CB0, -- 2 bytes
 
   -- Sprites
   toadies_relative_x = 0x0E38,
   toadies_relative_y = 0x0E4A,
 
-  -- Yoshi
-  yoshi_riding_flag = 0x187a,  -- #$00 = No, #$01 = Yes, #$02 = Yes, and turning around.
-  yoshi_tile_pos = 0x0d8c,
+    -- Bosses
+    bowser_true_x_pos = 0x1068,
+    bowser_vertical_pos = 0x106A,
+    bowser_horizontal_pos = 0x106C,
 
   -- Timers
-  --pipe_entrance_timer = 0x0088,
-  end_level_timer = 0x1493,
-  --multicoin_block_timer = 0x186b,,
   switch_timer = 0x0CEC, -- 2 bytes
 
   -- Layers
@@ -2114,36 +2084,7 @@ local function select_object(mouse_x, mouse_y, camera_x, camera_y)
 end
 
 
--- This function sees if the mouse if over some object, to change its hitbox mode
--- The order is: 1) player, 2) sprite.
-local function right_click()
-    local id = select_object(User_input.xmouse, User_input.ymouse, Camera_x, Camera_y)
-    
-    if tostring(id) == "Yoshi" then
-        
-        if OPTIONS.display_player_hitbox and OPTIONS.display_interaction_points then
-            OPTIONS.display_interaction_points = false
-            OPTIONS.display_player_hitbox = false
-        elseif OPTIONS.display_player_hitbox then
-            OPTIONS.display_interaction_points = true
-            OPTIONS.display_player_hitbox = false
-        elseif OPTIONS.display_interaction_points then
-            OPTIONS.display_player_hitbox = true
-        else
-            OPTIONS.display_player_hitbox = true
-        end
-        
-    end
-    if id then return end
-    
-    -- Select layer 2 tiles -- TODO
-    --[[local layer2x = s16_wram(WRAM.layer2_x_nextframe)
-    local layer2y = s16_wram(WRAM.layer2_y_nextframe)
-    local x_mouse, y_mouse = User_input.xmouse + layer2x, User_input.ymouse + layer2y
-    select_tile(16*floor(x_mouse/16), 16*floor(y_mouse/16), Layer2_tiles)]]
-end
-
-
+-- Display frame counter and all the other movie related info
 local function show_movie_info()
   if not OPTIONS.display_movie_info then return end
   
@@ -2286,7 +2227,8 @@ local function show_controller_data()
   draw_over_text(x, y - height, 256*u8_wram(WRAM.ctrl_1_1_first) + u8_wram(WRAM.ctrl_1_2_first), "BYsS^v<>AXLR0123", 0, COLOUR.warning, 0)
 end
 
-local camera_shake_y_offset, camera_shake_y_offset_prev -- REMOVE/TEST 
+
+-- Display info about the current level
 local function level_info()
   if not OPTIONS.display_level_info then return end
 	if Game_mode ~= YI.game_mode_level then return end
@@ -3077,14 +3019,6 @@ local function ambient_sprites()
     
     Text_opacity = 0.5
     local x_pos, y_pos, length = draw_text(Screen_width, y_pos, fmt("Ambient sprites:%2d ", counter), COLOUR.weak, true, false, 0.0, 1.0)
-    
-	--[[
-    if u8_wram(WRAM.spinjump_flag) ~= 0 and u8_wram(WRAM.powerup) == 3 then
-        local fireball_timer = u8_wram(WRAM.spinjump_fireball_timer)
-        draw_text(x_pos - length - BIZHAWK_FONT_WIDTH, y_pos, fmt("%d %s",
-        fireball_timer%16, bit.check(fireball_timer, 4) and RIGHT_ARROW or LEFT_ARROW), COLOUR.ambient_sprites, true, false, 1.0, 1.0)
-    end]]
-    
 end
 
 
@@ -3816,7 +3750,6 @@ local function show_counters()
 	if Game_mode == YI.game_mode_level then
 		display_counter("Switch", switch_timer, 0, 1, 0, COLOUR.counter_switch)
   end
-	--display_counter("End Level", end_level_timer, 0, 2, (Frame_counter - 1) % 2)
   
   --if Lock_animation_flag ~= 0 then display_counter("Animation", animation_timer, 0, 1, 0) end  -- shows when player is getting hurt or dying
   
@@ -4475,7 +4408,6 @@ end
 client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
 
 -- Key presses:
-Keys.registerkeypress("rightclick", right_click)
 Keys.registerkeypress("leftclick", left_click)
 Keys.registerkeypress(OPTIONS.hotkey_increase_opacity, increase_opacity)
 Keys.registerkeypress(OPTIONS.hotkey_decrease_opacity, decrease_opacity)
@@ -5421,7 +5353,6 @@ function Options_form.write_help() -- TODO: decide if will make console text or 
   --[[
   print("MOUSE:")
   print("Use the left click to draw blocks and to see the Map16 properties.")
-  print("Use the right click to toogle the hitbox mode of Mario and sprites.")
   print("\n")
 
   print("CHEATS(better turn off while recording a movie):")
