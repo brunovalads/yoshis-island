@@ -3217,66 +3217,7 @@ local function sprite_info(id, counter, table_position)
   
   if sprite_status == 0 then info_colour = change_transparency(COLOUR.disabled, 0.5) end -- TODO: make an option if the player wants all visible slots or only active
   
-  -- Credits Warp Helper -- TODO: decide if this will be here or somewhere else
-  if OPTIONS.display_cw_helper then
     
-    --local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, x_centered, x_speed, x_subspeed, y_centered, y_speed, y_subspeed)
-    --draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
-    
-    local cw_info_y_pos = Screen_height - 12*BIZHAWK_FONT_HEIGHT
-    local cw_info_x_tmp = 2
-    
-    local cw_x_subpos = x_sub
-    local cw_x_pos = u8_sram(SRAM.sprite_x + id_off)
-    local cw_x_screen = u8_sram(SRAM.sprite_x + 1 + id_off)
-    
-    local cw_values = {}
-    local cw_colour = COLOUR.warning
-    local cw_str_tmp
-    
-    if id == 6 then
-      cw_values.x_subpos = 0x00 -- $7010F9
-      cw_values.x_pos = 0xA9 -- $7010FA
-      cw_values.x_screen = 0x0D -- $7010FB
-    elseif id == 7 then
-      cw_values.x_subpos = 0x18 -- $7010FD
-      cw_values.x_pos = 0x0A -- $7010FE
-      cw_values.x_screen = 0x02 -- $7010FF
-    elseif id == 8 then
-      cw_values.x_subpos = 0x99 -- $701101
-      cw_values.x_pos = 0x4C -- $701102
-      cw_values.x_screen = 0x00 -- $701103
-    elseif id == 9 then
-      cw_values.x_subpos = 0x00 -- $701105
-      cw_values.x_pos = 0x6B -- $701106
-      cw_values.x_screen = 0x02 -- $701107
-    end
-    
-    if id == 6 then -- to draw this just once
-      draw_text(cw_info_x_tmp + 9*BIZHAWK_FONT_WIDTH, cw_info_y_pos + (counter-7)*BIZHAWK_FONT_HEIGHT, "Xsub Xpos Xscr")
-    end
-    
-    if id >= 6 and id <= 9 then
-      cw_str_tmp = fmt("<%02d> %03X ", id, sprite_type)
-      draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp)
-      
-      if cw_x_subpos == cw_values.x_subpos then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
-      cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
-      cw_str_tmp = fmt(" %02X  ", cw_x_subpos)
-      draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
-      
-      if cw_x_pos == cw_values.x_pos then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
-      cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
-      cw_str_tmp = fmt(" %02X  ", cw_x_pos)
-      draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
-      
-      if cw_x_screen == cw_values.x_screen then cw_colour = COLOUR.positive else cw_colour = COLOUR.warning end
-      cw_info_x_tmp = cw_info_x_tmp + string.len(cw_str_tmp)*BIZHAWK_FONT_WIDTH
-      cw_str_tmp = fmt(" %02X  ", cw_x_screen)
-      draw_text(cw_info_x_tmp, cw_info_y_pos + (counter-6)*BIZHAWK_FONT_HEIGHT, cw_str_tmp, cw_colour)
-    end
-  end
-  
   -- Depawning position
   if is_offscreen and OPTIONS.display_sprite_spawning_areas then
   
