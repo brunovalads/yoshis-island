@@ -193,14 +193,65 @@ local INPUT_KEYNAMES = {  -- BizHawk
 
 console.clear()
 
--- Check if is running in BizHawk
-if tastudio == nil then
-  error("\n\nThis script only works with BizHawk!")
+-- Migration for Lua 5.3 bitwise operators (since BizHawk 2.9)
+bit = (require "migration_helpers").EmuHawk_pre_2_9_bit();
+
+-- General BizHawk functions and variables
+local Biz = {}
+
+-- Get main BizHawk status
+function Biz.get_status()
+    Biz.movie_active = movie.isloaded()
+    Biz.readonly = movie.getreadonly()
+    if Biz.movie_active then
+        Biz.movie_length = movie.length()
+        Biz.rerecords = movie.getrerecordcount()
+    end
+    Biz.framecount = emu.framecount()
+    Biz.lagcount = emu.lagcount()
+    Biz.is_lagged = emu.islagged()
 end
 
--- Check if it's Yoshi's Island (any version or hack)
-if memory.read_u32_be(0x007FB2, "CARTROM") ~= 0x59492020 then -- Game code, in ROM
-  error("\n\nThis script is for Yoshi's Island only!")
+-- Check if the script is running on BizHawk
+function Biz.check_emulator()
+if tastudio == nil then
+        error("\n\nThis script only works with BizHawk emulator.\nVisit http://tasvideos.org/Bizhawk/ReleaseHistory.html to download the latest version.")
+end
+end
+Biz.check_emulator()
+
+-- Check the name of the ROM domain (as it might have differences between cores)
+Biz.memory_domain_list = memory.getmemorydomainlist()
+function Biz.check_ROM_domain()
+    for key, domain in ipairs(Biz.memory_domain_list) do
+        if domain:find("ROM") then return domain end
+end
+    --if didn't find ROM domain then
+    error("This core doesn't have ROM domain exposed for the script, please change the core!")
+end
+Biz.ROM_domain = Biz.check_ROM_domain()
+
+-- Check the name of the SRAM domain (as it might have differences between cores)
+function Biz.check_SRAM_domain()
+    for key, domain in pairs(Biz.memory_domain_list) do
+        if domain:find("CART") and domain:find("RAM") then return domain end
+    end
+    --if didn't find SRAM domain then
+    error("This core doesn't have SRAM domain exposed for the script, please change the core!")
+end
+Biz.SRAM_domain = Biz.check_SRAM_domain()
+
+-- Check the game name in the <address> in ROM with specified <length>
+function Biz.game_name(address, length)
+    local game_name = ""
+    for i = 0, length-1 do
+        game_name = game_name .. string.char(memory.read_u8(address + i, Biz.ROM_domain))
+    end
+    --print(game_name) -- DEBUG
+    return game_name
+end
+if Biz.game_name(0x007FC0, 0xE) ~= "YOSHI'S ISLAND" then
+    error("\n\nThis script is for Yoshi's Island (SNES) only!")
 end
 
 print("Starting Yoshi's Island script\n")
@@ -278,7 +329,6 @@ local function math_round(number, dec_places)
   local mult = 10^(dec_places or 0)
   return math.floor(number * mult + 0.5) / mult
 end
---local bit.test = bit.check -- BizHawk (Doesn't work ranaming, for some reason)
 
 -- Rename gui functions
 local draw_line = gui.drawLine
@@ -300,7 +350,7 @@ local w16_wram = mainmemory.write_u16_le
 local u24_wram = mainmemory.read_u24_le
 local s24_wram = mainmemory.read_s24_le
 local w24_wram = mainmemory.write_u24_le
-memory.usememorydomain("CARTRAM")
+memory.usememorydomain(Biz.SRAM_domain)
 local u8_sram =  memory.read_u8
 local s8_sram =  memory.read_s8
 local w8_sram =  memory.write_u8
