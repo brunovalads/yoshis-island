@@ -3257,7 +3257,7 @@ local function sprite_info(id, counter, table_position)
   ---**********************************************
   -- Special sprites analysis:
   
-	if OPTIONS.display_sprite_special_info and Game_mode == YI.game_mode_level and sprite_status ~= 0 then
+	if OPTIONS.display_sprite_special_info and sprite_status ~= 0 then
 	
 		-- Goal ring
 		if sprite_type == 0x00D then
@@ -3266,6 +3266,13 @@ local function sprite_info(id, counter, table_position)
 			local activation_line_y_bottom = -13
       local tmp_colour = COLOUR.warning
       
+            -- Timer
+            local timer = s16_sram(SRAM.sprite_table21 + id_off)
+            draw_text(x_screen + activation_line_x, y_screen + activation_line_y_top - 32, fmt("Timer: %d", timer), info_colour, false, false, 0.5)
+            
+            -- Lines and distances
+            if Game_mode == YI.game_mode_level then
+                
       -- Activation line (checks Yoshi's center point)
 			draw_line(x_screen + activation_line_x, y_screen + activation_line_y_top, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour); tmp_colour = COLOUR.positive
       draw_line(x_screen + activation_line_x, y_screen + activation_line_y_bottom - 5, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour)
@@ -3284,13 +3291,25 @@ local function sprite_info(id, counter, table_position)
       draw_line(yoshi_center_x_screen, yoshi_center_y_screen, x_screen + activation_line_x, y_screen + activation_line_y_bottom - 5, tmp_colour)
       if yoshi_center_y > y + activation_line_y_bottom then tmp_colour = COLOUR.warning else tmp_colour = COLOUR.positive end
       draw_line(yoshi_center_x_screen, yoshi_center_y_screen, x_screen + activation_line_x, y_screen + activation_line_y_bottom, tmp_colour)
+            end
       
 			special_hitbox = true
 		end
 		
+    -- Giant Egg, for battle with Bowser
+    if sprite_type == 0x026 then
+        -- Show visual position
+        local visual_x_pos = s16_sram(SRAM.sprite_table17 + 2 + id_off)
+        local x_scr, _ = screen_coordinates(visual_x_pos, 0, Camera_x, Camera_y)
+        draw_cross(x_scr, y_screen, 3, info_colour)
+        
+        -- Show real position (depth towards the right)
+        --local effective_x_pos = 
+    end
+    
     -- Roger the Potted Ghost
     if sprite_type == 0x035 then
-      -- Timers and modes TODO
+        -- Timers and modes (TODO)
       
       -- Polygon collision lines
       local vertex_x, vertex_y
@@ -3370,7 +3389,7 @@ local function sprite_info(id, counter, table_position)
 		if sprite_type == 0x054 or sprite_type == 0x066 then
 			local detection_radius = 112
 			-- detection is based on Yoshi's center point
-			draw_box(x_screen - detection_radius + 9, y_screen - detection_radius + 9, x_screen + detection_radius + 8, y_screen + detection_radius + 8, info_colour, COLOUR.detection_bg)
+			draw_box(x_screen - detection_radius + 9, y_screen - detection_radius + 9, x_screen + detection_radius + 8, y_screen + detection_radius + 8, info_colour, change_transparency(info_colour, 0.15))
 		end
 		
 		-- Green/Pink Pinwheel -- TODO
@@ -3512,8 +3531,30 @@ local function sprite_info(id, counter, table_position)
     
     -- Baby Bowser
     if sprite_type == 0x134 then
+      --- Baby Bowser -- TODO: HP, timers, AI, etc
       
-      -- HP, timers, AI
+      -- TODO: check to know whether it's Baby or Big
+      
+      --- Big Bowser
+      local true_x_pos = s16_wram(WRAM.bowser_true_x_pos)
+      local horiz_pos = s16_wram(WRAM.bowser_horizontal_pos)
+      local vert_pos = s16_wram(WRAM.bowser_vertical_pos)
+      
+      local true_x_screen, y_screen = screen_coordinates(true_x_pos, vert_pos, Camera_x, Camera_y)
+      local horiz_screen, vert_screen = screen_coordinates(horiz_pos, vert_pos, Camera_x, Camera_y)
+      
+      -- True position line
+      draw_line(true_x_screen, y_screen, true_x_screen, y_screen + 100, COLOUR.warning)
+      draw_line(true_x_screen + horiz_pos, y_screen, true_x_screen + horiz_pos, y_screen - 100, COLOUR.warning)
+      
+      -- Visual position coordinate
+      draw_cross(horiz_screen, vert_screen, 10, COLOUR.warning)
+      -- Hitbox
+	  local left, right, up, down = 0x54, 0x44, 0xEC, 0x2D
+      draw_box(horiz_screen - left, vert_screen - up, horiz_screen + right, vert_screen + down, info_colour, colour_background)
+      special_hitbox = true
+      
+      -- TODO: HP, timers, AI, etc
       
       
     end
@@ -3568,6 +3609,27 @@ local function sprite_info(id, counter, table_position)
 			
 			--special_hitbox = true
 		end
+        
+        -- Bandit from Mini Battle (Popping Balloons?)
+		if sprite_type == 0x1B5 then
+            -- Aiming lines
+            local x_off_yoshi = s16_wram(0x1106)
+            local x_off_aimed_balloon = s16_wram(0x1108)
+            local x_off_aimed_platform = s16_wram(0x110A)
+            local y_off_yoshi = s16_wram(0x110C)
+            local y_off_aimed_balloon = s16_wram(0x110E)
+            local y_off_aimed_platform = s16_wram(0x1110)
+            
+            draw_line(x_centered_screen, y_centered_screen, x_centered_screen + x_off_yoshi, y_centered_screen + y_off_yoshi, info_colour)
+            draw_line(x_centered_screen, y_centered_screen, x_centered_screen + x_off_aimed_balloon, y_centered_screen + y_off_aimed_balloon, info_colour)
+            draw_line(x_centered_screen, y_centered_screen, x_centered_screen + x_off_aimed_platform, y_centered_screen + y_off_aimed_platform, info_colour)
+            
+            local x_off_curr_aim = s16_wram(0x1124)
+            local y_off_curr_aim = s16_wram(0x1126)
+            
+            draw_line(x_centered_screen, y_centered_screen, x_centered_screen + x_off_curr_aim, y_centered_screen + y_off_curr_aim, "cyan")
+            
+	end
 	end
   
 
@@ -3643,9 +3705,6 @@ local function sprites()
   -- Display amount of sprites
   Text_opacity = 0.8
   draw_text(Screen_width, table_position - BIZHAWK_FONT_HEIGHT, fmt("Sprites:%.2d", counter), COLOUR.weak, true)
-  
-  draw_text(Screen_width, table_position + 25*BIZHAWK_FONT_HEIGHT, "FIX NEGATIVE SPEED FOR SPRITES!", COLOUR.warning, true) -- REMOVE/TEST
-  
 end
 
 
@@ -3792,6 +3851,7 @@ local function show_counters()
 		display_counter("Switch", switch_timer, 0, 1, 0, COLOUR.counter_switch)
   end
   
+end
 
   
 -- Display useful info for Credits Warp 
