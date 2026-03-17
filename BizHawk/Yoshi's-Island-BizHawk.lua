@@ -1625,6 +1625,20 @@ local function frame_time(frame)
   return str
 end
 
+-- Returns the current frames-per-second number for the emulation
+local FPS = {frames = 0, second = os.time(), fps = 0}
+local function get_fps() -- TODO: figure out way to update value every frame, not only when second changes (maybe this is impossible with Lua)
+  -- Increase frame counter in this second
+  FPS.frames = FPS.frames + 1
+  
+  -- If second advanced, make current frame counter the new fps and reset
+  if os.time() ~= FPS.second then
+    FPS.fps = FPS.frames
+    FPS.frames = 0
+    FPS.second = os.time()
+  end
+end
+
 -- displays a button everytime in (x,y)
 -- object can be a text or a dbitmap
 -- if user clicks onto it, fn is executed once
@@ -2148,6 +2162,11 @@ local function show_movie_info()
   
   local rec_colour = (Readonly or not Movie_active) and COLOUR.text or COLOUR.warning
   local recording_bg = (Readonly or not Movie_active) and COLOUR.background or COLOUR.warning_bg 
+  
+  -- FPS
+  local fps = fmt("%d fps  ", FPS.fps)
+  draw_text(x_text, y_text, fps)
+  x_text = x_text + width*(string.len(fps) + 1)
   
   -- Read-only or read-write?
   local movie_type = (not Movie_active and "No movie ") or (Readonly and "Movie " or "REC ")
@@ -5467,6 +5486,7 @@ while true do
   if not Level_map_form.is_form_closed then Level_map_form.evaluate_form() end
   
   -- Initial values, don't make drawings here
+  get_fps()
   bizhawk_status()
   bizhawk_screen_info()
   Script_buttons = {}  -- reset the buttons
