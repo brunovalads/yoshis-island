@@ -5570,6 +5570,16 @@ function Level_map_form.evaluate_form()
 
   -- TODO
   
+  -- TESTS
+  forms.clear(Level_map_form.picture_box, 0xffFF0000) -- REMOVE/TEST
+  local camera_x = Camera_x --+ Level_map_form.picture_box_x
+  local camera_y = Camera_y --+ Level_map_form.picture_box_y
+  local level_img_path = fmt("yi level display\\images\\levels\\%02X.png", Room_index)  -- TODO: failsafe for bad rooms
+  forms.drawImage(Level_map_form.picture_box, level_img_path, 0, 0, 4096/4, 2048/4) -- REMOVE/TEST
+  --forms.drawRectangle(int componenthandle, int x, int y, int width, int height, [luacolor line = nil], [luacolor background = nil])
+  forms.drawRectangle(Level_map_form.picture_box, camera_x/4, camera_y/4, 256/4, 224/4, 0x2000FF00, 0)
+  forms.refresh(Level_map_form.picture_box)
+  
 end
 
 
