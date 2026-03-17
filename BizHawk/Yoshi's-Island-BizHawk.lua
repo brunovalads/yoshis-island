@@ -2217,7 +2217,7 @@ local function show_movie_info()
   Text_opacity = 1.0
   Bg_opacity = 1.0
   local width = BIZHAWK_FONT_WIDTH
-  local x_text, y_text = 8*width, 0
+  local x_text, y_text = 2, 0
   
   local rec_colour = (Readonly or not Movie_active) and COLOUR.text or COLOUR.warning
   local recording_bg = (Readonly or not Movie_active) and COLOUR.background or COLOUR.warning_bg 
