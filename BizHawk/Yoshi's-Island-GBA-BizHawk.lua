@@ -418,7 +418,7 @@ end
 -- Get a complementary colour
 local function complementary_colour(colour)
     local h, s, v, a = RGBtoHSV(colour)
-    local new_h = math.mod(h + 0.5, 1)
+    local new_h = math.modf(h + 0.5, 1)
     return HSVtoRGB(new_h, s, v, a)
 end
 
