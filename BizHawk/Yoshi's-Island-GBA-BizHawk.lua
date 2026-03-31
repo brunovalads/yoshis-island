@@ -139,6 +139,9 @@ end
 local Cheat = {}  -- family of cheat functions and variables
 local Previous = {}
 
+-- Migration for Lua 5.3 bitwise operators (since BizHawk 2.9)
+bit = (require "migration_helpers").EmuHawk_pre_2_9_bit();
+
 -- General BizHawk functions and variables
 local Biz = {}
 
