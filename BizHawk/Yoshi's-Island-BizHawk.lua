@@ -227,19 +227,9 @@ function Biz.check_ROM_domain()
         if domain:find("ROM") then return domain end
     end
     --if didn't find ROM domain then
-    error("This core doesn't have ROM domain exposed for the script, please change the core!")
+    error("\n\nThis core doesn't have ROM domain exposed for the script, please change the core!")
 end
 Biz.ROM_domain = Biz.check_ROM_domain()
-
--- Check the name of the SRAM domain (as it might have differences between cores)
-function Biz.check_SRAM_domain()
-    for key, domain in pairs(Biz.memory_domain_list) do
-        if domain:find("CART") and domain:find("RAM") then return domain end
-    end
-    --if didn't find SRAM domain then
-    error("This core doesn't have SRAM domain exposed for the script, please change the core!")
-end
-Biz.SRAM_domain = Biz.check_SRAM_domain()
 
 -- Check the game name in the <address> in ROM with specified <length>
 function Biz.game_name(address, length)
@@ -253,6 +243,16 @@ end
 if Biz.game_name(0x007FC0, 0xE) ~= "YOSHI'S ISLAND" then
     error("\n\nThis script is for Yoshi's Island (SNES) only!")
 end
+
+-- Check the name of the SRAM domain (as it might have differences between cores)
+function Biz.check_SRAM_domain()
+    for key, domain in pairs(Biz.memory_domain_list) do
+        if domain:find("CART") and domain:find("RAM") then return domain end
+    end
+    --if didn't find SRAM domain then
+    error("\n\nThis core doesn't have SRAM domain exposed for the script, please change the core!")
+end
+Biz.SRAM_domain = Biz.check_SRAM_domain()
 
 print("Starting Yoshi's Island script\n")
 
