@@ -509,7 +509,7 @@ local YI = {
 
 -- Known secondary sprites IDs, for documentation -- TODO: test more to see if there's some missing
 YI.secondary_sprite_ids = {
-	0x1C9,
+    0x1C9,
     0x1D7,
     0x1E6, 0x1E7, 0x1E9, 0x1EC, 0x1EE,
     0x1F0, 0x1FD,
@@ -767,21 +767,21 @@ end
 
 -- Interpret and display egg inventory
 local function egg_inventory_info(i)
-	
+    
     local delta_x = Game.bizhawk_font_width
     local delta_y = Game.bizhawk_font_height
-	local x_pos = 2
-	local y_pos = OPTIONS.top_gap + (i+1)*delta_y
-	
-	local egg_inventory_size = u8_iwram(IWRAM.egg_inventory_size)/2
-	local egg_sprite_slot, egg_type, egg_type_str
-	
+    local x_pos = 2
+    local y_pos = OPTIONS.top_gap + (i+1)*delta_y
+    
+    local egg_inventory_size = u8_iwram(IWRAM.egg_inventory_size)/2
+    local egg_sprite_slot, egg_type, egg_type_str
+    
     draw_text(x_pos, y_pos - delta_y, fmt("Egg inventory: %d", egg_inventory_size), COLOUR.text)
-	
-	for id = 0, egg_inventory_size - 1 do
-		egg_sprite_slot = u8_iwram(IWRAM.egg_inventory + 2*id)
-		egg_type = u16_iwram(IWRAM.sprite_struct.base + egg_sprite_slot * YI.sprite_struct_size + IWRAM.sprite_struct.id)
-		
+    
+    for id = 0, egg_inventory_size - 1 do
+        egg_sprite_slot = u8_iwram(IWRAM.egg_inventory + 2*id)
+        egg_type = u16_iwram(IWRAM.sprite_struct.base + egg_sprite_slot * YI.sprite_struct_size + IWRAM.sprite_struct.id)
+        
         local egg_names = { -- indexed by egg_type
             [0x022] = {name = "Flashing Egg", symbol = "F", colour = COLOUR.eggs.pink},
             [0x023] = {name = "Red Egg", symbol = "E", colour = COLOUR.eggs.red},
@@ -795,13 +795,13 @@ local function egg_inventory_info(i)
             [0x02B] = {name = "Green Giant Egg", symbol = "G", colour = COLOUR.eggs.green},
         }
         
-		if egg_type < 0x022 or egg_type > 0x02B then -- is null egg
+        if egg_type < 0x022 or egg_type > 0x02B then -- is null egg
             draw_text(x_pos, y_pos + id*delta_y, fmt("%d: NULL <%02X> %03X", id, egg_sprite_slot, egg_type), COLOUR.memory)
-		else
+        else
             draw_text(x_pos, y_pos + id*delta_y, fmt("%d:   <%02X>", id, egg_sprite_slot), COLOUR.text)
             draw_text(x_pos + 3*delta_x, y_pos + id*delta_y, fmt("%s", egg_names[egg_type].symbol), egg_names[egg_type].colour)
-		end
-	end
+        end
+    end
     
     return egg_inventory_size
 end
@@ -819,7 +819,7 @@ end
 
 -- Main Yoshi info display function
 local function player_info()
-	if Is_paused then return end
+    if Is_paused then return end
     
     -- Reads RAM
     local x = Yoshi_x
@@ -841,16 +841,16 @@ local function player_info()
     local center_y = s16_iwram(IWRAM.yoshi_center_y)
     local tongued_slot = u8_iwram(IWRAM.tongued_slot)
     local yoshi_colour_id = u8_iwram(IWRAM.yoshi_colour_id)
-	
+    
     -- Transformations
     local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
-	local x_display = x < 0 and fmt("-%04X", 0xFFFFFFFF - x + 1) or fmt("%04X", x)
-	local y_display = y < 0 and fmt("-%04X", 0xFFFFFFFF - y + 1) or fmt("%04X", y)
+    local x_display = x < 0 and fmt("-%04X", 0xFFFFFFFF - x + 1) or fmt("%04X", x)
+    local y_display = y < 0 and fmt("-%04X", 0xFFFFFFFF - y + 1) or fmt("%04X", y)
     if direction == 0 then direction = "->" else direction = "<-" end
     local x_spd_str = string.insert(signed16hex(x_speed_full, true), ".", 3)
     local y_spd_str = string.insert(signed16hex(y_speed_full, true), ".", 3)
-	local tongue_x_display = tongue_x < 0 and fmt("-%04X", 0xFFFFFFFF - tongue_x + 1) or fmt("%04X", tongue_x)
-	local tongue_y_display = tongue_y < 0 and fmt("-%04X", 0xFFFFFFFF - tongue_y + 1) or fmt("%04X", tongue_y)
+    local tongue_x_display = tongue_x < 0 and fmt("-%04X", 0xFFFFFFFF - tongue_x + 1) or fmt("%04X", tongue_x)
+    local tongue_y_display = tongue_y < 0 and fmt("-%04X", 0xFFFFFFFF - tongue_y + 1) or fmt("%04X", tongue_y)
     local center_x_screen, center_y_screen = screen_coordinates(center_x, center_y, Camera_x, Camera_y)
     local tongue_x_screen, tongue_y_screen = screen_coordinates(tongue_x, tongue_y, Camera_x, Camera_y)
     local yoshi_colour = COLOUR.yoshies[yoshi_colour_id][2]
@@ -866,25 +866,25 @@ local function player_info()
     draw_text(table_x, table_y + i*delta_y, fmt("Pos (%s.%02x, %s.%02x) %s", x_display, x_sub, y_display, y_sub, direction))
     i = i + 1
     
-	draw_text(table_x, table_y + i*delta_y, fmt("Speed (%s, %s)", x_spd_str, y_spd_str))
+    draw_text(table_x, table_y + i*delta_y, fmt("Speed (%s, %s)", x_spd_str, y_spd_str))
     i = i + 1
-	
-	local can_jump -- tile or sprite
-	if bit.check(collision_status, 0) or bit.check(collision_status, 1) or bit.check(collision_status, 2) or on_sprite_platform then
-		can_jump = "yes"
-		temp_colour = COLOUR.positive
-	else
-		can_jump = "no"
-		temp_colour = COLOUR.warning
-	end
-	draw_text(table_x, table_y + i*delta_y, fmt("Can jump:"))
-	draw_text(table_x + 9*delta_x + 2, table_y + i*delta_y, fmt("%s", can_jump), temp_colour)
-	i = i + 1
-	
-	if OPTIONS.display_collision_status then
-		draw_collision_status(table_x, table_y + i*delta_y + 2, collision_status, yoshi_colour)
-		i = i + 1.5*Scale
-	end
+    
+    local can_jump -- tile or sprite
+    if bit.check(collision_status, 0) or bit.check(collision_status, 1) or bit.check(collision_status, 2) or on_sprite_platform then
+        can_jump = "yes"
+        temp_colour = COLOUR.positive
+    else
+        can_jump = "no"
+        temp_colour = COLOUR.warning
+    end
+    draw_text(table_x, table_y + i*delta_y, fmt("Can jump:"))
+    draw_text(table_x + 9*delta_x + 2, table_y + i*delta_y, fmt("%s", can_jump), temp_colour)
+    i = i + 1
+    
+    if OPTIONS.display_collision_status then
+        draw_collision_status(table_x, table_y + i*delta_y + 2, collision_status, yoshi_colour)
+        i = i + 1.5*Scale
+    end
     
     draw_text(table_x, table_y + i*delta_y, fmt("Tongue (%s, %s)", tongue_x_display, tongue_y_display), COLOUR.tongue)
     i = i + 1
@@ -896,24 +896,24 @@ local function player_info()
     end
     i = i + 2
     
-	-- Egg inventory info
+    -- Egg inventory info
     if OPTIONS.display_egg_info then
-		i = i + egg_inventory_info(i) + 2
-	end
+        i = i + egg_inventory_info(i) + 2
+    end
     
-	-- Egg throw info
+    -- Egg throw info
     if OPTIONS.display_throw_info then
-		--egg_throw_info(egg_target_x, egg_target_y, direction, center_x, center_y, x_screen, y_screen)
-	end
+        --egg_throw_info(egg_target_x, egg_target_y, direction, center_x, center_y, x_screen, y_screen)
+    end
     
     -- Draw hitbox
     player_hitbox(x_screen, y_screen, center_x_screen, center_y_screen, tongue_x_screen, tongue_y_screen, yoshi_colour_inv)
     
     -- Position on screen
-	draw_cross(x_screen, y_screen, 2, yoshi_colour_inv)
+    draw_cross(x_screen, y_screen, 2, yoshi_colour_inv)
     
     -- Center position on screen
-	draw_cross(center_x_screen, center_y_screen, 2, yoshi_colour_inv)
+    draw_cross(center_x_screen, center_y_screen, 2, yoshi_colour_inv)
     
     -- Tongue position on screen
     draw_cross(tongue_x_screen, tongue_y_screen, 2, complementary_colour(COLOUR.tongue))
@@ -925,7 +925,7 @@ end
 
 -- Display sprite info
 local function sprites_info()
-	if Is_paused then return end
+    if Is_paused then return end
     
     -- Loop through the sprite slots
     local table_x = 0 -- due anchoring in the top right
@@ -1094,7 +1094,7 @@ end
 
 -- Display secondary sprite info ("secondary" is a convention for the GBA disassembly, "ambient" is the name conventioned in the SNES disassembly)
 local function secondary_sprites_info()
-	if Is_paused then return end
+    if Is_paused then return end
     
     -- Loop through the secondary sprite slots
     local table_x = 0 -- due anchoring in the top right
@@ -1181,19 +1181,19 @@ local function level_info()
     local level_str = fmt("Level:$%02X (%d - %s)", Level_id, world_number, level_number)
     local sublevel_str = fmt("Sublevel:$%02X", Sublevel_id)
     
-	-- Get the current screen and format it
-	local screen_number, screen_id
-	local x_player_simp = 0x100*floor(Yoshi_x/0x100)
-	local y_player_simp = 0x100*floor(Yoshi_y/0x100)
-	for screen_region_y = 0x0, 0x7 do
-		for screen_region_x = 0x0, 0xF do
-			if x_player_simp == 0x100*screen_region_x and y_player_simp == 0x100*screen_region_y then -- player current screen
+    -- Get the current screen and format it
+    local screen_number, screen_id
+    local x_player_simp = 0x100*floor(Yoshi_x/0x100)
+    local y_player_simp = 0x100*floor(Yoshi_y/0x100)
+    for screen_region_y = 0x0, 0x7 do
+        for screen_region_x = 0x0, 0xF do
+            if x_player_simp == 0x100*screen_region_x and y_player_simp == 0x100*screen_region_y then -- player current screen
                 screen_number = screen_region_y*0x10 + screen_region_x
                 screen_id = u8_ewram(EWRAM.screen_number_to_id + screen_number)
-				break
-			end
-		end
-	end
+                break
+            end
+        end
+    end
     local screen_str = fmt("Screen:$%02X", screen_id and screen_id or 0x80)
 
     -- Draw whole level info string
@@ -1205,7 +1205,7 @@ local function level_info()
         local x_temp, y_temp
         local screen_exit_table = {}
 
-        draw_text(x_base, y_base - 2*Game.bizhawk_font_height, "Level screen IDs:")		
+        draw_text(x_base, y_base - 2*Game.bizhawk_font_height, "Level screen IDs:")     
 
         for screen_region_y = 0, 7 do
             for screen_region_x = 0, 15 do
