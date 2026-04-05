@@ -1297,7 +1297,7 @@ end
 
 -- Display timers when they are active
 local function timers_info(y_pos)
-    if not OPTIONS.display_counters then return end
+    if not OPTIONS.display_counters or Is_paused then return end
 
     -- Font
     local height = Game.bizhawk_font_height
