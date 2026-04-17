@@ -1963,6 +1963,8 @@ local function draw_tile_map(camera_x, camera_y)
 	Text_opacity = 1.0
   local block_colour
   
+  local has_invalid_screen = false
+  
   local width = 256
 	local height = 128
 	local block_x, block_y
@@ -1982,11 +1984,14 @@ local function draw_tile_map(camera_x, camera_y)
 					screen_number = screen_region_y*16 + screen_region_x
 					screen_id = bit.band(u8_sram(SRAM.screen_number_to_id + screen_number), 0x7f) -- to exclude high bit (handles special objects xFE or xFF)
 					
-          if screen_id ~= 0x80 then -- avoid reading garbage from screens that are not used
+          if screen_id >= 0x40 then
+            has_invalid_screen = true
+          end
+          
+          if screen_id ~= 0x80 then -- avoid reading out of WRAM bounds
             
             for block_y = 0, 15 do
               y_pos = y_origin + 256*screen_region_y + 16*block_y
-              
               
               for block_x = 0, 15 do
                 x_pos = x_origin + 256*screen_region_x + 16*block_x
@@ -1997,9 +2002,9 @@ local function draw_tile_map(camera_x, camera_y)
                 block_id = 256*screen_id + 16*block_y + block_x
                 
                 if x_pos >= -16 and x_pos <= Screen_width + 16 and y_pos >= -16 and y_pos <= Screen_height + 16 then -- to print only what's inside the emu screen
-            
-                  kind_low = u8_wram(WRAM.Map16_data + 2*block_id)
-                  kind_high = u8_wram(WRAM.Map16_data + 2*block_id + 1)
+                  
+                  kind_low = block_id <= 0x3FFF and u8_wram(WRAM.Map16_data + 2*block_id) or 0x00
+                  kind_high = block_id <= 0x3FFF and u8_wram(WRAM.Map16_data + 2*block_id + 1) or 0x00
                   
                   -- Tile type
                   if OPTIONS.draw_tile_map_type then
@@ -2046,7 +2051,13 @@ local function draw_tile_map(camera_x, camera_y)
         end
 			end
 		end
-	end	
+	end
+  
+  -- Display warning for invalid screen
+  if has_invalid_screen then
+    Text_opacity = 0.5
+    alert_text(Border_right_start, Border_bottom_start - 0.5*BIZHAWK_FONT_HEIGHT, "[Level has invalid screens!]", COLOUR.text, change_transparency(COLOUR.warning, 0.5), false, 1.0)
+  end
 end
 
 
@@ -2397,13 +2408,19 @@ local function level_info()
     
     draw_text(x_base, y_base - 2*BIZHAWK_FONT_HEIGHT, "Level screen IDs:")		
     
+    local has_invalid_screen = false
+    
     for screen_region_y = 0, 7 do
       for screen_region_x = 0, 15 do
         
         -- Screen ID read
         screen_number = screen_region_y*16 + screen_region_x
         screen_id = u8_sram(SRAM.screen_number_to_id + screen_number)
-      
+        
+        if bit.band(screen_id, 0x7f) >= 0x40 then
+          has_invalid_screen = true
+        end
+        
         x_temp = x_base + 16*screen_region_x
         y_temp = y_base + 16*screen_region_y
         
@@ -2417,11 +2434,17 @@ local function level_info()
           draw_line(x_temp + 15, y_temp, x_temp + 15, y_temp + 16*8-1, COLOUR.very_weak)
         end
         
-        -- Highlight used screens 
+        -- Highlight used screens
+        local screen_color = nil
         if x_player_simp == 256*screen_region_x and y_player_simp == 256*screen_region_y then -- player current screen
-          draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.warning2, 0)
+          screen_color = COLOUR.warning2
+        elseif bit.band(screen_id, 0x7f) >= 0x40 then
+          screen_color = COLOUR.warning
         elseif screen_id ~= 0x80 then
-          draw_rectangle(x_temp, y_temp, 15, 15, COLOUR.text, 0)
+          screen_color = COLOUR.text
+        end
+        if screen_color ~= nil then 
+          draw_rectangle(x_temp, y_temp, 15, 15, screen_color, 0)
         end
         
         -- Highlight used screens IDs
@@ -2463,6 +2486,11 @@ local function level_info()
     draw_text(x_temp, y_temp - BIZHAWK_FONT_HEIGHT, "Screen exits:\nID room xpos ypos type")
     for i = 1, #screen_exit_table do
       draw_text(x_temp, y_temp + i*BIZHAWK_FONT_HEIGHT, fmt("%02X(%02X): %02X   %02X   %02X   %02X", screen_exit_table[i][1], screen_exit_table[i][2], screen_exit_table[i][3], screen_exit_table[i][4], screen_exit_table[i][5], screen_exit_table[i][6]))
+    end
+    
+    -- Display warning for invalid screen
+    if has_invalid_screen then
+      alert_text(Border_right_start, Border_bottom_start - 0.5*BIZHAWK_FONT_HEIGHT, "[Level has invalid screens!]", COLOUR.text, change_transparency(COLOUR.warning, 0.5), false, 1.0)
     end
   end
   
@@ -3072,7 +3100,7 @@ local function ambient_sprites()
       
       -- Table
       local debug_str = ""
-      local debug_address = SRAM.ambsprite_table9
+      local debug_address = SRAM.ambsprite_table15
       local debug_str = fmt("[%02X,%02X,%02X,%02X] ", u8_sram(debug_address + 0 + id_off), u8_sram(debug_address + 1 + id_off), u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
       --if ambspr_type == 0x1E1 then w16(debug_address + id_off, 0x90FF) end -- REMOVE TESTS/DEBUG
       --w16_sram(debug_address + id_off, 0xFF) -- REMOVE TESTS/DEBUG
