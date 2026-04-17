@@ -2436,15 +2436,18 @@ local function level_info()
         
         -- Highlight used screens
         local screen_color = nil
-        if x_player_simp == 256*screen_region_x and y_player_simp == 256*screen_region_y then -- player current screen
-          screen_color = COLOUR.warning2
-        elseif bit.band(screen_id, 0x7f) >= 0x40 then
+        if bit.band(screen_id, 0x7f) >= 0x40 then
           screen_color = COLOUR.warning
         elseif screen_id ~= 0x80 then
           screen_color = COLOUR.text
         end
         if screen_color ~= nil then 
           draw_rectangle(x_temp, y_temp, 15, 15, screen_color, 0)
+        end
+        
+        -- Hightlight player current screen
+        if x_player_simp == 256*screen_region_x and y_player_simp == 256*screen_region_y then
+          draw_rectangle(x_temp+1, y_temp+1, 13, 13, COLOUR.warning2, 0)
         end
         
         -- Highlight used screens IDs
