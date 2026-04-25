@@ -465,6 +465,7 @@ local SRAM = {  -- 700000~707FFF
   mario_status = 0x0F00,
 
   -- Timer
+  critical_damage_timer = 0x014A,
 	invincibility_timer = 0x01D6,
 	eat_timer = 0x01EE,
 	transform_timer = 0x01F4,
@@ -665,10 +666,10 @@ YI.sprite_data_pointers = {
 -- Known ambient sprites IDs -- TODO: test more to see if there's some missing
 YI.ambient_sprite_ids = {
 	0x1BA, 0x1BB, 0x1BC, 0x1BD, 0x1BE, 0x1BF,
-	0x1C0, 0x1C2, 0x1C3, 0x1C5, 0x1C6, 0x1C7, 0x1CA, 0x1CC, 0x1CD,
+	0x1C0, 0x1C2, 0x1C3, 0x1C5, 0x1C6, 0x1C7, 0x1CA, 0x1CB, 0x1CC, 0x1CD,
 	0x1D0, 0x1D1, 0x1D2, 0x1D3, 0x1D4, 0x1D5, 0x1D6, 0x1D7, 0x1D8, 0x1D9, 0x1DC, 0x1DD, 0x1DF,
 	0x1E0, 0x1E1, 0x1E2, 0x1E4, 0x1E6, 0x1E7, 0x1E8, 0x1E9, 0x1EA, 0x1EB, 0x1EC, 0x1ED, 0x1EE, 0x1EF,
-	0x1F0, 0x1F2, 0x1F3, 0x1F4, 0x1F5, 0x1F6, 0x1F7, 0x1F8, 0x1F9, 0x1FA, 0x1FB, 0x1FC,
+	0x1F0, 0x1F2, 0x1F3, 0x1F4, 0x1F5, 0x1F6, 0x1F7, 0x1F8, 0x1F9, 0x1FA, 0x1FB, 0x1FC, 0x1FD, 0x1FE,
 	0x200, 0x201, 0x204, 0x205, 0x206, 0x208, 0x209, 0x20A, 0x20C, 0x20D, 0x20E, 0x20F,
 	0x210, 0x211, 0x212, 0x213, 0x214, 0x215, 0x216, 0x217, 0x218, 0x219, 0x21A, 0x21B, 0x21E,
 	0x220, 0x221, 0x223, 0x224, 0x226, 0x227, 0x229, 0x22A, 0x22B, 0x22C, 0x22D, 0x22E
@@ -3859,6 +3860,7 @@ local function show_counters()
   local y_pos = OPTIONS.top_gap + 20*BIZHAWK_FONT_HEIGHT
 
   -- Read RAM
+  local critical_damage_timer = u16_sram(SRAM.critical_damage_timer)
   local invincibility_timer = u16_sram(SRAM.invincibility_timer)
   local eat_timer = u16_sram(SRAM.eat_timer)
   local transform_timer = u16_sram(SRAM.transform_timer)
@@ -3875,6 +3877,7 @@ local function show_counters()
   end
   
   -- List of counter calls with their conditions
+  display_counter("Critical damage", critical_damage_timer, 0, 1, 0, COLOUR.warning)
 	if not Cheat.under_free_move then
 		display_counter("Invincibility", invincibility_timer, 0, 1, 0, COLOUR.counter_invincibility)
   end
@@ -5101,8 +5104,8 @@ function Options_form.create_window()
   Options_form.cheat_position = forms.button(Options_form.form, "Position", function()
     Cheat.change_address("SRAM", SRAM.x,     "player_x", 2, true, nil, "Enter a valid x position", false)
     Cheat.change_address("SRAM", SRAM.x_sub, "player_x_sub", 1, true, nil, "Enter a valid x subpixel", false)
-    Cheat.change_address("SRAM", SRAM.y,     "Options_form.player_y", 2, true, nil, "Enter a valid y position", false)
-    Cheat.change_address("SRAM", SRAM.y_sub, "Options_form.player_y_sub", 1, true, nil, "Enter a valid y subpixel", false)
+    Cheat.change_address("SRAM", SRAM.y,     "player_y", 2, true, nil, "Enter a valid y position", false)
+    Cheat.change_address("SRAM", SRAM.y_sub, "player_y_sub", 1, true, nil, "Enter a valid y subpixel", false)
     print(fmt("Cheat: Position set to (%s.%s, %s.%s).", 
       forms.gettext(Options_form.player_x) and forms.gettext(Options_form.player_x) or "____",
       forms.gettext(Options_form.player_x_sub) and string.lower(forms.gettext(Options_form.player_x_sub)) or "__",
