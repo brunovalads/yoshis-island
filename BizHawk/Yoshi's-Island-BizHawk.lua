@@ -43,7 +43,7 @@ local DEFAULT_OPTIONS = {
   display_sprite_spawning_areas = false,
   display_level_info = true,
   display_level_extra = true,
-  display_level_layout = false,
+  display_level_layout = true,
   display_overworld_info = true,
   display_counters = true,
   display_controller_input = true,
@@ -189,7 +189,7 @@ local INPUT_KEYNAMES = {  -- BizHawk
 
 
 --##########################################################################################################################################################
--- INITIAL STATEMENTS:
+-- BIZHAWK ENVIRONMENT INIT:
 
 console.clear()
 
@@ -219,6 +219,15 @@ function Biz.check_emulator()
     end
 end
 Biz.check_emulator()
+
+-- Check if there's a ROM loaded
+function Biz.check_core()
+    Biz.core = emu.getsystemid()
+    if (Biz.core == "NULL") then
+      error("\n\nThis script only works with a core loaded.\nOpen the game ROM and run the script again.")
+    end
+end
+Biz.check_core()
 
 -- Check the name of the ROM domain (as it might have differences between cores)
 Biz.memory_domain_list = memory.getmemorydomainlist()
@@ -256,19 +265,23 @@ Biz.SRAM_domain = Biz.check_SRAM_domain()
 
 print("Starting Yoshi's Island script\n")
 
+
+--##########################################################################################################################################################
+-- SCRIPT UTILITIES:
+
 -- Load environment
 local gui, input, joypad, emu, movie, memory = gui, input, joypad, emu, movie, memory
 local unpack = unpack or table.unpack
 local string, math, table, next, ipairs, pairs, io, os, type = string, math, table, next, ipairs, pairs, io, os, type
 --local bit = require"bit"
 
-
--- TEST: INI library for handling an ini configuration file
+-- Check if file exists
 function file_exists(name)
   local f = io.open(name, "r")
   if f ~= nil then io.close(f) return true else return false end
 end
 
+-- Deep copy of a Lua table
 function copytable(orig)
   local orig_type = type(orig)
   local copy
@@ -284,6 +297,7 @@ function copytable(orig)
   return copy
 end
 
+-- Merge two Lua tables
 function mergetable(source, t2)
   for key, value in pairs(t2) do
     if type(value) == "table" then
@@ -306,9 +320,9 @@ local function make_set(list)
   return set
 end
 
+-- Load default options
 local OPTIONS =  DEFAULT_OPTIONS
 local COLOUR = DEFAULT_COLOUR
-
 
 -- Text/Background_max_opacity is only changed by the player using the hotkeys
 -- Text/Bg_opacity must be used locally inside the functions
@@ -325,9 +339,9 @@ local sqrt = math.sqrt
 local sin = math.sin
 local cos = math.cos
 local pi = math.pi
-local function math_round(number, dec_places)
+local function round(number, dec_places)
   local mult = 10^(dec_places or 0)
-  return math.floor(number * mult + 0.5) / mult
+  return floor(number * mult + 0.5) / mult
 end
 
 -- Rename gui functions
@@ -361,6 +375,11 @@ local u24_sram = memory.read_u24_le
 local s24_sram = memory.read_s24_le
 local w24_sram = memory.write_u24_le
 
+-- General emu globals
+local User_input = INPUT_KEYNAMES
+local Joypad = {}
+local Is_lagged = nil
+
 -- Get screen dimensions of the game and emulator
 local Screen_width, Screen_height, Buffer_width, Buffer_height, Buffer_middle_x, Buffer_middle_y, Border_right_start, Border_bottom_start, Scale_x, Scale_y
 local function bizhawk_screen_info()
@@ -388,13 +407,569 @@ end
 
 --[[ Hotkeys availability
 if INPUT_KEYNAMES[OPTIONS.hotkey_increase_opacity] == nil then
-     print(string.format("Hotkey '%s' is not available, to increase opacity.", OPTIONS.hotkey_increase_opacity))
-else print(string.format("Hotkey '%s' set to increase opacity.", OPTIONS.hotkey_increase_opacity))
+     print(fmt("Hotkey '%s' is not available, to increase opacity.", OPTIONS.hotkey_increase_opacity))
+else print(fmt("Hotkey '%s' set to increase opacity.", OPTIONS.hotkey_increase_opacity))
 end
 if INPUT_KEYNAMES[OPTIONS.hotkey_decrease_opacity] == nil then
-     print(string.format("Hotkey '%s' is not available, to decrease opacity.", OPTIONS.hotkey_decrease_opacity))
-else print(string.format("Hotkey '%s' set to decrease opacity.", OPTIONS.hotkey_decrease_opacity))
+     print(fmt("Hotkey '%s' is not available, to decrease opacity.", OPTIONS.hotkey_decrease_opacity))
+else print(fmt("Hotkey '%s' set to decrease opacity.", OPTIONS.hotkey_decrease_opacity))
 end]]
+
+
+
+
+
+-- Returns the exact chosen digit of a number from the left to the right, in a given base
+-- E.g.: read_digit(654321, 2, 10) -> 5; read_digit(0x4B7A, 3, 16) -> 7
+local function read_digit(number, digit, base)
+  --assert(type(number) == "number" and number >= 0 and number%1 == 0, "Enter an integer number > 0")
+  --assert(type(digit) == "number" and digit > 0 and digit%1 == 0, "Enter an integer digit > 0")
+  --assert(type(base) == "number" and base > 1 and base%1 == 0, "Enter an integer base > 1")
+  
+  local copy = number
+  local digits_total = 0
+  while copy >= 1 do
+    copy = floor(copy/base)
+    digits_total = digits_total + 1
+  end
+  
+  if digit > digits_total then return false end
+  
+  local result = floor(number/base^(digits_total - digit))
+  return result%base
+end
+
+-- Converts unsigned 16 bit numbers to signed
+function signed16(num)
+  local maxval = 32768
+  if num < maxval then return num else return num - 2*maxval end
+end
+
+-- Transform the binary representation of base into a string
+-- For instance, if each bit of a number represents a char of base, then this function verifies what chars are on
+local function decode_bits(data, base)
+  local i = 1
+  local size = base:len()
+  local direct_concatenation = size <= 45  -- Performance: I found out that the .. operator is faster for 45 operations or less
+  local result
+  
+  if direct_concatenation then
+    result = ""
+    for ch in base:gmatch(".") do
+      if bit.check(data, size - i) then
+        result = result .. ch
+      else
+        result = result .. " "
+      end
+      i = i + 1
+    end
+  else
+    result = {}
+    for ch in base:gmatch(".") do
+      if bit.check(data, size-i) then
+        result[i] = ch
+      else
+        result[i] = " "
+      end
+      i = i + 1
+    end
+    result = table.concat(result)
+  end
+  
+  return result
+end
+
+-- Transform the binary representation of base into a string
+-- For instance, if each bit of a number represents a char of base, then this function verifies what chars are on
+local function decode_bits_new(data, base)
+  local i = 1
+  local size = base:len()
+  local direct_concatenation = size <= 45  -- Performance: I found out that the .. operator is faster for 45 operations or less
+  local result
+  
+  if direct_concatenation then
+    result = ""
+    for ch in base:gmatch(".") do
+      if bit.check(data, size - i) then
+        result = result .. "X"
+      else
+        result = result .. "o"
+      end
+      i = i + 1
+    end
+  else
+    result = {}
+    for ch in base:gmatch(".") do
+      if bit.check(data, size-i) then
+        result[i] = "X"
+      else
+        result[i] = "o"
+      end
+      i = i + 1
+    end
+    result = table.concat(result)
+  end
+  
+  return result
+end
+
+-- Verify if a point is inside a rectangle with corners (x1, y1) and (x2, y2)
+local function is_inside_rectangle(xpoint, ypoint, x1, y1, x2, y2)
+  -- From top-left to bottom-right
+  if x2 < x1 then
+    x1, x2 = x2, x1
+  end
+  if y2 < y1 then
+    y1, y2 = y2, y1
+  end
+
+  if xpoint >= x1 and xpoint <= x2 and ypoint >= y1 and ypoint <= y2 then
+    return true
+  else
+    return false
+  end
+end
+
+-- Check if mouse is inside rectangle defined by x1, y1, x2, y2
+local function mouse_onregion(x1, y1, x2, y2)
+  -- Reads external mouse coordinates
+  local mouse_x = User_input.xmouse
+  local mouse_y = User_input.ymouse
+  
+  return is_inside_rectangle(mouse_x, mouse_y, x1, y1, x2, y2)
+end
+
+-- Register a function to be executed on key press or release
+-- execution happens in the main loop
+local Keys = {}
+Keys.press = {}
+Keys.release = {}
+Keys.down, Keys.up, Keys.pressed, Keys.released = {}, {}, {}, {}
+function Keys.registerkeypress(key, fn)
+  Keys.press[key] = fn
+end
+function Keys.registerkeyrelease(key, fn)
+  Keys.release[key] = fn
+end
+
+local Movie_active, Readonly, Framecount, Lagcount, Rerecords
+local Lastframe_emulated, Nextframe
+local function bizhawk_status()
+  Movie_active = movie.isloaded()  -- BizHawk
+  Readonly = movie.getreadonly()  -- BizHawk
+  if Movie_active then
+    Framecount = movie.length()  -- BizHawk
+    Rerecords = movie.getrerecordcount()  -- BizHawk
+  end
+  Lagcount = emu.lagcount()  -- BizHawk
+  Is_lagged = emu.islagged()  -- BizHawk
+
+  -- Last frame info
+  Lastframe_emulated = emu.framecount()
+
+  -- Next frame info (only relevant in readonly mode)
+  Nextframe = Lastframe_emulated + 1
+end
+
+-- Draw an arrow given (x1, y1) and (x2, y2)
+local function draw_arrow(x1, y1, x2, y2, colour, head)
+  
+  local angle = math.atan((y2-y1)/(x2-x1)) -- in radians
+  
+  -- Arrow head
+  local head_size = head or 10
+  local angle1, angle2 = angle + pi/4, angle - pi/4 --0.785398163398, angle - 0.785398163398 -- 45° in radians
+  local delta_x1, delta_y1 = floor(head_size*cos(angle1)), floor(head_size*sin(angle1))
+  local delta_x2, delta_y2 = floor(head_size*cos(angle2)), floor(head_size*sin(angle2))
+  local head1_x1, head1_y1 = x2, y2 
+  local head1_x2, head1_y2 
+  local head2_x1, head2_y1 = x2, y2
+  local head2_x2, head2_y2
+  
+  if x1 < x2 then -- 1st and 4th quadrant
+    head1_x2, head1_y2 = head1_x1 - delta_x1, head1_y1 - delta_y1
+    head2_x2, head2_y2 = head2_x1 - delta_x2, head2_y1 - delta_y2
+  elseif x1 == x2 then -- vertical arrow
+    head1_x2, head1_y2 = head1_x1 - delta_x1, head1_y1 - delta_y1
+    head2_x2, head2_y2 = head2_x1 - delta_x2, head2_y1 - delta_y2
+  else
+    head1_x2, head1_y2 = head1_x1 + delta_x1, head1_y1 + delta_y1
+    head2_x2, head2_y2 = head2_x1 + delta_x2, head2_y1 + delta_y2
+  end
+  
+  -- Draw
+  draw_line(x1, y1, x2, y2, colour)
+  draw_line(head1_x1, head1_y1, head1_x2, head1_y2, colour)
+  draw_line(head2_x1, head2_y1, head2_x2, head2_y2, colour)
+end
+
+-- Changes transparency of a colour: result is opaque original * transparency level (0.0 to 1.0)
+local function change_transparency(colour, transparency)
+  -- Sane transparency
+  if transparency >= 1 then return colour end  -- no transparency
+  if transparency <= 0 then return 0 end   -- total transparency
+
+  -- Sane colour
+  if colour == 0 then return 0 end
+  if type(colour) ~= "number" then
+    print(colour)
+    error"Wrong colour"
+  end
+
+  local a = floor(colour/0x1000000)
+  local rgb = colour - a*0x1000000
+  local new_a = floor(a*transparency)
+  return new_a*0x1000000 + rgb
+end
+
+-- returns the (x, y) position to start the text and its length:
+-- number, number, number text_position(x, y, text, font_width, font_height[[[[, always_on_client], always_on_game], ref_x], ref_y])
+-- x, y: the coordinates that the refereed point of the text must have
+-- text: a string, don't make it bigger than the buffer area width and don't include escape characters
+-- font_width, font_height: the sizes of the font
+-- always_on_client, always_on_game: boolean
+-- ref_x and ref_y: refer to the relative point of the text that must occupy the origin (x,y), from 0% to 100%
+--                  for instance, if you want to display the middle of the text in (x, y), then use 0.5, 0.5
+local function text_position(x, y, text, font_width, font_height, always_on_client, always_on_game, ref_x, ref_y)
+  -- Reads external variables
+  local buffer_left     = OPTIONS.left_gap
+  local buffer_right    = Border_right_start
+  local buffer_top      = OPTIONS.top_gap
+  local buffer_bottom   = Border_bottom_start
+  local screen_left     = 0
+  local screen_right    = Screen_width
+  local screen_top      = 0
+  local screen_bottom   = Screen_height
+  
+  -- text processing
+  local text_length = text and string.len(text)*font_width or font_width  -- considering another objects, like bitmaps
+  
+  -- actual position, relative to game area origin
+  x = (not ref_x and x) or (ref_x == 0 and x) or x - floor(text_length*ref_x)
+  y = (not ref_y and y) or (ref_y == 0 and y) or y - floor(font_height*ref_y)
+  
+  -- adjustment needed if text is supposed to be on screen area
+  local x_end = x + text_length
+  local y_end = y + font_height
+  
+  if always_on_game then
+    if x < buffer_left then x = buffer_left end
+    if y < buffer_top then y = buffer_top end
+    
+    if x_end > buffer_right  then x = buffer_right  - text_length end
+    if y_end > buffer_bottom then y = buffer_bottom - font_height end
+    
+  elseif always_on_client then
+    if x < screen_left + 1 then x = screen_left + 1 end -- +1 to avoid printing touching the screen border
+    if y < screen_top + 1 then y = screen_top + 1 end
+    
+    if x_end > screen_right - 1  then x = screen_right  - text_length - 1 end -- -1 to avoid printing touching the screen border
+    if y_end > screen_bottom - 1 then y = screen_bottom - font_height - 1 end
+  end
+  
+  return x, y, text_length
+end
+
+
+-- Complex function for drawing, that uses text_position
+local function draw_text(x, y, text, ...)
+  -- Reads external variables
+  local font_width  = BIZHAWK_FONT_WIDTH
+  local font_height = BIZHAWK_FONT_HEIGHT
+  local bg_default_colour = COLOUR.background
+  local text_colour, bg_colour, always_on_client, always_on_game, ref_x, ref_y
+  local arg1, arg2, arg3, arg4, arg5, arg6 = ...
+  
+  if not arg1 or arg1 == true then
+    
+    text_colour = COLOUR.text
+    bg_colour = bg_default_colour
+    always_on_client, always_on_game, ref_x, ref_y = arg1, arg2, arg3, arg4
+    
+  elseif not arg2 or arg2 == true then
+    
+    text_colour = arg1
+    bg_colour = bg_default_colour
+    always_on_client, always_on_game, ref_x, ref_y = arg2, arg3, arg4, arg5
+    
+  else
+    
+    text_colour, bg_colour = arg1, arg2
+    always_on_client, always_on_game, ref_x, ref_y = arg3, arg4, arg5, arg6
+    
+  end
+  
+  local x_pos, y_pos, length = text_position(x, y, text, font_width, font_height, always_on_client, always_on_game, ref_x, ref_y)
+
+  text_colour = change_transparency(text_colour, Text_opacity)
+  
+  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_colour)
+  
+  return x_pos + length, y_pos + font_height, length
+end
+
+
+local function alert_text(x, y, text, text_colour, bg_colour, always_on_game, ref_x, ref_y)
+  -- Reads external variables
+  local font_width  = BIZHAWK_FONT_WIDTH
+  local font_height = BIZHAWK_FONT_HEIGHT
+  
+  local x_pos, y_pos, text_length = text_position(x, y, text, font_width, font_height, true, always_on_game, ref_x, ref_y)
+  
+  text_colour = change_transparency(text_colour, Text_opacity)
+  
+  draw_rectangle(x_pos, y_pos, text_length - 1, font_height - 1, bg_colour, bg_colour)
+  
+  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_colour)
+end
+
+local function draw_over_text(x, y, value, base, colour_base, colour_value, colour_bg, always_on_client, always_on_game, ref_x, ref_y)
+  value = decode_bits(value, base)
+  local x_end, y_end, length = draw_text(x, y, base,  colour_base, colour_bg, always_on_client, always_on_game, ref_x, ref_y)
+  --gui.opacity(Text_max_opacity * Text_opacity)
+  gui.text(Scale_x*(x_end - length), Scale_y*(y_end - BIZHAWK_FONT_HEIGHT), value, colour_value or COLOUR.text)
+  --gui.opacity(1.0)
+  
+  return x_end, y_end, length
+end
+
+-- Returns frames-time conversion
+local function frame_time(frame)
+  if not NTSC_FRAMERATE then error("NTSC_FRAMERATE undefined."); return end
+  
+  local total_seconds = frame/NTSC_FRAMERATE
+  local hours = floor(total_seconds/3600)
+  local tmp = total_seconds - 3600*hours
+  local minutes = floor(tmp/60)
+  tmp = tmp - 60*minutes
+  local seconds = floor(tmp)
+  
+  local miliseconds = 1000* (total_seconds%1)
+  if hours == 0 then hours = "" else hours = fmt("%d:", hours) end
+  local str = fmt("%s%.2d:%.2d.%03.0f", hours, minutes, seconds, miliseconds)
+  return str
+end
+
+-- Returns the current frames-per-second number for the emulation
+local FPS = {frames = 0, second = os.time(), fps = 0}
+local function get_fps() -- TODO: figure out way to update value every frame, not only when second changes (maybe this is impossible with Lua)
+  -- Increase frame counter in this second
+  FPS.frames = FPS.frames + 1
+  
+  -- If second advanced, make current frame counter the new fps and reset
+  if os.time() ~= FPS.second then
+    FPS.fps = FPS.frames
+    FPS.frames = 0
+    FPS.second = os.time()
+  end
+end
+
+-- displays a button everytime in (x,y)
+-- object can be a text or a dbitmap
+-- if user clicks onto it, fn is executed once
+local Script_buttons = {}
+local function create_button(x, y, object, fn, extra_options)
+  local always_on_client, always_on_game, ref_x, ref_y, button_pressed
+  if extra_options then
+    always_on_client, always_on_game, ref_x, ref_y, button_pressed =
+    extra_options.always_on_client, extra_options.always_on_game, extra_options.ref_x, extra_options.ref_y, extra_options.button_pressed
+  end
+  
+  local width, height
+  local object_type = type(object)
+  
+  if object_type == "string" then
+    width, height = BIZHAWK_FONT_WIDTH, BIZHAWK_FONT_HEIGHT
+    x, y, width = text_position(x, y, object, width, height, always_on_client, always_on_game, ref_x, ref_y)
+  elseif object_type == "boolean" then
+    width, height = BIZHAWK_FONT_WIDTH, BIZHAWK_FONT_HEIGHT
+    x, y = text_position(x, y, nil, width, height, always_on_client, always_on_game, ref_x, ref_y)
+  else error"Type of buttton not supported yet"
+  end
+  
+  -- draw the button
+  if button_pressed then
+    draw_rectangle(x, y, width, height, "white", 0xffd8d8d8)  -- unlisted colours
+  else
+    draw_rectangle(x, y, width, height, 0xff606060, 0xffb0b0b0)
+  end
+  gui.line(x, y, x + width, y, button_pressed and 0xff606060 or "white")
+  gui.line(x, y, x, y + height, button_pressed and 0xff606060 or "white")
+  
+  if object_type == "string" then
+    gui.text(x + 1, y + 1, object, COLOUR.button_text, 0)
+  elseif object_type == "boolean" then
+    draw_rectangle(x + 1, y + 1, width - 2, height - 2, 0x8000ff00, 0xc000ff00)
+  end
+  
+  -- updates the table of buttons
+  table.insert(Script_buttons, {x = x, y = y, width = width, height = height, object = object, action = fn})
+end
+
+-- Gets input of the 1st controller / Might be deprecated someday...
+local Joypad = {}
+local function get_joypad()
+  Joypad = joypad.get(1)
+  for button, status in pairs(Joypad) do
+    Joypad[button] = status and 1 or 0
+  end
+end
+
+-- Dark filter to make lua drawings easier to see
+local function dark_filter()
+  if not OPTIONS.draw_dark_filter then return end
+  
+  local filter_colour = OPTIONS.dark_filter_opacity * 0x11000000
+  draw_rectangle(OPTIONS.left_gap, OPTIONS.top_gap, 256-1, 224-1, filter_colour, filter_colour)
+end
+
+-- Create a file based on a hex string
+local function hex_to_file(filename, hex)
+  
+  -- Return if file already exist for some reason (it avoid some issue where BizHawk still handles created images even after 
+  if file_exists(filename) then return end
+  
+  -- Create file in binary mode, if possible (it will create in the same folder of the script)
+  local output_file = assert(io.open(filename, "wb"), fmt("CAN'T CREATE %s FILE! Check if the program/user has the permissions for this folder.", filename))
+  
+  -- Read the hex dump, one byte at time, transforming it in chars to write the file
+  for i = 1, string.len(hex)/2 do
+    local char = string.char(tonumber(hex:sub(2*i-1, 2*i), 16))
+    output_file:write(char)
+  end
+  
+  -- Save and close file
+  assert(output_file:close())
+end
+
+-- Function to decode a `memory.readbyterange` table into different data sizes, with different endianness and signedness:
+-- `values` is the table you want to decode, the `memory.readbyterange` return
+-- `size` is the split size, an integer between 1 and 6 bytes (Lua has precision issue with numbers bigger than 2^53, i guess you won't need that)
+-- `big_endian`, if you pass as `true` it will treat as big endian, if false (or nil, empty) will be little endian
+-- `signed`, if you pass as `true` it will treat as signed, if false (or nil, empty) will be unsigned
+local function byterange_decode(values, size, big_endian, signed)
+  -- Error handling
+  if type(values) ~= "table" then print("Insert correct memory.readbyterange table!") ; return end
+  if not size or size < 1 or size > 6 then print("Insert correct size value! Can accept values between 1 and 6.") ; return end
+  if size > #values+1 then print("Size is bigger than the memory.readbyterange table!") ; return end -- +1 due table 0 indexed
+  
+  local output = {}
+  
+  -- Loop thru table
+  for i = 0, (floor((#values+1)/3)*3-1), size do -- math to handle table size divisibility by the data size
+    
+    local out_value = 0
+    
+    -- Loop to correctly calculate the number based on the endianess
+    for j = 0, size-1 do
+      if big_endian then
+        out_value = out_value + values[i+j]*(0x100^(size-1-j))   -- {AA, BB} -> AA00 + BB = AABB
+      else
+        out_value = out_value + values[i+j]*(0x100^j) -- {AA, BB} -> AA + BB00 = BBAA
+      end
+    end
+    
+    -- Check signedness
+    if signed then
+      local maxval = (0x100^size)/2
+      if out_value >= maxval then out_value = out_value - 2*maxval end
+    end
+    
+    -- Save final value
+    output[i/size] = out_value
+  end
+  
+  -- Warning if there were remaining bytes
+  if (#values+1)%size ~= 0 then print(fmt("%d byte(s) left, due to the selected size or memory.readbyterange size!", (#values+1)%size)) end -- +1 due table 0 indexed
+
+  return output
+end
+
+-- Simple Lua "wait/sleep" function, using seconds
+function wait(n)  -- seconds
+    local t0 = os.clock()
+    while os.clock() - t0 <= n do end
+end
+
+-- ############################################################
+-- From gocha's
+
+local pad_max = 2
+local pad_press, pad_down, pad_up, pad_prev, pad_send = {}, {}, {}, {}, {}
+local pad_presstime = {}
+for player = 1, pad_max do
+  pad_press[player] = {}
+  pad_presstime[player] = { start=0, select=0, up=0, down=0, left=0, right=0, A=0, B=0, X=0, Y=0, L=0, R=0 }
+end
+
+local dev_press, dev_down, dev_up, dev_prev = input.get(), {}, {}, {}
+local dev_presstime = {
+  xmouse=0, ymouse=0, leftclick=0, rightclick=0, middleclick=0,
+  shift=0, control=0, alt=0, capslock=0, numlock=0, scrolllock=0,
+  ["0"]=0, ["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0, ["8"]=0, ["9"]=0,
+  A=0, B=0, C=0, D=0, E=0, F=0, G=0, H=0, I=0, J=0, K=0, L=0, M=0, N=0, O=0, P=0, Q=0, R=0, S=0, T=0, U=0, V=0, W=0, X=0, Y=0, Z=0,
+  F1=0, F2=0, F3=0, F4=0, F5=0, F6=0, F7=0, F8=0, F9=0, F10=0, F11=0, F12=0,
+  F13=0, F14=0, F15=0, F16=0, F17=0, F18=0, F19=0, F20=0, F21=0, F22=0, F23=0, F24=0,
+  backspace=0, tab=0, enter=0, pause=0, escape=0, space=0,
+  pageup=0, pagedown=0, ["end"]=0, home=0, insert=0, delete=0,
+  left=0, up=0, right=0, down=0,
+  numpad0=0, numpad1=0, numpad2=0, numpad3=0, numpad4=0, numpad5=0, numpad6=0, numpad7=0, numpad8=0, numpad9=0,
+  ["numpad*"]=0, ["numpad+"]=0, ["numpad-"]=0, ["numpad."]=0, ["numpad/"]=0,
+  tilde=0, plus=0, minus=0, leftbracket=0, rightbracket=0,
+  semicolon=0, quote=0, comma=0, period=0, slash=0, backslash=0
+}
+
+-- Scan button presses
+function scanJoypad()
+  for i = 1, pad_max do
+    pad_prev[i] = copytable(pad_press[i])
+    pad_press[i] = joypad.get(i)
+    pad_send[i] = copytable(pad_press[i])
+    -- scan keydowns, keyups
+    pad_down[i] = {}
+    pad_up[i] = {}
+    for k in pairs(pad_press[i]) do
+      pad_down[i][k] = (pad_press[i][k] and not pad_prev[i][k])
+      pad_up[i][k] = (pad_prev[i][k] and not pad_press[i][k])
+    end
+    -- count press length
+    for k in pairs(pad_press[i]) do
+      if not pad_press[i][k] then
+        pad_presstime[i][k] = 0
+      else
+        pad_presstime[i][k] = pad_presstime[i][k] + 1
+      end
+    end
+  end
+end
+
+-- Scan keyboard/mouse input
+local function scanInputDevs()
+  dev_prev = copytable(dev_press)
+  dev_press = input.get()
+  -- scan keydowns, keyups
+  dev_down = {}
+  dev_up = {}
+  for k in pairs(dev_presstime) do
+    dev_down[k] = (dev_press[k] and not dev_prev[k])
+    dev_up[k] = (dev_prev[k] and not dev_press[k])
+  end
+  -- count press length
+  for k in pairs(dev_presstime) do
+    if not dev_press[k] then
+      dev_presstime[k] = 0
+    else
+      dev_presstime[k] = dev_presstime[k] + 1
+    end
+  end
+end
+
+-- Send button presses
+function sendJoypad()
+    for i = 1, pad_max do
+      joypad.set(i, pad_send[i])
+    end
+end
 
 
 --##########################################################################################################################################################
@@ -1257,19 +1832,12 @@ YI.image_hex = {
   {name = "yoshi_icon.png", hex = "89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF61000000017352474200AECE1CE90000000467414D410000B18F0BFC6105000000097048597300000EC300000EC301C76FA8640000001974455874536F667477617265007061696E742E6E657420342E302E31364469AFF50000009449444154384FA58F010EC0200803FDC69EB1FF3F6A4F602B881687D98C24A7D094CE1511D922159D721501A3CEF4A69A930514CF013B6CA905508897FA32ECA0450E18E70C3BC84866ADA09D87DD446F2601A85F0113BCD265F01208D4A7168607A12FC5A7579D7E51698D42461CB879A1F628F343E3210B70B01C02FC453A3831A0B9878ABFA4C22A1B01B65897C1685844CA0D1E68E5A8ECA38AF50000000049454E44AE426082"},
 }
 
---##########################################################################################################################################################
--- SCRIPT UTILITIES:
-
-
 -- Variables used in various functions
 local Cheat = {}  -- family of cheat functions and variables
 local Previous = {}
-local User_input = INPUT_KEYNAMES
 local Tiletable = {}
-local Joypad = {}
 local Layer1_tiles = {}
 local Layer2_tiles = {}
-local Is_lagged = nil
 local Options_form = {}
 local Sprite_tables_form = {}
 local Level_map_form = {}
@@ -1286,565 +1854,6 @@ for i = 0, YI.sprite_max -1 do
   Sprites_info[i].x_centered, Sprites_info[i].y_centered = 0, 0
   Sprites_info[i].x_center_offset, Sprites_info[i].y_center_offset = 0, 0
   Sprites_info[i].sprite_half_width, Sprites_info[i].sprite_half_height = 0, 0
-end
-
--- Returns the exact chosen digit of a number from the left to the right, in a given base
--- E.g.: read_digit(654321, 2, 10) -> 5; read_digit(0x4B7A, 3, 16) -> 7
-local function read_digit(number, digit, base)
-  --assert(type(number) == "number" and number >= 0 and number%1 == 0, "Enter an integer number > 0")
-  --assert(type(digit) == "number" and digit > 0 and digit%1 == 0, "Enter an integer digit > 0")
-  --assert(type(base) == "number" and base > 1 and base%1 == 0, "Enter an integer base > 1")
-  
-  local copy = number
-  local digits_total = 0
-  while copy >= 1 do
-    copy = math.floor(copy/base)
-    digits_total = digits_total + 1
-  end
-  
-  if digit > digits_total then return false end
-  
-  local result = math.floor(number/base^(digits_total - digit))
-  return result%base
-end
-
--- Converts unsigned 16 bit numbers to signed
-function signed16(num)
-  local maxval = 32768
-  if num < maxval then return num else return num - 2*maxval end
-end
-
--- Transform the binary representation of base into a string
--- For instance, if each bit of a number represents a char of base, then this function verifies what chars are on
-local function decode_bits(data, base)
-  local i = 1
-  local size = base:len()
-  local direct_concatenation = size <= 45  -- Performance: I found out that the .. operator is faster for 45 operations or less
-  local result
-  
-  if direct_concatenation then
-    result = ""
-    for ch in base:gmatch(".") do
-      if bit.check(data, size - i) then
-        result = result .. ch
-      else
-        result = result .. " "
-      end
-      i = i + 1
-    end
-  else
-    result = {}
-    for ch in base:gmatch(".") do
-      if bit.check(data, size-i) then
-        result[i] = ch
-      else
-        result[i] = " "
-      end
-      i = i + 1
-    end
-    result = table.concat(result)
-  end
-  
-  return result
-end
-
--- Transform the binary representation of base into a string
--- For instance, if each bit of a number represents a char of base, then this function verifies what chars are on
-local function decode_bits_new(data, base)
-  local i = 1
-  local size = base:len()
-  local direct_concatenation = size <= 45  -- Performance: I found out that the .. operator is faster for 45 operations or less
-  local result
-  
-  if direct_concatenation then
-    result = ""
-    for ch in base:gmatch(".") do
-      if bit.check(data, size - i) then
-        result = result .. "X"
-      else
-        result = result .. "o"
-      end
-      i = i + 1
-    end
-  else
-    result = {}
-    for ch in base:gmatch(".") do
-      if bit.check(data, size-i) then
-        result[i] = "X"
-      else
-        result[i] = "o"
-      end
-      i = i + 1
-    end
-    result = table.concat(result)
-  end
-  
-  return result
-end
-
--- Verify if a point is inside a rectangle with corners (x1, y1) and (x2, y2)
-local function is_inside_rectangle(xpoint, ypoint, x1, y1, x2, y2)
-  -- From top-left to bottom-right
-  if x2 < x1 then
-    x1, x2 = x2, x1
-  end
-  if y2 < y1 then
-    y1, y2 = y2, y1
-  end
-
-  if xpoint >= x1 and xpoint <= x2 and ypoint >= y1 and ypoint <= y2 then
-    return true
-  else
-    return false
-  end
-end
-
-
-local function mouse_onregion(x1, y1, x2, y2)
-  -- Reads external mouse coordinates
-  local mouse_x = User_input.xmouse
-  local mouse_y = User_input.ymouse
-  
-  return is_inside_rectangle(mouse_x, mouse_y, x1, y1, x2, y2)
-end
-
-
--- Register a function to be executed on key press or release
--- execution happens in the main loop
-local Keys = {}
-Keys.press = {}
-Keys.release = {}
-Keys.down, Keys.up, Keys.pressed, Keys.released = {}, {}, {}, {}
-function Keys.registerkeypress(key, fn)
-  Keys.press[key] = fn
-end
-function Keys.registerkeyrelease(key, fn)
-  Keys.release[key] = fn
-end
-
-
-local Movie_active, Readonly, Framecount, Lagcount, Rerecords
-local Lastframe_emulated, Nextframe
-local function bizhawk_status()
-  Movie_active = movie.isloaded()  -- BizHawk
-  Readonly = movie.getreadonly()  -- BizHawk
-  if Movie_active then
-    Framecount = movie.length()  -- BizHawk
-    Rerecords = movie.getrerecordcount()  -- BizHawk
-  end
-  Lagcount = emu.lagcount()  -- BizHawk
-  Is_lagged = emu.islagged()  -- BizHawk
-
-  -- Last frame info
-  Lastframe_emulated = emu.framecount()
-
-  -- Next frame info (only relevant in readonly mode)
-  Nextframe = Lastframe_emulated + 1
-end
-
-
--- Draw an arrow given (x1, y1) and (x2, y2)
-local function draw_arrow(x1, y1, x2, y2, colour, head)
-	
-	local angle = math.atan((y2-y1)/(x2-x1)) -- in radians
-	
-	-- Arrow head
-	local head_size = head or 10
-	local angle1, angle2 = angle + math.pi/4, angle - math.pi/4 --0.785398163398, angle - 0.785398163398 -- 45° in radians
-	local delta_x1, delta_y1 = floor(head_size*math.cos(angle1)), floor(head_size*math.sin(angle1))
-	local delta_x2, delta_y2 = floor(head_size*math.cos(angle2)), floor(head_size*math.sin(angle2))
-	local head1_x1, head1_y1 = x2, y2 
-	local head1_x2, head1_y2 
-	local head2_x1, head2_y1 = x2, y2
-	local head2_x2, head2_y2
-	
-	if x1 < x2 then -- 1st and 4th quadrant
-		head1_x2, head1_y2 = head1_x1 - delta_x1, head1_y1 - delta_y1
-		head2_x2, head2_y2 = head2_x1 - delta_x2, head2_y1 - delta_y2
-	elseif x1 == x2 then -- vertical arrow
-		head1_x2, head1_y2 = head1_x1 - delta_x1, head1_y1 - delta_y1
-		head2_x2, head2_y2 = head2_x1 - delta_x2, head2_y1 - delta_y2
-	else
-		head1_x2, head1_y2 = head1_x1 + delta_x1, head1_y1 + delta_y1
-		head2_x2, head2_y2 = head2_x1 + delta_x2, head2_y1 + delta_y2
-	end
-	
-	-- Draw
-	draw_line(x1, y1, x2, y2, colour)
-	draw_line(head1_x1, head1_y1, head1_x2, head1_y2, colour)
-	draw_line(head2_x1, head2_y1, head2_x2, head2_y2, colour)
-end
-
-
--- Changes transparency of a colour: result is opaque original * transparency level (0.0 to 1.0)
-local function change_transparency(colour, transparency)
-  -- Sane transparency
-  if transparency >= 1 then return colour end  -- no transparency
-  if transparency <= 0 then return 0 end   -- total transparency
-
-  -- Sane colour
-  if colour == 0 then return 0 end
-  if type(colour) ~= "number" then
-    print(colour)
-    error"Wrong colour"
-  end
-
-  local a = floor(colour/0x1000000)
-  local rgb = colour - a*0x1000000
-  local new_a = floor(a*transparency)
-  return new_a*0x1000000 + rgb
-end
-
-
--- returns the (x, y) position to start the text and its length:
--- number, number, number text_position(x, y, text, font_width, font_height[[[[, always_on_client], always_on_game], ref_x], ref_y])
--- x, y: the coordinates that the refereed point of the text must have
--- text: a string, don't make it bigger than the buffer area width and don't include escape characters
--- font_width, font_height: the sizes of the font
--- always_on_client, always_on_game: boolean
--- ref_x and ref_y: refer to the relative point of the text that must occupy the origin (x,y), from 0% to 100%
---                  for instance, if you want to display the middle of the text in (x, y), then use 0.5, 0.5
-local function text_position(x, y, text, font_width, font_height, always_on_client, always_on_game, ref_x, ref_y)
-  -- Reads external variables
-  local buffer_left     = OPTIONS.left_gap
-  local buffer_right    = Border_right_start
-  local buffer_top      = OPTIONS.top_gap
-  local buffer_bottom   = Border_bottom_start
-  local screen_left     = 0
-  local screen_right    = Screen_width
-  local screen_top      = 0
-  local screen_bottom   = Screen_height
-  
-  -- text processing
-  local text_length = text and string.len(text)*font_width or font_width  -- considering another objects, like bitmaps
-  
-  -- actual position, relative to game area origin
-  x = (not ref_x and x) or (ref_x == 0 and x) or x - floor(text_length*ref_x)
-  y = (not ref_y and y) or (ref_y == 0 and y) or y - floor(font_height*ref_y)
-  
-  -- adjustment needed if text is supposed to be on screen area
-  local x_end = x + text_length
-  local y_end = y + font_height
-  
-  if always_on_game then
-    if x < buffer_left then x = buffer_left end
-    if y < buffer_top then y = buffer_top end
-    
-    if x_end > buffer_right  then x = buffer_right  - text_length end
-    if y_end > buffer_bottom then y = buffer_bottom - font_height end
-    
-  elseif always_on_client then
-    if x < screen_left + 1 then x = screen_left + 1 end -- +1 to avoid printing touching the screen border
-    if y < screen_top + 1 then y = screen_top + 1 end
-    
-    if x_end > screen_right - 1  then x = screen_right  - text_length - 1 end -- -1 to avoid printing touching the screen border
-    if y_end > screen_bottom - 1 then y = screen_bottom - font_height - 1 end
-  end
-  
-  return x, y, text_length
-end
-
-
--- Complex function for drawing, that uses text_position
-local function draw_text(x, y, text, ...)
-  -- Reads external variables
-  local font_width  = BIZHAWK_FONT_WIDTH
-  local font_height = BIZHAWK_FONT_HEIGHT
-  local bg_default_colour = COLOUR.background
-  local text_colour, bg_colour, always_on_client, always_on_game, ref_x, ref_y
-  local arg1, arg2, arg3, arg4, arg5, arg6 = ...
-  
-  if not arg1 or arg1 == true then
-    
-    text_colour = COLOUR.text
-    bg_colour = bg_default_colour
-    always_on_client, always_on_game, ref_x, ref_y = arg1, arg2, arg3, arg4
-    
-  elseif not arg2 or arg2 == true then
-    
-    text_colour = arg1
-    bg_colour = bg_default_colour
-    always_on_client, always_on_game, ref_x, ref_y = arg2, arg3, arg4, arg5
-    
-  else
-    
-    text_colour, bg_colour = arg1, arg2
-    always_on_client, always_on_game, ref_x, ref_y = arg3, arg4, arg5, arg6
-    
-  end
-  
-  local x_pos, y_pos, length = text_position(x, y, text, font_width, font_height, always_on_client, always_on_game, ref_x, ref_y)
-
-  text_colour = change_transparency(text_colour, Text_opacity)
-  
-  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_colour)
-  
-  return x_pos + length, y_pos + font_height, length
-end
-
-
-local function alert_text(x, y, text, text_colour, bg_colour, always_on_game, ref_x, ref_y)
-  -- Reads external variables
-  local font_width  = BIZHAWK_FONT_WIDTH
-  local font_height = BIZHAWK_FONT_HEIGHT
-  
-  local x_pos, y_pos, text_length = text_position(x, y, text, font_width, font_height, true, always_on_game, ref_x, ref_y)
-  
-  text_colour = change_transparency(text_colour, Text_opacity)
-  
-  draw_rectangle(x_pos, y_pos, text_length - 1, font_height - 1, bg_colour, bg_colour)
-  
-  gui.text(Scale_x*x_pos, Scale_y*y_pos, text, text_colour)
-end
-
-local function draw_over_text(x, y, value, base, colour_base, colour_value, colour_bg, always_on_client, always_on_game, ref_x, ref_y)
-  value = decode_bits(value, base)
-  local x_end, y_end, length = draw_text(x, y, base,  colour_base, colour_bg, always_on_client, always_on_game, ref_x, ref_y)
-  --gui.opacity(Text_max_opacity * Text_opacity)
-  gui.text(Scale_x*(x_end - length), Scale_y*(y_end - BIZHAWK_FONT_HEIGHT), value, colour_value or COLOUR.text)
-  --gui.opacity(1.0)
-  
-  return x_end, y_end, length
-end
-
--- Returns frames-time conversion
-local function frame_time(frame)
-  if not NTSC_FRAMERATE then error("NTSC_FRAMERATE undefined."); return end
-  
-  local total_seconds = frame/NTSC_FRAMERATE
-  local hours = floor(total_seconds/3600)
-  local tmp = total_seconds - 3600*hours
-  local minutes = floor(tmp/60)
-  tmp = tmp - 60*minutes
-  local seconds = floor(tmp)
-  
-  local miliseconds = 1000* (total_seconds%1)
-  if hours == 0 then hours = "" else hours = string.format("%d:", hours) end
-  local str = string.format("%s%.2d:%.2d.%03.0f", hours, minutes, seconds, miliseconds)
-  return str
-end
-
--- Returns the current frames-per-second number for the emulation
-local FPS = {frames = 0, second = os.time(), fps = 0}
-local function get_fps() -- TODO: figure out way to update value every frame, not only when second changes (maybe this is impossible with Lua)
-  -- Increase frame counter in this second
-  FPS.frames = FPS.frames + 1
-  
-  -- If second advanced, make current frame counter the new fps and reset
-  if os.time() ~= FPS.second then
-    FPS.fps = FPS.frames
-    FPS.frames = 0
-    FPS.second = os.time()
-  end
-end
-
--- displays a button everytime in (x,y)
--- object can be a text or a dbitmap
--- if user clicks onto it, fn is executed once
-local Script_buttons = {}
-local function create_button(x, y, object, fn, extra_options)
-  local always_on_client, always_on_game, ref_x, ref_y, button_pressed
-  if extra_options then
-    always_on_client, always_on_game, ref_x, ref_y, button_pressed =
-    extra_options.always_on_client, extra_options.always_on_game, extra_options.ref_x, extra_options.ref_y, extra_options.button_pressed
-  end
-  
-  local width, height
-  local object_type = type(object)
-  
-  if object_type == "string" then
-    width, height = BIZHAWK_FONT_WIDTH, BIZHAWK_FONT_HEIGHT
-    x, y, width = text_position(x, y, object, width, height, always_on_client, always_on_game, ref_x, ref_y)
-  elseif object_type == "boolean" then
-    width, height = BIZHAWK_FONT_WIDTH, BIZHAWK_FONT_HEIGHT
-    x, y = text_position(x, y, nil, width, height, always_on_client, always_on_game, ref_x, ref_y)
-  else error"Type of buttton not supported yet"
-  end
-  
-  -- draw the button
-  if button_pressed then
-    draw_rectangle(x, y, width, height, "white", 0xffd8d8d8)  -- unlisted colours
-  else
-    draw_rectangle(x, y, width, height, 0xff606060, 0xffb0b0b0)
-  end
-  gui.line(x, y, x + width, y, button_pressed and 0xff606060 or "white")
-  gui.line(x, y, x, y + height, button_pressed and 0xff606060 or "white")
-  
-  if object_type == "string" then
-    gui.text(x + 1, y + 1, object, COLOUR.button_text, 0)
-  elseif object_type == "boolean" then
-    draw_rectangle(x + 1, y + 1, width - 2, height - 2, 0x8000ff00, 0xc000ff00)
-  end
-  
-  -- updates the table of buttons
-  table.insert(Script_buttons, {x = x, y = y, width = width, height = height, object = object, action = fn})
-end
-
-
--- Gets input of the 1st controller / Might be deprecated someday...
-local Joypad = {}
-local function get_joypad()
-  Joypad = joypad.get(1)
-  for button, status in pairs(Joypad) do
-    Joypad[button] = status and 1 or 0
-  end
-end
-
-
--- Dark filter to make lua drawings easier to see
-local function dark_filter()
-  if not OPTIONS.draw_dark_filter then return end
-  
-  local filter_colour = OPTIONS.dark_filter_opacity * 0x11000000
-  draw_rectangle(OPTIONS.left_gap, OPTIONS.top_gap, 256-1, 224-1, filter_colour, filter_colour)
-end
-
-
--- Create a file based on a hex string
-local function hex_to_file(filename, hex)
-  
-  -- Return if file already exist for some reason (it avoid some issue where BizHawk still handles created images even after 
-  if file_exists(filename) then return end
-  
-  -- Create file in binary mode, if possible (it will create in the same folder of the script)
-  local output_file = assert(io.open(filename, "wb"), fmt("CAN'T CREATE %s FILE! Check if the program/user has the permissions for this folder.", filename))
-  
-  -- Read the hex dump, one byte at time, transforming it in chars to write the file
-  for i = 1, string.len(hex)/2 do
-    local char = string.char(tonumber(hex:sub(2*i-1, 2*i), 16))
-    output_file:write(char)
-  end
-  
-  -- Save and close file
-  assert(output_file:close())
-end
-
-
--- Function to decode a `memory.readbyterange` table into different data sizes, with different endianness and signedness:
--- `values` is the table you want to decode, the `memory.readbyterange` return
--- `size` is the split size, an integer between 1 and 6 bytes (Lua has precision issue with numbers bigger than 2^53, i guess you won't need that)
--- `big_endian`, if you pass as `true` it will treat as big endian, if false (or nil, empty) will be little endian
--- `signed`, if you pass as `true` it will treat as signed, if false (or nil, empty) will be unsigned
-local function byterange_decode(values, size, big_endian, signed)
-  -- Error handling
-  if type(values) ~= "table" then print("Insert correct memory.readbyterange table!") ; return end
-  if not size or size < 1 or size > 6 then print("Insert correct size value! Can accept values between 1 and 6.") ; return end
-  if size > #values+1 then print("Size is bigger than the memory.readbyterange table!") ; return end -- +1 due table 0 indexed
-  
-  local output = {}
-  
-  -- Loop thru table
-  for i = 0, (math.floor((#values+1)/3)*3-1), size do -- math to handle table size divisibility by the data size
-    
-    local out_value = 0
-    
-    -- Loop to correctly calculate the number based on the endianess
-    for j = 0, size-1 do
-      if big_endian then
-        out_value = out_value + values[i+j]*(0x100^(size-1-j))   -- {AA, BB} -> AA00 + BB = AABB
-      else
-        out_value = out_value + values[i+j]*(0x100^j) -- {AA, BB} -> AA + BB00 = BBAA
-      end
-    end
-    
-    -- Check signedness
-    if signed then
-      local maxval = (0x100^size)/2
-      if out_value >= maxval then out_value = out_value - 2*maxval end
-    end
-    
-    -- Save final value
-    output[i/size] = out_value
-  end
-  
-  -- Warning if there were remaining bytes
-  if (#values+1)%size ~= 0 then print(string.format("%d byte(s) left, due to the selected size or memory.readbyterange size!", (#values+1)%size)) end -- +1 due table 0 indexed
-
-  return output
-end
-
--- Simple Lua "wait/sleep" function, using seconds
-function wait(n)  -- seconds
-    local t0 = os.clock()
-    while os.clock() - t0 <= n do end
-end
-
--- ############################################################
--- From gocha's
-
-local pad_max = 2
-local pad_press, pad_down, pad_up, pad_prev, pad_send = {}, {}, {}, {}, {}
-local pad_presstime = {}
-for player = 1, pad_max do
-  pad_press[player] = {}
-  pad_presstime[player] = { start=0, select=0, up=0, down=0, left=0, right=0, A=0, B=0, X=0, Y=0, L=0, R=0 }
-end
-
-local dev_press, dev_down, dev_up, dev_prev = input.get(), {}, {}, {}
-local dev_presstime = {
-  xmouse=0, ymouse=0, leftclick=0, rightclick=0, middleclick=0,
-  shift=0, control=0, alt=0, capslock=0, numlock=0, scrolllock=0,
-  ["0"]=0, ["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0, ["8"]=0, ["9"]=0,
-  A=0, B=0, C=0, D=0, E=0, F=0, G=0, H=0, I=0, J=0, K=0, L=0, M=0, N=0, O=0, P=0, Q=0, R=0, S=0, T=0, U=0, V=0, W=0, X=0, Y=0, Z=0,
-  F1=0, F2=0, F3=0, F4=0, F5=0, F6=0, F7=0, F8=0, F9=0, F10=0, F11=0, F12=0,
-  F13=0, F14=0, F15=0, F16=0, F17=0, F18=0, F19=0, F20=0, F21=0, F22=0, F23=0, F24=0,
-  backspace=0, tab=0, enter=0, pause=0, escape=0, space=0,
-  pageup=0, pagedown=0, ["end"]=0, home=0, insert=0, delete=0,
-  left=0, up=0, right=0, down=0,
-  numpad0=0, numpad1=0, numpad2=0, numpad3=0, numpad4=0, numpad5=0, numpad6=0, numpad7=0, numpad8=0, numpad9=0,
-  ["numpad*"]=0, ["numpad+"]=0, ["numpad-"]=0, ["numpad."]=0, ["numpad/"]=0,
-  tilde=0, plus=0, minus=0, leftbracket=0, rightbracket=0,
-  semicolon=0, quote=0, comma=0, period=0, slash=0, backslash=0
-}
-
--- Scan button presses
-function scanJoypad()
-  for i = 1, pad_max do
-    pad_prev[i] = copytable(pad_press[i])
-    pad_press[i] = joypad.get(i)
-    pad_send[i] = copytable(pad_press[i])
-    -- scan keydowns, keyups
-    pad_down[i] = {}
-    pad_up[i] = {}
-    for k in pairs(pad_press[i]) do
-      pad_down[i][k] = (pad_press[i][k] and not pad_prev[i][k])
-      pad_up[i][k] = (pad_prev[i][k] and not pad_press[i][k])
-    end
-    -- count press length
-    for k in pairs(pad_press[i]) do
-      if not pad_press[i][k] then
-        pad_presstime[i][k] = 0
-      else
-        pad_presstime[i][k] = pad_presstime[i][k] + 1
-      end
-    end
-  end
-end
--- Scan keyboard/mouse input
-local function scanInputDevs()
-  dev_prev = copytable(dev_press)
-  dev_press = input.get()
-  -- scan keydowns, keyups
-  dev_down = {}
-  dev_up = {}
-  for k in pairs(dev_presstime) do
-    dev_down[k] = (dev_press[k] and not dev_prev[k])
-    dev_up[k] = (dev_prev[k] and not dev_press[k])
-  end
-  -- count press length
-  for k in pairs(dev_presstime) do
-    if not dev_press[k] then
-      dev_presstime[k] = 0
-    else
-      dev_presstime[k] = dev_presstime[k] + 1
-    end
-  end
-end
--- Send button presses
-function sendJoypad()
-    for i = 1, pad_max do
-      joypad.set(i, pad_send[i])
-    end
 end
 
 
@@ -1929,11 +1938,11 @@ local function display_boundaries(x_game, y_game, width, height, camera_x, camer
   local bottom = top + height - 1
   
   -- Left
-  local left_text = string.format("%04X.ff", width*floor(x_game/width) - 16)
+  local left_text = fmt("%04X.ff", width*floor(x_game/width) - 16)
   draw_text(left, (top+bottom)/2, left_text, false, false, 1.0, 0.5)
   
   -- Right
-  local right_text = string.format("%04X.01", width*floor(x_game/width) + 15)
+  local right_text = fmt("%04X.01", width*floor(x_game/width) + 15)
   draw_text(right + 2, (top+bottom)/2, right_text, false, false, 0.0, 0.5)
   
   -- Top
@@ -2286,7 +2295,7 @@ local function show_misc_info()
     local flower_counter = u16_wram(WRAM.flower_counter)
     local life_counter = u16_wram(WRAM.lives)
     local coin_counter = u16_wram(WRAM.coin_counter)
-    local star_effective = math.floor(star_counter/10)
+    local star_effective = floor(star_counter/10)
 
     local temp_str
     local x_temp, y_temp = OPTIONS.left_gap, BIZHAWK_FONT_HEIGHT
@@ -3508,7 +3517,7 @@ local function sprite_info(id, counter, table_position)
 		if sprite_type == 0x07F then
 			--[[local angle = (s8_sram(SRAM.sprite_table20 + 3 + id_off)*2*pi/256)
 			local half_width = 32
-			local delta_y = math.ceil(half_width*(sin(angle)))
+			local delta_y = ceil(half_width*(sin(angle)))
 			gui.line(x_centered_screen, y_centered_screen - 5, x_centered_screen - half_width - 1, y_centered_screen - 5 + delta_y, info_colour)
 			
 			draw_text(x_centered_screen - 20, y_centered_screen + 30, fmt("%f rad\ndelta_y:%d\nsin:%f", angle, delta_y, sin(angle)), info_colour) -- REMOVE TESTS/DEBUG
@@ -5755,7 +5764,7 @@ end
 - Group show/hide options that can be enabled/disabled by one checkbox, just like the Flintstones script.
 - Fix negative speed for sprites.
 - Make level map tool, a button to a new form that draws the map, the screen, the sprite data (at least), with an option to warp with click (Map16 data read from WRAM) (or at least display the screens like in the snes9x script).
-- Fix the config file thing, or start from scratch (using MUGG's GuiSaveSettings from his MLSS script).
+- Fix the config file thing, maybe use SQL functions of the Lua API or start from scratch (using MUGG's GuiSaveSettings from his MLSS script).
 - Mouth ammo value display, showing also which ammo Yoshi has.
 - Refactor the option forms to minimize lines, by creating various functions for the repetitive stuff.
 - Lagmeter.
