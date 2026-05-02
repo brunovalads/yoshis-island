@@ -12,7 +12,7 @@
 --##########################################################################################################################################################
 -- CONFIG:
 
-local INI_CONFIG_FILENAME = "Yoshi's Island Utilities Config NEW.ini"  -- relative to the folder of the script
+local CONFIG_DB_FILENAME = "Yoshi's Island Utilities Config.db"  -- relative to the folder of the script
 
 local DEFAULT_OPTIONS = {
   -- Hotkeys
@@ -269,6 +269,19 @@ print("Starting Yoshi's Island script\n")
 --##########################################################################################################################################################
 -- SCRIPT UTILITIES:
 
+-- Basic Lua functions renaming
+local fmt = string.format
+local floor = math.floor
+local ceil = math.ceil
+local sqrt = math.sqrt
+local sin = math.sin
+local cos = math.cos
+local pi = math.pi
+local function round(number, dec_places)
+  local mult = 10^(dec_places or 0)
+  return floor(number * mult + 0.5) / mult
+end
+
 -- Load environment
 local gui, input, joypad, emu, movie, memory = gui, input, joypad, emu, movie, memory
 local unpack = unpack or table.unpack
@@ -320,9 +333,83 @@ local function make_set(list)
   return set
 end
 
--- Load default options
-local OPTIONS =  DEFAULT_OPTIONS
+-- Check if script config database exists and create if doesn't
+if not file_exists(CONFIG_DB_FILENAME) then
+    SQL.createdatabase(CONFIG_DB_FILENAME)
+end
+
+-- Check if script config database is sane
+local database_open_message = SQL.opendatabase(CONFIG_DB_FILENAME)
+if string.find(database_open_message, "Error") then
+    error(fmt("\n\nError while opening script config database file: %s\nDelete the file '%s' that is in the same folder as this script and run the script again.",
+        database_open_message, CONFIG_DB_FILENAME))
+end
+
+-- Create config database options table if needed
+local CONFIG_DB_OPTIONS_TABLE_NAME = "Options"
+local CONFIG_DB_LABEL_FIELD_NAME = "Label"
+local CONFIG_DB_VALUE_FIELD_NAME = "Value"
+local CONFIG_DB_TYPE_FIELD_NAME = "Type"
+SQL.writecommand(fmt("CREATE TABLE IF NOT EXISTS %s (%s TEXT NOT NULL UNIQUE, %s TEXT NOT NULL, %s TEXT NOT NULL)",
+    CONFIG_DB_OPTIONS_TABLE_NAME, CONFIG_DB_LABEL_FIELD_NAME, CONFIG_DB_VALUE_FIELD_NAME, CONFIG_DB_TYPE_FIELD_NAME))
+
+-- Get converted value from db to correct type
+local CONFIG_DB_TYPE_BOOLEAN = type(true)
+local CONFIG_DB_TYPE_NUMBER = type(1)
+local CONFIG_DB_TYPE_STRING = type("")
+local function get_db_value_by_type(value, value_type)
+    if value == nil then
+        error(fmt("Value cannot be null in the config database!"))
+    elseif value_type == CONFIG_DB_TYPE_BOOLEAN then
+        if value == "true" then
+            return true
+        elseif value == "false" then
+            return false
+        else
+            error(fmt("%s value '%s' is not expected in the config database!", value_type, value))
+        end
+    elseif value_type == CONFIG_DB_TYPE_NUMBER then
+        local value_number = tonumber(value)
+        if value_number ~= nil then
+            return value_number
+        else
+            error(fmt("%s value '%s' is not expected in the config database!", value_type, value))
+        end
+    elseif value_type == CONFIG_DB_TYPE_STRING then
+        return value
+    else
+        error(fmt("Value type '%s' is not expected in the config database!", value_type))
+    end
+end
+
+-- Load config options from db or use default
+local OPTIONS = {}
+for key, value in pairs(DEFAULT_OPTIONS) do
+    -- Look for option entry in DB
+    option_entry_in_db = SQL.readcommand(fmt("SELECT * FROM %s WHERE %s='%s'", CONFIG_DB_OPTIONS_TABLE_NAME, CONFIG_DB_LABEL_FIELD_NAME, key))
+    -- If option entry exists in DB, load it in OPTIONS,...
+    if type(option_entry_in_db) == "table" then
+        OPTIONS[key] = get_db_value_by_type(option_entry_in_db[CONFIG_DB_VALUE_FIELD_NAME .. " 0"], option_entry_in_db[CONFIG_DB_TYPE_FIELD_NAME .. " 0"])
+    -- ...or create option entry in DB and use DEFAULT_OPTIONS
+    else
+        OPTIONS[key] = DEFAULT_OPTIONS[key]
+        SQL.writecommand(fmt("INSERT INTO %s (%s, %s, %s) VALUES ('%s', '%s', '%s')",
+            CONFIG_DB_OPTIONS_TABLE_NAME, CONFIG_DB_LABEL_FIELD_NAME, CONFIG_DB_VALUE_FIELD_NAME, CONFIG_DB_TYPE_FIELD_NAME, key, tostring(value), type(value)))
+    end
+end
+
+-- Update options config value and update respective entry in db
+local function update_options(option_name, option_value)
+    OPTIONS[option_name] = option_value
+    SQL.writecommand(fmt("UPDATE %s SET %s='%s' WHERE %s='%s'", CONFIG_DB_OPTIONS_TABLE_NAME, CONFIG_DB_VALUE_FIELD_NAME, tostring(option_value), CONFIG_DB_LABEL_FIELD_NAME, option_name))
+end
+
+-- Load default colours
 local COLOUR = DEFAULT_COLOUR
+
+-- SNES framerates
+local NTSC_FRAMERATE = 60.0988138974405
+local PAL_FRAMERATE = 50.0069789081886
 
 -- Text/Background_max_opacity is only changed by the player using the hotkeys
 -- Text/Bg_opacity must be used locally inside the functions
@@ -330,19 +417,6 @@ local Text_max_opacity = COLOUR.default_text_opacity
 local Background_max_opacity = COLOUR.default_bg_opacity
 local Text_opacity = 1
 local Bg_opacity = 1
-
--- Basic functions renaming
-local fmt = string.format
-local floor = math.floor
-local ceil = math.ceil
-local sqrt = math.sqrt
-local sin = math.sin
-local cos = math.cos
-local pi = math.pi
-local function round(number, dec_places)
-  local mult = 10^(dec_places or 0)
-  return floor(number * mult + 0.5) / mult
-end
 
 -- Rename gui functions
 local draw_line = gui.drawLine
@@ -973,10 +1047,7 @@ end
 
 
 --##########################################################################################################################################################
--- GAME AND SNES SPECIFIC PARAMETERS:
-
-local NTSC_FRAMERATE = 60.0988138974405
-local PAL_FRAMERATE = 50.0069789081886
+-- GAME SPECIFIC PARAMETERS:
 
 local YI = {
   -- Game Modes
@@ -2490,7 +2561,7 @@ local function level_info()
     
     -- Screen adjustment to properly see the table
     if OPTIONS.bottom_gap < 154 then
-      OPTIONS.bottom_gap = 154 ; 
+      update_options("bottom_gap", 154) 
       client.SetGameExtraPadding(OPTIONS.left_gap, OPTIONS.top_gap, OPTIONS.right_gap, OPTIONS.bottom_gap)
     end
     
@@ -4892,21 +4963,20 @@ function Options_form.create_window()
   
   xform = xform + 72
   Options_form.dark_filter_decrease = forms.button(Options_form.form, "-", function()
-    OPTIONS.dark_filter_opacity = OPTIONS.dark_filter_opacity - 1
-    if OPTIONS.dark_filter_opacity < 0 then OPTIONS.dark_filter_opacity = 0 end
+    update_options("dark_filter_opacity", OPTIONS.dark_filter_opacity - 1)
+    if OPTIONS.dark_filter_opacity < 0 then update_options("dark_filter_opacity", 0) end
   end, xform, yform - 4, 16, 24)
   forms.setproperty(Options_form.dark_filter_decrease, "Enabled", OPTIONS.draw_dark_filter)
   
   xform = xform + 16
   Options_form.dark_filter_increase = forms.button(Options_form.form, "+", function()
-    OPTIONS.dark_filter_opacity = OPTIONS.dark_filter_opacity + 1
-    if OPTIONS.dark_filter_opacity > 0xf then OPTIONS.dark_filter_opacity = 0xf end
+    update_options("dark_filter_opacity", OPTIONS.dark_filter_opacity + 1)
+    if OPTIONS.dark_filter_opacity > 0xf then update_options("dark_filter_opacity", 0xf) end
   end, xform, yform - 4, 16, 24)
   forms.setproperty(Options_form.dark_filter_increase, "Enabled", OPTIONS.draw_dark_filter)
   
   forms.addclick(Options_form.dark_filter, function() -- to enable/disable child options on click
-    OPTIONS.draw_dark_filter = forms.ischecked(Options_form.dark_filter) or false
-    
+    update_options("draw_dark_filter", forms.ischecked(Options_form.dark_filter) or false)
     forms.setproperty(Options_form.dark_filter_decrease, "Enabled", OPTIONS.draw_dark_filter)
     forms.setproperty(Options_form.dark_filter_increase, "Enabled", OPTIONS.draw_dark_filter)
   end)
@@ -4925,12 +4995,12 @@ function Options_form.create_window()
   Options_form.top_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.top_gap), xform, yform - 20, 48, delta_y)
   forms.setproperty(Options_form.top_gap_label, "TextAlign", "BottomCenter")
   forms.button(Options_form.form, "-", function()
-    if OPTIONS.top_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.top_gap = OPTIONS.top_gap - 10 end
+    if OPTIONS.top_gap - 10 >= BIZHAWK_FONT_HEIGHT then update_options("top_gap", OPTIONS.top_gap - 10) end
     emu_gaps_update("top_gap")
   end, xform, yform, 24, 24)
   xform = xform + 24
   forms.button(Options_form.form, "+", function()
-    OPTIONS.top_gap = OPTIONS.top_gap + 10
+    update_options("top_gap", OPTIONS.top_gap + 10)
     emu_gaps_update("top_gap")
   end, xform, yform, 24, 24)
   -- left gap
@@ -4938,12 +5008,12 @@ function Options_form.create_window()
   Options_form.left_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.left_gap), xform, yform - 20, 48, delta_y)
   forms.setproperty(Options_form.left_gap_label, "TextAlign", "BottomCenter")
   forms.button(Options_form.form, "-", function()
-    if OPTIONS.left_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.left_gap = OPTIONS.left_gap - 10 end
+    if OPTIONS.left_gap - 10 >= BIZHAWK_FONT_HEIGHT then update_options("left_gap", OPTIONS.left_gap - 10) end
     emu_gaps_update("left_gap")
   end, xform, yform, 24, 24)
   xform = xform + 24
   forms.button(Options_form.form, "+", function()
-    OPTIONS.left_gap = OPTIONS.left_gap + 10
+    update_options("left_gap", OPTIONS.left_gap + 10)
     emu_gaps_update("left_gap")
   end, xform, yform, 24, 24)
   -- right gap
@@ -4951,12 +5021,12 @@ function Options_form.create_window()
   Options_form.right_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.right_gap), xform, yform - 20, 48, delta_y)
   forms.setproperty(Options_form.right_gap_label, "TextAlign", "BottomCenter")
   forms.button(Options_form.form, "-", function()
-    if OPTIONS.right_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.right_gap = OPTIONS.right_gap - 10 end
+    if OPTIONS.right_gap - 10 >= BIZHAWK_FONT_HEIGHT then update_options("right_gap", OPTIONS.right_gap - 10) end
     emu_gaps_update("right_gap")
   end, xform, yform, 24, 24)
   xform = xform + 24
   forms.button(Options_form.form, "+", function()
-    OPTIONS.right_gap = OPTIONS.right_gap + 10
+    update_options("right_gap", OPTIONS.right_gap + 10)
     emu_gaps_update("right_gap")
   end, xform, yform, 24, 24)
   -- bottom gap
@@ -4964,12 +5034,12 @@ function Options_form.create_window()
   Options_form.bottom_gap_label = forms.label(Options_form.form, fmt("%d", OPTIONS.bottom_gap), xform, yform + 24, 48, delta_y)
   forms.setproperty(Options_form.bottom_gap_label, "TextAlign", "TopCenter")
   forms.button(Options_form.form, "-", function()
-    if OPTIONS.bottom_gap - 10 >= BIZHAWK_FONT_HEIGHT then OPTIONS.bottom_gap = OPTIONS.bottom_gap - 10 end
+    if OPTIONS.bottom_gap - 10 >= BIZHAWK_FONT_HEIGHT then update_options("bottom_gap", OPTIONS.bottom_gap - 10) end
     emu_gaps_update("bottom_gap")
   end, xform, yform, 24, 24)
   xform = xform + 24
   Options_form.bottom_plus = forms.button(Options_form.form, "+", function()
-    OPTIONS.bottom_gap = OPTIONS.bottom_gap + 10
+    update_options("bottom_gap", OPTIONS.bottom_gap + 10)
     emu_gaps_update("bottom_gap")
   end, xform, yform, 24, 24)
   -- label
@@ -5515,46 +5585,46 @@ end
 function Options_form.evaluate_form()
   --- Show/hide -------------------------------------------------------------------------------------------
   -- Player
-  OPTIONS.display_player_info = forms.ischecked(Options_form.player_info) or false
-  OPTIONS.display_player_hitbox = forms.ischecked(Options_form.player_hitbox) or false
-  OPTIONS.display_interaction_points = forms.ischecked(Options_form.interaction_points) or false
-  OPTIONS.display_blocked_status = forms.ischecked(Options_form.blocked_status) or false
-  OPTIONS.display_throw_info = forms.ischecked(Options_form.throw_info) or false
-  OPTIONS.display_egg_info = forms.ischecked(Options_form.egg_info) or false
-  OPTIONS.display_tongue_hitbox = forms.ischecked(Options_form.tongue_hitbox) or false
+  update_options("display_player_info", forms.ischecked(Options_form.player_info) or false)
+  update_options("display_player_hitbox", forms.ischecked(Options_form.player_hitbox) or false)
+  update_options("display_interaction_points", forms.ischecked(Options_form.interaction_points) or false)
+  update_options("display_blocked_status", forms.ischecked(Options_form.blocked_status) or false)
+  update_options("display_throw_info", forms.ischecked(Options_form.throw_info) or false)
+  update_options("display_egg_info", forms.ischecked(Options_form.egg_info) or false)
+  update_options("display_tongue_hitbox", forms.ischecked(Options_form.tongue_hitbox) or false)
   -- Sprites
-  OPTIONS.display_sprite_info = forms.ischecked(Options_form.sprite_info) or false
-  OPTIONS.display_sprite_table = forms.ischecked(Options_form.sprite_table) or false
-  OPTIONS.display_sprite_hitbox = forms.ischecked(Options_form.sprite_hitbox) or false
-  OPTIONS.display_sprite_special_info = forms.ischecked(Options_form.sprite_special_info) or false
-  OPTIONS.display_sprite_spawning_areas = forms.ischecked(Options_form.sprite_spawning_areas) or false
+  update_options("display_sprite_info", forms.ischecked(Options_form.sprite_info) or false)
+  update_options("display_sprite_table", forms.ischecked(Options_form.sprite_table) or false)
+  update_options("display_sprite_hitbox", forms.ischecked(Options_form.sprite_hitbox) or false)
+  update_options("display_sprite_special_info", forms.ischecked(Options_form.sprite_special_info) or false)
+  update_options("display_sprite_spawning_areas", forms.ischecked(Options_form.sprite_spawning_areas) or false)
   -- Level
-  OPTIONS.display_level_info = forms.ischecked(Options_form.level_info) or false
-  OPTIONS.display_sprite_data =  forms.ischecked(Options_form.sprite_data) or false
-  OPTIONS.display_level_extra =  forms.ischecked(Options_form.level_extra_info) or false
-  OPTIONS.draw_tile_map_grid =  forms.ischecked(Options_form.tile_map_grid) or false
-  OPTIONS.draw_tile_map_type =  forms.ischecked(Options_form.tile_map_type) or false
-  OPTIONS.draw_tile_map_screen =  forms.ischecked(Options_form.tile_map_screen) or false
-  OPTIONS.display_level_layout =  forms.ischecked(Options_form.level_layout) or false
+  update_options("display_level_info", forms.ischecked(Options_form.level_info) or false)
+  update_options("display_sprite_data",  forms.ischecked(Options_form.sprite_data) or false)
+  update_options("display_level_extra",  forms.ischecked(Options_form.level_extra_info) or false)
+  update_options("draw_tile_map_grid",  forms.ischecked(Options_form.tile_map_grid) or false)
+  update_options("draw_tile_map_type",  forms.ischecked(Options_form.tile_map_type) or false)
+  update_options("draw_tile_map_screen",  forms.ischecked(Options_form.tile_map_screen) or false)
+  update_options("display_level_layout",  forms.ischecked(Options_form.level_layout) or false)
   -- General
-  OPTIONS.display_misc_info = forms.ischecked(Options_form.misc_info) or false
-  OPTIONS.display_counters = forms.ischecked(Options_form.counters_info) or false
-  OPTIONS.display_movie_info = forms.ischecked(Options_form.movie_info) or false
-  OPTIONS.display_credits_warp_helper = forms.ischecked(Options_form.credits_warp_helper) or false
-  OPTIONS.display_overworld_info = forms.ischecked(Options_form.overworld_info) or false
+  update_options("display_misc_info", forms.ischecked(Options_form.misc_info) or false)
+  update_options("display_counters", forms.ischecked(Options_form.counters_info) or false)
+  update_options("display_movie_info", forms.ischecked(Options_form.movie_info) or false)
+  update_options("display_credits_warp_helper", forms.ischecked(Options_form.credits_warp_helper) or false)
+  update_options("display_overworld_info", forms.ischecked(Options_form.overworld_info) or false)
   -- Ambient sprite
-  OPTIONS.display_ambient_sprite_info = forms.ischecked(Options_form.ambient_sprite_info) or false
-  OPTIONS.display_ambient_sprite_table = forms.ischecked(Options_form.ambient_sprite_table) or false
-  OPTIONS.display_ambient_sprite_slot_in_screen = forms.ischecked(Options_form.ambient_sprite_slot_in_screen) or false
+  update_options("display_ambient_sprite_info", forms.ischecked(Options_form.ambient_sprite_info) or false)
+  update_options("display_ambient_sprite_table", forms.ischecked(Options_form.ambient_sprite_table) or false)
+  update_options("display_ambient_sprite_slot_in_screen", forms.ischecked(Options_form.ambient_sprite_slot_in_screen) or false)
   -- Debug/Extra
-  OPTIONS.display_debug_player_extra = forms.ischecked(Options_form.debug_player_extra) or false
-  OPTIONS.display_debug_sprite_extra = forms.ischecked(Options_form.debug_sprite_extra) or false
-  OPTIONS.display_sprite_load_status =  forms.ischecked(Options_form.sprite_load_status) or false
-  OPTIONS.display_debug_controller_data = forms.ischecked(Options_form.debug_controller_data) or false
+  update_options("display_debug_player_extra", forms.ischecked(Options_form.debug_player_extra) or false)
+  update_options("display_debug_sprite_extra", forms.ischecked(Options_form.debug_sprite_extra) or false)
+  update_options("display_sprite_load_status",  forms.ischecked(Options_form.sprite_load_status) or false)
+  update_options("display_debug_controller_data", forms.ischecked(Options_form.debug_controller_data) or false)
   --- Settings -------------------------------------------------------------------------------------------
-  OPTIONS.draw_tiles_with_click = forms.ischecked(Options_form.draw_tiles_with_click) or false
-  OPTIONS.display_mouse_coordinates = forms.ischecked(Options_form.mouse_info) or false
-  OPTIONS.draw_dark_filter = forms.ischecked(Options_form.dark_filter) or false
+  update_options("draw_tiles_with_click", forms.ischecked(Options_form.draw_tiles_with_click) or false)
+  update_options("display_mouse_coordinates", forms.ischecked(Options_form.mouse_info) or false)
+  update_options("draw_dark_filter", forms.ischecked(Options_form.dark_filter) or false)
   --- Cheats -------------------------------------------------------------------------------------------
   Cheat.allow_cheats = forms.ischecked(Options_form.allow_cheats) or false
   Cheat.under_free_move = forms.ischecked(Options_form.free_movement) or false
@@ -5764,7 +5834,6 @@ end
 - Group show/hide options that can be enabled/disabled by one checkbox, just like the Flintstones script.
 - Fix negative speed for sprites.
 - Make level map tool, a button to a new form that draws the map, the screen, the sprite data (at least), with an option to warp with click (Map16 data read from WRAM) (or at least display the screens like in the snes9x script).
-- Fix the config file thing, maybe use SQL functions of the Lua API or start from scratch (using MUGG's GuiSaveSettings from his MLSS script).
 - Mouth ammo value display, showing also which ammo Yoshi has.
 - Refactor the option forms to minimize lines, by creating various functions for the repetitive stuff.
 - Lagmeter.
