@@ -51,6 +51,7 @@ local DEFAULT_OPTIONS = {
   draw_dark_filter = false,
   dark_filter_opacity = 8,
   display_credits_warp_helper = false,
+  windows_display_scale = 1.0,
 
   -- Some extra/debug info
   display_debug_info = false,  -- shows useful info while investigating the game, but not very useful while TASing
@@ -4939,8 +4940,34 @@ function Options_form.create_window()
   forms.setproperty(Options_form.script_settings_label, "AutoSize", true)
   forms.setlocation(Options_form.script_settings_label, (form_width-16)/2 - forms.getproperty(Options_form.script_settings_label, "Width")/2, yform)
   forms.label(Options_form.form, string.rep("-", 150), xform - 2, yform, form_width, 20)
-  yform = yform + delta_y
-
+  yform = yform + delta_y + 4
+  
+  Options_form.windows_display_scale_label = forms.label(Options_form.form, "Display scale", xform, yform)
+  forms.setproperty(Options_form.windows_display_scale_label, "AutoSize", true)
+  xform = xform + forms.getproperty(Options_form.windows_display_scale_label, "Width")
+  
+  local display_scales = {"100%", "125%", "150%", "175%"}
+  Options_form.windows_display_scale_dropdown = forms.dropdown(Options_form.form, display_scales, xform, yform - 4, 50, 20) 
+  local options_scale_index = 1
+  for i = 1, #display_scales do
+      if string.find(display_scales[i], fmt("%d", 100*OPTIONS.windows_display_scale)) then
+          options_scale_index = i - 1
+          break 
+      end
+  end
+  forms.setproperty(Options_form.windows_display_scale_dropdown, "SelectedIndex", options_scale_index)
+  xform = xform + forms.getproperty(Options_form.windows_display_scale_dropdown, "Width") + 3
+  yform = yform - 5
+  
+  Options_form.set_display_scale = forms.button(Options_form.form, "Set", function()
+    local selected_item = forms.getproperty(Options_form.windows_display_scale_dropdown, "SelectedItem")
+    local selected_display_scale = tonumber(string.match(tostring(selected_item), "%d+"))/100
+    update_options("windows_display_scale", selected_display_scale)
+    forms.destroy(Options_form.form)
+    Options_form.create_window()
+    end, xform, yform, 38, 23)
+  xform, yform = 4, yform + delta_y + 5
+  
   Options_form.draw_tiles_with_click = forms.checkbox(Options_form.form, "Draw tiles", xform, yform)
   forms.setproperty(Options_form.draw_tiles_with_click, "Checked", OPTIONS.draw_tiles_with_click)
   yform = yform + delta_y
@@ -5402,7 +5429,7 @@ function Options_form.create_window()
   end)
   
   -- Resize options form height base on the amount of options
-  forms.setproperty(Options_form.form, "Height", y_bigger + 70)
+  forms.setproperty(Options_form.form, "Height", (y_bigger + 70) * OPTIONS.windows_display_scale)
   
   --- DEBUG ---------------------------------------------------------------------------------------
   
@@ -5794,21 +5821,25 @@ while true do
   
   --[[ REMOVE/TEST
   local y_pos = 0
-  gui.drawText(0, y_pos, fmt("Left_gap:%d ", OPTIONS.left_gap), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Right_gap:%d ", OPTIONS.right_gap), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Top_gap:%d ", OPTIONS.top_gap), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Bottom_gap:%d ", OPTIONS.bottom_gap), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Screen_width:%d ", Screen_width), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Screen_height:%d ", Screen_height), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Buffer_width:%d ", Buffer_width), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Buffer_height:%d ", Buffer_height), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Buffer_middle_x:%d ", Buffer_middle_x), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Buffer_middle_y:%d ", Buffer_middle_y), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Border_right_start:%d ", Border_right_start), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Border_bottom_start:%d ", Border_bottom_start), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Scale_x:%d ", Scale_x), "white", 0, 9); y_pos = y_pos + 11
-  gui.drawText(0, y_pos, fmt("Scale_y:%d ", Scale_y), "white", 0, 9); y_pos = y_pos + 11
-  draw_text(Buffer_middle_x, Buffer_middle_y, "TEST MIDDLE", "red", 0, 12)]]
+  gui.drawText(0, y_pos, fmt("Left_gap:%.2f ", OPTIONS.left_gap), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Right_gap:%.2f ", OPTIONS.right_gap), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Top_gap:%.2f ", OPTIONS.top_gap), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Bottom_gap:%.2f ", OPTIONS.bottom_gap), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Screen_width:%.2f ", Screen_width), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Screen_height:%.2f ", Screen_height), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Buffer_width:%.2f ", Buffer_width), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Buffer_height:%.2f ", Buffer_height), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Buffer_middle_x:%.2f ", Buffer_middle_x), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Buffer_middle_y:%.2f ", Buffer_middle_y), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Border_right_start:%.2f ", Border_right_start), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Border_bottom_start:%.2f ", Border_bottom_start), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Scale_x:%.2f ", Scale_x), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("Scale_y:%.2f ", Scale_y), "white", 0, 9); y_pos = y_pos + 11 + 11
+  gui.drawText(0, y_pos, fmt("client.getwindowsize():%.2f ", client.getwindowsize()), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("client.borderwidth():%.2f ", client.borderwidth()), "white", 0, 9); y_pos = y_pos + 11
+  gui.drawText(0, y_pos, fmt("client.screenwidth():%.2f ", client.screenwidth()), "white", 0, 9); y_pos = y_pos + 11
+  draw_text(Buffer_middle_x, Buffer_middle_y, "TEST MIDDLE", "red", 0, 12)
+  ]]
   
   --draw_text(0, 2*BIZHAWK_FONT_HEIGHT, "Sprites_info.selected_id  = " .. Sprites_info.selected_id)
   
