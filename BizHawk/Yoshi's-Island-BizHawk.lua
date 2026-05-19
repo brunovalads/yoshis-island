@@ -194,18 +194,24 @@ local INPUT_KEYNAMES = {  -- BizHawk
 local YI = {
     -- Game versions
     version_data = {
-        ["9B4957466798BBDB5B43A450BBB60B2591AE81D95B891430F62D53CA62E8BC7B"] = {region = "U", version = "1.0"},
-        ["BD763C1A56365C244BE92E6CFFEFD318780A2A19EDA7D5BAF1C6D5BD6C1B3E06"] = {region = "U", version = "1.1"},
-        ["5A9F00411B9175A938C823C578E2B9F1256B73C546A50FEC144698F56859D64F"] = {region = "J", version = "1.0"},
-        ["C27E73EA19B6C421BCA7640D2ED89C75CD9D3BAEF968EBCD984606402ED93424"] = {region = "J", version = "1.1"},
-        ["D54A3EAAB7CE4D250F8EF2CB86FA5AFEBB4712F95CADC65C85A6E5A7355D8B81"] = {region = "J", version = "1.2"},
-        ["91A4DC481C54B620CB3BCCAFFE5FA3F69DB955AE600309414D18BB59307CBA90"] = {region = "E", version = "1.0"},
-        ["824F07E93C9AD38FE408AF561E8979E3C0211F0C6C98AEB6E6BC85CD6F9EDC91"] = {region = "E", version = "1.1"},
+        ["9B4957466798BBDB5B43A450BBB60B2591AE81D95B891430F62D53CA62E8BC7B"] = {region = "U", version = "1.0", game_mode_offset = 0x0},
+        ["BD763C1A56365C244BE92E6CFFEFD318780A2A19EDA7D5BAF1C6D5BD6C1B3E06"] = {region = "U", version = "1.1", game_mode_offset = 0x0},
+        ["5A9F00411B9175A938C823C578E2B9F1256B73C546A50FEC144698F56859D64F"] = {region = "J", version = "1.0", game_mode_offset = 0x0},
+        ["C27E73EA19B6C421BCA7640D2ED89C75CD9D3BAEF968EBCD984606402ED93424"] = {region = "J", version = "1.1", game_mode_offset = 0x0},
+        ["D54A3EAAB7CE4D250F8EF2CB86FA5AFEBB4712F95CADC65C85A6E5A7355D8B81"] = {region = "J", version = "1.2", game_mode_offset = 0x0},
+        ["91A4DC481C54B620CB3BCCAFFE5FA3F69DB955AE600309414D18BB59307CBA90"] = {region = "E", version = "1.0", game_mode_offset = 0x4},
+        ["824F07E93C9AD38FE408AF561E8979E3C0211F0C6C98AEB6E6BC85CD6F9EDC91"] = {region = "E", version = "1.1", game_mode_offset = 0x4},
     },
     
     -- Game modes
+    game_mode_intro_cutscene = 0x0007,
+    game_mode_level_fade_out_pipe = 0x000B,
+    game_mode_level = 0x000F,
+    game_mode_level_end_cutscene = 0x0010,
+    game_mode_level_fade_to_ow = 0x001F,
     game_mode_overworld = 0x0022,
-    game_mode_level = 0x000F, --- TODO: 0x0013 is for the (E) version, need to make a conditional
+    game_mode_world_score_flip_cutscene = 0x0028,
+    game_mode_mini_battle = 0x0030,
     
     -- Sprites
     sprite_max = 24,
@@ -1137,6 +1143,10 @@ end
 -- Check if it's Yoshi's Island (any SNES version or hack)
 YI.current_version_data = YI.version_data[Biz.rom_hash]
 if YI.current_version_data ~= nil then
+    if YI.current_version_data.game_mode_offset > 0x0 then
+        YI.game_mode_overworld = YI.game_mode_overworld + YI.current_version_data.game_mode_offset
+        YI.game_mode_level = YI.game_mode_level + YI.current_version_data.game_mode_offset
+    end
     -- TODO: RAM/SRAM adapt for versions
 else
     if Biz.game_name(0x007FC0, 0xE) == "YOSHI'S ISLAND" then
@@ -2033,16 +2043,12 @@ end
 -- Draw tile (16x16) grid, tile types and screen grid
 local function draw_tile_map(camera_x, camera_y)
     local valid_game_mode = false
-    if Game_mode == YI.game_mode_level then
+    if Game_mode == YI.game_mode_level
+    or Game_mode == YI.game_mode_level_fade_out_pipe 
+    or Game_mode == YI.game_mode_mini_battle then
         valid_game_mode = true
-    elseif Game_mode == 0x000B then
-        valid_game_mode = true -- Level transition
-    elseif Game_mode == 0x0030 then
-        valid_game_mode = true -- Mini Battle
     end
-    if not valid_game_mode then
-        return
-    end
+    if not valid_game_mode then return end
 
     if not OPTIONS.draw_tile_map_type and not OPTIONS.draw_tile_map_grid and not OPTIONS.draw_tile_map_screen then
         return
@@ -2148,9 +2154,10 @@ end
 
 local function draw_tiles_clicked(camera_x, camera_y)
     local valid_game_mode = false
-    if Game_mode == YI.game_mode_level then valid_game_mode = true
-    elseif Game_mode == 0x000B then valid_game_mode = true -- Level transition
-    elseif Game_mode == 0x0030 then valid_game_mode = true -- Mini Battle
+    if Game_mode == YI.game_mode_level
+    or Game_mode == YI.game_mode_level_fade_out_pipe 
+    or Game_mode == YI.game_mode_mini_battle then
+        valid_game_mode = true
     end
     if not valid_game_mode then return end
     
@@ -2968,11 +2975,12 @@ local function player()
     if Is_paused then return end
     
     local valid_game_mode = false
-    if Game_mode == YI.game_mode_level then valid_game_mode = true
-    elseif Game_mode == 0x0007 then valid_game_mode = true -- Intro (0x0007) too
-    elseif Game_mode == 0x000B then valid_game_mode = true -- Level transition too
-    elseif Game_mode == 0x0010 then valid_game_mode = true -- Level end (0x0010) too
-    elseif Game_mode == 0x0030 then valid_game_mode = true -- Mini Battles too
+    if Game_mode == YI.game_mode_level
+    or Game_mode == YI.game_mode_intro_cutscene
+    or Game_mode == YI.game_mode_level_fade_out_pipe
+    or Game_mode == YI.game_mode_level_end_cutscene
+    or Game_mode == YI.game_mode_mini_battle then
+        valid_game_mode = true
     end
     if valid_game_mode == false then return end
     
@@ -3127,9 +3135,11 @@ local function ambient_sprites()
     if Is_paused then return end
     
     local valid_game_mode = false
-    if Game_mode == YI.game_mode_level then valid_game_mode = true
-    elseif Game_mode == 0x0007 then valid_game_mode = true -- Intro (0x0007) too
-    elseif Game_mode == 0x0010 then valid_game_mode = true end -- Level end (0x0010) too
+    if Game_mode == YI.game_mode_level
+    or Game_mode == YI.game_mode_intro_cutscene
+    or Game_mode == YI.game_mode_level_end_cutscene then
+        valid_game_mode = true
+    end
     if valid_game_mode == false then return end
     
     -- Font
@@ -3277,7 +3287,7 @@ local function sprite_info(id, counter, table_position)
     local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
     local x_centered_screen, y_centered_screen = screen_coordinates(x_centered, y_centered, Camera_x, Camera_y)
     
-    if Game_mode == 0x0007 then -- adjustment for the intro "glitched" sprite positions
+    if Game_mode == YI.game_mode_intro_cutscene then -- adjustment for the intro "glitched" sprite positions
         x_screen = x_screen + Camera_x
         if Camera_y ~= 0 then
             y_screen = y_screen + Camera_y
@@ -3794,10 +3804,11 @@ local function sprites()
     if Is_paused then return end
     
     local valid_game_mode = false
-    if Game_mode == YI.game_mode_level then valid_game_mode = true
-    elseif Game_mode == 0x0007 then valid_game_mode = true -- Intro (0x0007) too
-    elseif Game_mode == 0x0010 then valid_game_mode = true -- Level end (0x0010) too
-    elseif Game_mode == 0x0030 then valid_game_mode = true -- Mini Battles too
+    if Game_mode == YI.game_mode_level
+    or Game_mode == YI.game_mode_intro_cutscene
+    or Game_mode == YI.game_mode_level_end_cutscene
+    or Game_mode == YI.game_mode_mini_battle then
+        valid_game_mode = true
     end
     if valid_game_mode == false then return end
     
@@ -4063,7 +4074,7 @@ end
 local function overworld_mode()
     if not OPTIONS.display_overworld_info then return end
     --if Game_mode == YI.game_mode_overworld or Game_mode == 0x0024 or Game_mode == 0x0026 or Game_mode == 0x0028 then -- then continue to OW info
-    if Game_mode >= 0x001F and Game_mode <= 0x0028 then -- then continue to OW info
+    if Game_mode >= YI.game_mode_level_fade_to_ow and Game_mode <= YI.game_mode_world_score_flip_cutscene then -- then continue to OW info
     else return end
     
     -- Text
