@@ -212,6 +212,7 @@ local YI = {
     game_mode_overworld = 0x0022,
     game_mode_world_score_flip_cutscene = 0x0028,
     game_mode_mini_battle = 0x0030,
+    game_mode_fade_to_score_screen = 0x0031,
     
     -- Sprites
     sprite_max = 24,
@@ -4348,10 +4349,10 @@ end
 function Cheat.beat_level()
     if Game_mode == YI.game_mode_level then
         Cheat.change_address("WRAM", WRAM.music_to_play, 0x06, 2, false, nil, false, false)
-        Cheat.change_address("WRAM", WRAM.game_mode, 0x31, 2, false, nil, false, false)
+        Cheat.change_address("WRAM", WRAM.game_mode, YI.game_mode_fade_to_score_screen, 2, false, nil, false, false)
         print("Cheat: beat level!")
     else
-        print("Only works if game mode = $000F (inside level)")
+        print(fmt("Only works if game mode = $%04X (inside level)", YI.game_mode_level))
     end
 end
 
@@ -4372,7 +4373,7 @@ function Cheat.unlock_levels()
     end
     
     -- Force overworld loading game mode
-    Cheat.change_address("WRAM", WRAM.game_mode, 0x1F, 2, false, nil, false, false)
+    Cheat.change_address("WRAM", WRAM.game_mode, YI.game_mode_level_fade_to_ow, 2, false, nil, false, false)
     
     print("Cheat: unlocked all levels!")
 end
@@ -4568,7 +4569,7 @@ function Cheat.level_warp(level_id, x, y)
         w8_wram(WRAM.screen_exit_data + 3, 0x00)     -- / 
         w16_wram(WRAM.cur_screen_exit, 0x0000)
         w16_wram(WRAM.level_load_type, 0x0001)
-        w16_wram(WRAM.game_mode, 0x000B)
+        w16_wram(WRAM.game_mode, YI.game_mode_level_fade_out_pipe)
         
         print(fmt("Cheat: warped to level $%02X at position (%03X0, %03X0).", level_id, x, y))
     else
