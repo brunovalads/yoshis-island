@@ -194,13 +194,13 @@ local INPUT_KEYNAMES = {  -- BizHawk
 local YI = {
     -- Game versions
     version_data = {
-        ["9B4957466798BBDB5B43A450BBB60B2591AE81D95B891430F62D53CA62E8BC7B"] = {region = "U", version = "1.0", game_mode_offset = 0x0},
-        ["BD763C1A56365C244BE92E6CFFEFD318780A2A19EDA7D5BAF1C6D5BD6C1B3E06"] = {region = "U", version = "1.1", game_mode_offset = 0x0},
-        ["5A9F00411B9175A938C823C578E2B9F1256B73C546A50FEC144698F56859D64F"] = {region = "J", version = "1.0", game_mode_offset = 0x0},
-        ["C27E73EA19B6C421BCA7640D2ED89C75CD9D3BAEF968EBCD984606402ED93424"] = {region = "J", version = "1.1", game_mode_offset = 0x0},
-        ["D54A3EAAB7CE4D250F8EF2CB86FA5AFEBB4712F95CADC65C85A6E5A7355D8B81"] = {region = "J", version = "1.2", game_mode_offset = 0x0},
-        ["91A4DC481C54B620CB3BCCAFFE5FA3F69DB955AE600309414D18BB59307CBA90"] = {region = "E", version = "1.0", game_mode_offset = 0x4},
-        ["824F07E93C9AD38FE408AF561E8979E3C0211F0C6C98AEB6E6BC85CD6F9EDC91"] = {region = "E", version = "1.1", game_mode_offset = 0x4},
+        ["9B4957466798BBDB5B43A450BBB60B2591AE81D95B891430F62D53CA62E8BC7B"] = {region = "U", version = "1.0", game_mode_offset = 0x0, wram_offsets = {}},
+        ["BD763C1A56365C244BE92E6CFFEFD318780A2A19EDA7D5BAF1C6D5BD6C1B3E06"] = {region = "U", version = "1.1", game_mode_offset = 0x0, wram_offsets = {}},
+        ["5A9F00411B9175A938C823C578E2B9F1256B73C546A50FEC144698F56859D64F"] = {region = "J", version = "1.0", game_mode_offset = 0x0, wram_offsets = {}},
+        ["C27E73EA19B6C421BCA7640D2ED89C75CD9D3BAEF968EBCD984606402ED93424"] = {region = "J", version = "1.1", game_mode_offset = 0x0, wram_offsets = {}},
+        ["D54A3EAAB7CE4D250F8EF2CB86FA5AFEBB4712F95CADC65C85A6E5A7355D8B81"] = {region = "J", version = "1.2", game_mode_offset = 0x0, wram_offsets = {}},
+        ["91A4DC481C54B620CB3BCCAFFE5FA3F69DB955AE600309414D18BB59307CBA90"] = {region = "E", version = "1.0", game_mode_offset = 0x4, wram_offsets = {{0x093C, 0x02}}},
+        ["824F07E93C9AD38FE408AF561E8979E3C0211F0C6C98AEB6E6BC85CD6F9EDC91"] = {region = "E", version = "1.1", game_mode_offset = 0x4, wram_offsets = {{0x093C, 0x02}}},
     },
     
     -- Game modes
@@ -1143,11 +1143,27 @@ end
 -- Check if it's Yoshi's Island (any SNES version or hack)
 YI.current_version_data = YI.version_data[Biz.rom_hash]
 if YI.current_version_data ~= nil then
+    -- Adjust game modes
     if YI.current_version_data.game_mode_offset > 0x0 then
-        YI.game_mode_overworld = YI.game_mode_overworld + YI.current_version_data.game_mode_offset
-        YI.game_mode_level = YI.game_mode_level + YI.current_version_data.game_mode_offset
+        for k,v in pairs(YI) do
+            if k:find("game_mode_") == 1 then
+                YI[k] = v + YI.current_version_data.game_mode_offset
+            end
+        end
     end
-    -- TODO: RAM/SRAM adapt for versions
+    -- Adjust WRAM
+    if #YI.current_version_data.wram_offsets > 0 then
+        for k,v in pairs(WRAM) do
+            local ramOffsetValue = 0x0
+            for o = 1, #YI.current_version_data.wram_offsets do
+                local ramOffsetAddr = YI.current_version_data.wram_offsets[o][1]
+                if WRAM[k] >= ramOffsetAddr then
+                    ramOffsetValue = YI.current_version_data.wram_offsets[o][2]
+                end
+            end
+            WRAM[k] = v + ramOffsetValue
+        end
+    end
 else
     if Biz.game_name(0x007FC0, 0xE) == "YOSHI'S ISLAND" then
         YI.current_version_data = {region = "HACK", version = "?"}
