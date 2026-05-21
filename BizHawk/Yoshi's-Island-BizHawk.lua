@@ -194,13 +194,62 @@ local INPUT_KEYNAMES = {  -- BizHawk
 local YI = {
     -- Game versions
     version_data = {
-        ["9B4957466798BBDB5B43A450BBB60B2591AE81D95B891430F62D53CA62E8BC7B"] = {region = "U", version = "1.0", game_mode_offset = 0x0, wram_offsets = {}},
-        ["BD763C1A56365C244BE92E6CFFEFD318780A2A19EDA7D5BAF1C6D5BD6C1B3E06"] = {region = "U", version = "1.1", game_mode_offset = 0x0, wram_offsets = {}},
-        ["5A9F00411B9175A938C823C578E2B9F1256B73C546A50FEC144698F56859D64F"] = {region = "J", version = "1.0", game_mode_offset = 0x0, wram_offsets = {}},
-        ["C27E73EA19B6C421BCA7640D2ED89C75CD9D3BAEF968EBCD984606402ED93424"] = {region = "J", version = "1.1", game_mode_offset = 0x0, wram_offsets = {}},
-        ["D54A3EAAB7CE4D250F8EF2CB86FA5AFEBB4712F95CADC65C85A6E5A7355D8B81"] = {region = "J", version = "1.2", game_mode_offset = 0x0, wram_offsets = {}},
-        ["91A4DC481C54B620CB3BCCAFFE5FA3F69DB955AE600309414D18BB59307CBA90"] = {region = "E", version = "1.0", game_mode_offset = 0x4, wram_offsets = {{0x093C, 0x02}}},
-        ["824F07E93C9AD38FE408AF561E8979E3C0211F0C6C98AEB6E6BC85CD6F9EDC91"] = {region = "E", version = "1.1", game_mode_offset = 0x4, wram_offsets = {{0x093C, 0x02}}},
+        ["9B4957466798BBDB5B43A450BBB60B2591AE81D95B891430F62D53CA62E8BC7B"] = {
+            region = "U",
+            version = "1.0",
+            game_mode_offset = 0x0,
+            wram_offsets = {},
+            rom_offsets = {},
+            cheat_sprite_spawning_hijack_hash = "8431CCC23FD8AC675C75E8FCDBF823F3626553373629E90D0E819515E6211C36",
+        },
+        ["BD763C1A56365C244BE92E6CFFEFD318780A2A19EDA7D5BAF1C6D5BD6C1B3E06"] = {
+            region = "U",
+            version = "1.1",
+            game_mode_offset = 0x0,
+            wram_offsets = {},
+            rom_offsets = {},
+            cheat_sprite_spawning_hijack_hash = "8431CCC23FD8AC675C75E8FCDBF823F3626553373629E90D0E819515E6211C36",
+        },
+        ["5A9F00411B9175A938C823C578E2B9F1256B73C546A50FEC144698F56859D64F"] = {
+            region = "J",
+            version = "1.0",
+            game_mode_offset = 0x0,
+            wram_offsets = {{0xDE68, -0x22C}},
+            rom_offsets = {},
+            cheat_sprite_spawning_hijack_hash = "8431CCC23FD8AC675C75E8FCDBF823F3626553373629E90D0E819515E6211C36",
+        },
+        ["C27E73EA19B6C421BCA7640D2ED89C75CD9D3BAEF968EBCD984606402ED93424"] = {
+            region = "J",
+            version = "1.1",
+            game_mode_offset = 0x0,
+            wram_offsets = {{0xDE68, -0x22C}},
+            rom_offsets = {},
+            cheat_sprite_spawning_hijack_hash = "8431CCC23FD8AC675C75E8FCDBF823F3626553373629E90D0E819515E6211C36",
+        },
+        ["D54A3EAAB7CE4D250F8EF2CB86FA5AFEBB4712F95CADC65C85A6E5A7355D8B81"] = {
+            region = "J",
+            version = "1.2",
+            game_mode_offset = 0x0,
+            wram_offsets = {{0xDE68, -0x22C}},
+            rom_offsets = {},
+            cheat_sprite_spawning_hijack_hash = "8431CCC23FD8AC675C75E8FCDBF823F3626553373629E90D0E819515E6211C36",
+        },
+        ["91A4DC481C54B620CB3BCCAFFE5FA3F69DB955AE600309414D18BB59307CBA90"] = {
+            region = "E",
+            version = "1.0",
+            game_mode_offset = 0x4,
+            wram_offsets = {{0x012D, 0x02}, {0x012F, 0x00}, {0x093C, 0x02}, {0xB900, 0x0}, {0xDE68, 0x41E}},
+            rom_offsets = {},
+            cheat_sprite_spawning_hijack_hash = "589E19142FE3143FB5F25C2587DD679D2BC5417F31241DD3FE1FB88791EF5F4D",
+        },
+        ["824F07E93C9AD38FE408AF561E8979E3C0211F0C6C98AEB6E6BC85CD6F9EDC91"] = {
+            region = "E",
+            version = "1.1",
+            game_mode_offset = 0x4,
+            wram_offsets = {{0x012D, 0x02}, {0x012F, 0x00}, {0x093C, 0x02}, {0xB900, 0x0}, {0xDE68, 0x41E}},
+            rom_offsets = {},
+            cheat_sprite_spawning_hijack_hash = "589E19142FE3143FB5F25C2587DD679D2BC5417F31241DD3FE1FB88791EF5F4D",
+        },   
     },
     
     -- Game modes
@@ -410,6 +459,19 @@ local WRAM = {  -- 7E0000~7FFFFF
     -- Layers
     layer2_x_nextframe = 0x1466,
     layer2_y_nextframe = 0x1468,
+    
+    -- Cheats
+    cheat_sprite_spawning_hijack_addr = 0xDE68,
+    cheat_sprite_spawning_code_addr = 0xB900,
+    SCBR_register_mirror = 0x012D,
+    cheat_sprite_spawning_id = 0x1E10,
+    cheat_sprite_spawning_x = 0x1E12,
+    cheat_sprite_spawning_y = 0x1E14,
+    cheat_sprite_spawning_flag = 0x1E16,
+}
+
+local ROM = {
+    spawn_sprite_init = 0x03A34C,
 }
 
 -- IDs of solid and one-way solid blocks, via tests
@@ -2973,7 +3035,7 @@ local function egg_inventory_info(i)
         end
         --if sprite_status == 0 then egg_type_str = "null egg" end
         
-        egg_sprite_id = egg_sprite_id/4
+        egg_sprite_id = floor(egg_sprite_id/4)
     
         if egg_type_str == "null egg" then
             info_colour = COLOUR.positive
@@ -4476,56 +4538,59 @@ function Cheat.spawn_sprite()
     if Cheat.is_dragging_sprite then return end
     
     -- Hijacks in RAM
-    local ram_hijack = {0x22,0x00,0xB9,0x7E,0xEA,0xEA}  --2200B97EEAEA --9C3030AC2D01 in original
-    --[[ in ASM:
-      JSL $7EB900
-      NOP
-      NOP
-      
-      instead of:
-      STZ $3030
-      LDY $012D
-    ]]
-    local ram_patch = {
-        0x08,0x48,0xDA,0xAD,0x06,0x1E,0xF0,0x15,0xAD,0x00,0x1E,0x22,0x4C, -- all zeros in original
-        0xA3,0x03,0x90,0x0C,0xAD,0x02,0x1E,0x99,0xE2,0x70,0xAD,0x04,0x1E,
-        0x99,0x82,0x71,0xFA,0x68,0x28,0x9C,0x30,0x30,0xAC,0x2D,0x01,0x6B
+    local ram_hijack = {
+        0x22,0x00,0xB9,0x7E, --  JSL $7EB900  ; Jump to the patch, according to version
+        0xEA,                --  NOP          ; \ Padding to replace original code
+        0xEA                 --  NOP          ; /
     }
-    --[[ in ASM:
-      PHP          ; \
-      PHA          ;  | Handle stack push
-      PHX          ; /
-      LDA $1E06    ; \ If $1E06 = 01, will run the code,
-      BEQ .return  ; / if = 00, will return (00 is set in the end of the script main loop, to prevent spawning the sprite indefinitely in the frame)
-      LDA $1E00    ; \  Spawn sprite ID ($1E00 range could be any address not used by the game, if changed the w16_wram below should be changed too!)
-      JSL $03A34C  ;  | in the next available slot,
-      BCC .return  ; /  will return if no free slot
-      LDA $1E02    ; \ Set x position to spawn
-      STA $70E2,y  ; /
-      LDA $1E04    ; \ Set y position to spawn
-      STA $7182,y  ; /
-      
-      .return      ;
-      PLX          ; \
-      PLA          ;  | Handle stack pull
-      PLP          ; /
-      STZ $3030    ; \ Re-do what was in $7EDE68 originally
-      LDY $012D    ; /
-      RTL          ; Return to original code
-    ]]
+    -- (It's STZ $3030, LDY $012D in the original U version)
     
-    local ram_hijack_dest = 0xDE68 -- in WRAM
-    local ram_code_dest = 0xB900 -- in WRAM
+    local sp_l = (ROM.spawn_sprite_init & 0x0000FF)
+    local sp_h = (ROM.spawn_sprite_init & 0x00FF00) / 0x100
+    local sp_b = (ROM.spawn_sprite_init & 0xFF0000) / 0x10000
+    local re_l = (WRAM.SCBR_register_mirror & 0x00FF)
+    local re_h = (WRAM.SCBR_register_mirror & 0xFF00) / 0x100
+    local id_l = (WRAM.cheat_sprite_spawning_id & 0x00FF)
+    local id_h = (WRAM.cheat_sprite_spawning_id & 0xFF00) / 0x100
+    local x_lo = (WRAM.cheat_sprite_spawning_x & 0x00FF)
+    local x_hi = (WRAM.cheat_sprite_spawning_x & 0xFF00) / 0x100
+    local y_lo = (WRAM.cheat_sprite_spawning_y & 0x00FF)
+    local y_hi = (WRAM.cheat_sprite_spawning_y & 0xFF00) / 0x100
+    local fl_l = (WRAM.cheat_sprite_spawning_flag & 0x00FF)
+    local fl_h = (WRAM.cheat_sprite_spawning_flag & 0xFF00) / 0x100
     
-    local hijack_hash = memory.hash_region(ram_hijack_dest, #ram_hijack, "WRAM")
+    local ram_patch = {
+        0x08,                -- PHP          ; \              
+        0x48,                -- PHA          ;  | Handle stack push              
+        0xDA,                -- PHX          ; /              
+        0xAD,fl_l,fl_h,      -- LDA $1E16    ; \ If $1E16 = 01, will run the code,                        
+        0xF0,0x15,           -- BEQ .return  ; / if = 00, will return                 
+        0x9C,fl_l,fl_h,      -- STZ $1E16    ; Clear $1E16, to prevent spawning the sprite indefinitely in the frame
+        0xAD,id_l,id_h,      -- LDA $1E10    ; \  Spawn sprite ID ($1E10 range could be any address not used by the game, if changed the w16_wram below should be changed too!)                        
+        0x22,sp_l,sp_h,sp_b, -- JSL $03A34C  ;  | in the next available slot, 
+        0x90,0x0C,           -- BCC .return  ; /  will return if no free slot                   
+        0xAD,x_lo,x_hi,      -- LDA $1E12    ; \ Set x position to spawn                        
+        0x99,0xE2,0x70,      -- STA $70E2,y  ; /                        
+        0xAD,y_lo,y_hi,      -- LDA $1E14    ; \ Set y position to spawn                      
+        0x99,0x82,0x71,      -- STA $7182,y  ; /   
+                             -- .return      ;             
+        0xFA,                -- PLX          ; \ 
+        0x68,                -- PLA          ;  | Handle stack pull 
+        0x28,                -- PLP          ; /                        
+        0x9C,0x30,0x30,      -- STZ $3030    ; \ Re-do what was in $7EDE68 (U) originally                        
+        0xAC,re_l,re_h,      -- LDY $012D    ; /                        
+        0x6B                 -- RTL          ; Return to original code             
+    }
+    -- (It's all zeros in the original versions)
     
-    if hijack_hash == "8431CCC23FD8AC675C75E8FCDBF823F3626553373629E90D0E819515E6211C36" then -- hijack still not set (first time using cheat), this is to avoid writing everytime the cheat is used
+    Cheat.sprite_spawning_hijack_hash = memory.hash_region(WRAM.cheat_sprite_spawning_hijack_addr, #ram_hijack, "WRAM")
+    if Cheat.sprite_spawning_hijack_hash == YI.current_version_data.cheat_sprite_spawning_hijack_hash then -- hijack still not set (first time using cheat), this is to avoid writing everytime the cheat is used
         for i,k in ipairs(ram_hijack) do
-            w8_wram(ram_hijack_dest + i - 1, k)
+            w8_wram(WRAM.cheat_sprite_spawning_hijack_addr + i - 1, k)
         end
         
         for i,k in ipairs(ram_patch) do
-            w8_wram(ram_code_dest + i - 1, k)
+            w8_wram(WRAM.cheat_sprite_spawning_code_addr + i - 1, k)
         end
     end
     
@@ -4534,10 +4599,10 @@ function Cheat.spawn_sprite()
     local sprite_id = tonumber(forms.getproperty(Options_form.sprite_number, "SelectedIndex"))
     
     -- Write values in ram (Note: these addresses are used only by the ram_patch)
-    w16_wram(0x1E00, sprite_id)
-    w16_wram(0x1E02, xgame)
-    w16_wram(0x1E04, ygame)
-    w16_wram(0x1E06, 1)
+    w16_wram(WRAM.cheat_sprite_spawning_id, sprite_id)
+    w16_wram(WRAM.cheat_sprite_spawning_x, xgame)
+    w16_wram(WRAM.cheat_sprite_spawning_y, ygame)
+    w16_wram(WRAM.cheat_sprite_spawning_flag, 1)
     
     -- Print cheat message
     print(fmt("Cheat: spawned sprite $%03X - %s at position (%04X, %04X).", sprite_id, YI.sprites[sprite_id], bit.band(xgame, 0xFFFF), bit.band(ygame, 0xFFFF)))
@@ -4706,19 +4771,22 @@ function Cheat.main()
     
     -- Undo hijack from Sprite Spawn cheat
     if (not Cheat.allow_cheats) or (not Cheat.sprite_spawning_enabled) then
-        local ram_dehijack = {0x9C,0x30,0x30,0xAC,0x2D,0x01}
-        local ram_hijack_dest = 0xDE68 -- in WRAM
-        local ram_code_dest = 0xB900 -- in WRAM
+        local re_l = (WRAM.SCBR_register_mirror & 0x00FF)
+        local re_h = (WRAM.SCBR_register_mirror & 0xFF00) / 0x100
+        local ram_dehijack = {
+            0x9C,0x30,0x30, -- STZ $3030    ; \ Re-do what was in $7EDE68 (U) originally
+            0xAC,re_l,re_h  -- LDY $012D    ; / 
+        }
         
-        local hijack_hash = memory.hash_region(ram_hijack_dest, #ram_dehijack, "WRAM")
+        local hijack_hash = memory.hash_region(WRAM.cheat_sprite_spawning_hijack_addr, #ram_dehijack, "WRAM")
         
-        if hijack_hash == "5650BC9A59753F111F9A62056A0F9EF8381B031EEEAB05F6473ADE4470C7EED6" then -- hijack is set (cheat was used), this is to avoid writing every frame
+        if hijack_hash == Cheat.sprite_spawning_hijack_hash then -- hijack is set (cheat was used), this is to avoid writing every frame
             for i,k in ipairs(ram_dehijack) do
-                w8_wram(ram_hijack_dest + i - 1, k)
+                w8_wram(WRAM.cheat_sprite_spawning_hijack_addr + i - 1, k)
             end
             
             for i = 0, 38 do
-                w8_wram(ram_code_dest + i, 0)
+                w8_wram(WRAM.cheat_sprite_spawning_code_addr + i, 0)
             end
         end
     end 
@@ -5860,9 +5928,4 @@ while true do
     --Is_lagged = emu.lagged() REMOVE?
     
     emu.frameadvance()
-    
-    -- Sprite Spawning Cheat: to avoid spawning sprites indefinitely
-    if Cheat.sprite_spawning_enabled then
-        w16_wram(0x1E06, 0)
-    end
 end
