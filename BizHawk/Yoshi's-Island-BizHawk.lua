@@ -464,10 +464,10 @@ local WRAM = {  -- 7E0000~7FFFFF
     cheat_sprite_spawning_hijack_addr = 0xDE68,
     cheat_sprite_spawning_code_addr = 0xB900,
     SCBR_register_mirror = 0x012D,
-    cheat_sprite_spawning_id = 0x1E10,
-    cheat_sprite_spawning_x = 0x1E12,
-    cheat_sprite_spawning_y = 0x1E14,
-    cheat_sprite_spawning_flag = 0x1E16,
+    cheat_sprite_spawning_flag = 0x1E10,
+    cheat_sprite_spawning_id = 0x1E12,
+    cheat_sprite_spawning_x = 0x1E14,
+    cheat_sprite_spawning_y = 0x1E16,
 }
 
 local ROM = {
@@ -4530,15 +4530,10 @@ function Cheat.drag_sprite(id)
     --w8_wram(WRAM.sprite_y_low + id, sprite_ylow)
 end
 
-
--- Spawn sprites with the mouse, if the cheats are activated and mouse is on the screen
--- Player must select the sprite id in the dropdown list
--- Made by ArneTheGreat
-function Cheat.spawn_sprite()
-    if Cheat.is_dragging_sprite then return end
-    
+-- Prepare patch for spawn sprite
+function Cheat.init_spawn_sprite()
     -- Hijacks in RAM
-    local ram_hijack = {
+    Cheat.spawn_sprite_ram_hijack = {
         0x22,0x00,0xB9,0x7E, --  JSL $7EB900  ; Jump to the patch, according to version
         0xEA,                --  NOP          ; \ Padding to replace original code
         0xEA                 --  NOP          ; /
@@ -4550,28 +4545,28 @@ function Cheat.spawn_sprite()
     local sp_b = (ROM.spawn_sprite_init & 0xFF0000) / 0x10000
     local re_l = (WRAM.SCBR_register_mirror & 0x00FF)
     local re_h = (WRAM.SCBR_register_mirror & 0xFF00) / 0x100
+    local fl_l = (WRAM.cheat_sprite_spawning_flag & 0x00FF)
+    local fl_h = (WRAM.cheat_sprite_spawning_flag & 0xFF00) / 0x100
     local id_l = (WRAM.cheat_sprite_spawning_id & 0x00FF)
     local id_h = (WRAM.cheat_sprite_spawning_id & 0xFF00) / 0x100
     local x_lo = (WRAM.cheat_sprite_spawning_x & 0x00FF)
     local x_hi = (WRAM.cheat_sprite_spawning_x & 0xFF00) / 0x100
     local y_lo = (WRAM.cheat_sprite_spawning_y & 0x00FF)
     local y_hi = (WRAM.cheat_sprite_spawning_y & 0xFF00) / 0x100
-    local fl_l = (WRAM.cheat_sprite_spawning_flag & 0x00FF)
-    local fl_h = (WRAM.cheat_sprite_spawning_flag & 0xFF00) / 0x100
     
-    local ram_patch = {
+    Cheat.spawn_sprite_ram_patch = {
         0x08,                -- PHP          ; \              
         0x48,                -- PHA          ;  | Handle stack push              
         0xDA,                -- PHX          ; /              
-        0xAD,fl_l,fl_h,      -- LDA $1E16    ; \ If $1E16 = 01, will run the code,                        
+        0xAD,fl_l,fl_h,      -- LDA $1E10    ; \ If $1E10 = 01, will run the code,                        
         0xF0,0x15,           -- BEQ .return  ; / if = 00, will return                 
-        0x9C,fl_l,fl_h,      -- STZ $1E16    ; Clear $1E16, to prevent spawning the sprite indefinitely in the frame
-        0xAD,id_l,id_h,      -- LDA $1E10    ; \  Spawn sprite ID ($1E10 range could be any address not used by the game, if changed the w16_wram below should be changed too!)                        
+        0x9C,fl_l,fl_h,      -- STZ $1E10    ; Clear $1E10, to prevent spawning the sprite indefinitely in the frame
+        0xAD,id_l,id_h,      -- LDA $1E12    ; \  Spawn sprite ID                       
         0x22,sp_l,sp_h,sp_b, -- JSL $03A34C  ;  | in the next available slot, 
         0x90,0x0C,           -- BCC .return  ; /  will return if no free slot                   
-        0xAD,x_lo,x_hi,      -- LDA $1E12    ; \ Set x position to spawn                        
+        0xAD,x_lo,x_hi,      -- LDA $1E14    ; \ Set x position to spawn                        
         0x99,0xE2,0x70,      -- STA $70E2,y  ; /                        
-        0xAD,y_lo,y_hi,      -- LDA $1E14    ; \ Set y position to spawn                      
+        0xAD,y_lo,y_hi,      -- LDA $1E16    ; \ Set y position to spawn                      
         0x99,0x82,0x71,      -- STA $7182,y  ; /   
                              -- .return      ;             
         0xFA,                -- PLX          ; \ 
@@ -4583,13 +4578,26 @@ function Cheat.spawn_sprite()
     }
     -- (It's all zeros in the original versions)
     
-    Cheat.sprite_spawning_hijack_hash = memory.hash_region(WRAM.cheat_sprite_spawning_hijack_addr, #ram_hijack, "WRAM")
+    Cheat.spawn_sprite_ram_dehijack = {
+        0x9C,0x30,0x30,      -- STZ $3030    ; \ Re-do what was in $7EDE68 (U) originally
+        0xAC,re_l,re_h       -- LDY $012D    ; / 
+    }
+end
+Cheat.init_spawn_sprite()
+
+-- Spawn sprites with the mouse, if the cheats are activated and mouse is on the screen
+-- Player must select the sprite id in the dropdown list
+-- Made by ArneTheGreat
+function Cheat.spawn_sprite()
+    if Cheat.is_dragging_sprite then return end
+    
+    Cheat.sprite_spawning_hijack_hash = memory.hash_region(WRAM.cheat_sprite_spawning_hijack_addr, #Cheat.spawn_sprite_ram_hijack, "WRAM")
     if Cheat.sprite_spawning_hijack_hash == YI.current_version_data.cheat_sprite_spawning_hijack_hash then -- hijack still not set (first time using cheat), this is to avoid writing everytime the cheat is used
-        for i,k in ipairs(ram_hijack) do
+        for i,k in ipairs(Cheat.spawn_sprite_ram_hijack) do
             w8_wram(WRAM.cheat_sprite_spawning_hijack_addr + i - 1, k)
         end
         
-        for i,k in ipairs(ram_patch) do
+        for i,k in ipairs(Cheat.spawn_sprite_ram_patch) do
             w8_wram(WRAM.cheat_sprite_spawning_code_addr + i - 1, k)
         end
     end
@@ -4599,10 +4607,10 @@ function Cheat.spawn_sprite()
     local sprite_id = tonumber(forms.getproperty(Options_form.sprite_number, "SelectedIndex"))
     
     -- Write values in ram (Note: these addresses are used only by the ram_patch)
+    w16_wram(WRAM.cheat_sprite_spawning_flag, 1)
     w16_wram(WRAM.cheat_sprite_spawning_id, sprite_id)
     w16_wram(WRAM.cheat_sprite_spawning_x, xgame)
     w16_wram(WRAM.cheat_sprite_spawning_y, ygame)
-    w16_wram(WRAM.cheat_sprite_spawning_flag, 1)
     
     -- Print cheat message
     print(fmt("Cheat: spawned sprite $%03X - %s at position (%04X, %04X).", sprite_id, YI.sprites[sprite_id], bit.band(xgame, 0xFFFF), bit.band(ygame, 0xFFFF)))
@@ -4771,21 +4779,15 @@ function Cheat.main()
     
     -- Undo hijack from Sprite Spawn cheat
     if (not Cheat.allow_cheats) or (not Cheat.sprite_spawning_enabled) then
-        local re_l = (WRAM.SCBR_register_mirror & 0x00FF)
-        local re_h = (WRAM.SCBR_register_mirror & 0xFF00) / 0x100
-        local ram_dehijack = {
-            0x9C,0x30,0x30, -- STZ $3030    ; \ Re-do what was in $7EDE68 (U) originally
-            0xAC,re_l,re_h  -- LDY $012D    ; / 
-        }
         
-        local hijack_hash = memory.hash_region(WRAM.cheat_sprite_spawning_hijack_addr, #ram_dehijack, "WRAM")
+        local hijack_hash = memory.hash_region(WRAM.cheat_sprite_spawning_hijack_addr, #Cheat.spawn_sprite_ram_dehijack, "WRAM")
         
         if hijack_hash == Cheat.sprite_spawning_hijack_hash then -- hijack is set (cheat was used), this is to avoid writing every frame
-            for i,k in ipairs(ram_dehijack) do
+            for i,k in ipairs(Cheat.spawn_sprite_ram_dehijack) do
                 w8_wram(WRAM.cheat_sprite_spawning_hijack_addr + i - 1, k)
             end
             
-            for i = 0, 38 do
+            for i = 0, #Cheat.spawn_sprite_ram_patch-1 do
                 w8_wram(WRAM.cheat_sprite_spawning_code_addr + i, 0)
             end
         end
