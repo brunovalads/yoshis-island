@@ -1461,7 +1461,7 @@ local function read_digit(number, digit, base)
     local copy = number
     local digits_total = 0
     while copy >= 1 do
-        copy = floor(copy/base)
+        copy = copy//base
         digits_total = digits_total + 1
     end
     
@@ -1647,7 +1647,7 @@ local function change_transparency(colour, transparency)
         error"Wrong colour"
     end
     
-    local a = floor(colour/0x1000000)
+    local a = colour//0x1000000
     local rgb = colour - a*0x1000000
     local new_a = floor(a*transparency)
     return new_a*0x1000000 + rgb
@@ -1763,9 +1763,9 @@ local function frame_time(frame)
     if not NTSC_FRAMERATE then error("NTSC_FRAMERATE undefined."); return end
     
     local total_seconds = frame/NTSC_FRAMERATE
-    local hours = floor(total_seconds/3600)
+    local hours = total_seconds//3600
     local tmp = total_seconds - 3600*hours
-    local minutes = floor(tmp/60)
+    local minutes = tmp//60
     tmp = tmp - 60*minutes
     local seconds = floor(tmp)
     
@@ -2100,15 +2100,15 @@ local function display_boundaries(x_game, y_game, width, height, camera_x, camer
     local bottom = top + height - 1
     
     -- Left
-    local left_text = fmt("%04X.ff", width*floor(x_game/width) - 16)
+    local left_text = fmt("%04X.ff", width*(x_game//width) - 16)
     draw_text(left, (top+bottom)/2, left_text, false, false, 1.0, 0.5)
     
     -- Right
-    local right_text = fmt("%04X.01", width*floor(x_game/width) + 15)
+    local right_text = fmt("%04X.01", width*(x_game//width) + 15)
     draw_text(right + 2, (top+bottom)/2, right_text, false, false, 0.0, 0.5)
     
     -- Top
-    local top_text = fmt("%04X.ff", width*floor(y_game/width) - 32)
+    local top_text = fmt("%04X.ff", width*(y_game//width) - 32)
     draw_text((left+right)/2, top, top_text, false, false, 0.5, 1.0)
     
     -- Bottom
@@ -2148,8 +2148,8 @@ local function draw_tile_map(camera_x, camera_y)
     local screen_number, screen_id
     local block_id
     local kind_low, kind_high
-    local player_screen_region_x = floor(Yoshi_x / 256)
-    local player_screen_region_y = floor(Yoshi_y / 256)
+    local player_screen_region_x = Yoshi_x // 256
+    local player_screen_region_y = Yoshi_y // 256
     for screen_region_y = 0, 7 do
         if screen_region_y >= player_screen_region_y - 1 and screen_region_y <= player_screen_region_y + 1 then -- to not scan the whole level
             for screen_region_x = 0, 15 do
@@ -2241,8 +2241,8 @@ local function draw_tiles_clicked(camera_x, camera_y)
     if not valid_game_mode then return end
     
     local x_mouse, y_mouse = game_coordinates(User_input.xmouse + OPTIONS.left_gap, User_input.ymouse + OPTIONS.top_gap, camera_x, camera_y)
-    x_mouse = 16*floor((x_mouse)/16)
-    y_mouse = 16*floor((y_mouse)/16)
+    x_mouse = 16*(x_mouse//16)
+    y_mouse = 16*(y_mouse//16)
     
     local block_colour
     
@@ -2264,8 +2264,8 @@ local function draw_tiles_clicked(camera_x, camera_y)
             -- Math
             --local num_x, num_y, kind_low, kind_high, address_low, address_high = get_map16_value(x_game, y_game)
             
-            local screen_region_x = floor(x_game/256) 
-            local screen_region_y = floor(y_game/256)
+            local screen_region_x = x_game//256
+            local screen_region_y = y_game//256
             
             local screen_number = screen_region_y*16 + screen_region_x
             local screen_id = bit.band(u8_sram(SRAM.screen_number_to_id + screen_number), 0x7F) -- to exclude high bit (handles special objects xFE or xFF)
@@ -2322,8 +2322,8 @@ local function select_tile()
     if Game_mode ~= YI.game_mode_level then return end
     
     local x_mouse, y_mouse = game_coordinates(User_input.xmouse + OPTIONS.left_gap, User_input.ymouse + OPTIONS.top_gap, Camera_x, Camera_y)
-    x_mouse = 16*floor(x_mouse/16)
-    y_mouse = 16*floor(y_mouse/16)
+    x_mouse = 16*(x_mouse//16)
+    y_mouse = 16*(y_mouse//16)
     
     for number, positions in ipairs(Tiletable) do  -- if mouse points a drawn tile, erase it
         if x_mouse == positions[1] and y_mouse == positions[2] then
@@ -2455,7 +2455,7 @@ local function show_misc_info()
     local flower_counter = u16_wram(WRAM.flower_counter)
     local life_counter = u16_wram(WRAM.lives)
     local coin_counter = u16_wram(WRAM.coin_counter)
-    local star_effective = floor(star_counter/10)
+    local star_effective = star_counter//10
 
     local temp_str
     local x_temp, y_temp = OPTIONS.left_gap, BIZHAWK_FONT_HEIGHT
@@ -2544,7 +2544,7 @@ local function level_info()
     Bg_opacity = 1.0
     
     --- Current level, converts the level index to the game level number
-    local world_number = floor(Level_index/12) + 1
+    local world_number = (Level_index//12) + 1
     local level_number = fmt("%d", Level_index%12 + 1)
     if level_number == "9" then level_number = "E" end -- Extra levels
     local level_str = fmt("Level:$%02X (%d - %s)", Level_index, world_number, level_number)
@@ -2554,8 +2554,8 @@ local function level_info()
     
     --- Current screen
     local screen_number, screen_id
-    local x_player_simp = 256*floor(Yoshi_x/256)
-    local y_player_simp = 256*floor(Yoshi_y/256)
+    local x_player_simp = 256*(Yoshi_x//256)
+    local y_player_simp = 256*(Yoshi_y//256)
     for screen_region_y = 0, 7 do
         for screen_region_x = 0, 15 do
             if x_player_simp == 256*screen_region_x and y_player_simp == 256*screen_region_y then -- player current screen
@@ -2644,7 +2644,7 @@ local function level_info()
         end
         
         -- Display Yoshi position in the level layout
-        local x_player_16, y_player_16 = floor(Yoshi_x/16), floor(Yoshi_y/16)
+        local x_player_16, y_player_16 = Yoshi_x//16, Yoshi_y//16
         draw_cross(x_base + x_player_16, y_base + y_player_16, 2, COLOUR.positive)
         
         -- Screen adjustment to properly see the table
@@ -2815,8 +2815,8 @@ function draw_blocked_status(x_text, y_text, player_blocked_status)
     
     -- Fully inside the ground
     if player_blocked_status == 0x1ff then  
-        draw_line(xoffset + 3, yoffset + floor(bitmap_height/2) - 1, xoffset + bitmap_width + 2, yoffset + floor(bitmap_height/2) - 1, colour_set)
-        draw_line(xoffset + floor(bitmap_width/2) + 3, yoffset, xoffset + floor(bitmap_width/2) + 3, yoffset + bitmap_height - 1, colour_set)
+        draw_line(xoffset + 3, yoffset + (bitmap_height//2) - 1, xoffset + bitmap_width + 2, yoffset + (bitmap_height//2) - 1, colour_set)
+        draw_line(xoffset + (bitmap_width//2) + 3, yoffset, xoffset + (bitmap_width//2) + 3, yoffset + bitmap_height - 1, colour_set)
     end    
 end
 
@@ -3007,7 +3007,7 @@ end
 local function egg_inventory_info(i)
     if Is_paused then return end
     
-    local egg_inventory_size = u8_sram(SRAM.egg_inventory_size)/2
+    local egg_inventory_size = u8_sram(SRAM.egg_inventory_size)//2
     local egg_sprite_id, egg_type, egg_type_str, sprite_status
     
     local info_colour = COLOUR.text
@@ -3035,7 +3035,7 @@ local function egg_inventory_info(i)
         end
         --if sprite_status == 0 then egg_type_str = "null egg" end
         
-        egg_sprite_id = floor(egg_sprite_id/4)
+        egg_sprite_id = egg_sprite_id//4
     
         if egg_type_str == "null egg" then
             info_colour = COLOUR.positive
@@ -3161,9 +3161,9 @@ local function player()
     i = i + 1
     if tongued_slot ~= 0 then
         local tongued_type = u16_sram(SRAM.sprite_type + tongued_slot - 1)
-        draw_text(table_x, table_y + i*delta_y, fmt("Slot <%02d>, ID %03X", (tongued_slot - 1)/4, tongued_type), COLOUR.counter_swallow)
+        draw_text(table_x, table_y + i*delta_y, fmt("Slot <%02d>, ID %03X", (tongued_slot - 1)//4, tongued_type), COLOUR.counter_swallow)
     else
-        draw_text(table_x, table_y + i*delta_y, fmt("Slot <-->, ID ---", (tongued_slot - 1)/4, 0), COLOUR.weak2)
+        draw_text(table_x, table_y + i*delta_y, "Slot <-->, ID ---", COLOUR.weak2)
     end
     i = i + 1
     
@@ -3292,7 +3292,7 @@ local function ambient_sprites()
             end
             if new_ambsprite then
                 local new_id_str = fmt(" NEW AMB. SPRITE ID!!! %3X in {%.2d} ", ambspr_type, id)
-                alert_text(Buffer_middle_x - floor(4*string.len(new_id_str)/2), 190, new_id_str, COLOUR.warning, COLOUR.warning_bg)
+                alert_text(Buffer_middle_x - ((4*string.len(new_id_str))//2), 190, new_id_str, COLOUR.warning, COLOUR.warning_bg)
                 print(new_id_str)
                 draw_box(x_screen - 4, y_screen - 4, x_screen + 20, y_screen + 20, COLOUR.warning)
             end
@@ -3355,7 +3355,7 @@ local function sprite_info(id, counter, table_position)
     local y_centered = s16_sram(SRAM.sprite_y_center + id_off)
     local x_center_offset = s16_sram(SRAM.sprite_x_center_offset + id_off)
     local y_center_offset = s16_sram(SRAM.sprite_y_center_offset + id_off)
-    local despawn_threshold_id = bit.band(u8_sram(SRAM.sprite_table3 + id_off), 0xC)/4
+    local despawn_threshold_id = bit.band(u8_sram(SRAM.sprite_table3 + id_off), 0xC)//4
     local x_relative_cam = s16_sram(SRAM.sprite_x_relative_cam + id_off)
     local y_relative_cam = s16_sram(SRAM.sprite_y_relative_cam + id_off)
     local sprite_half_width = s16_sram(SRAM.sprite_hitbox_half_width + id_off)  --HITBOX_SPRITE[boxid].width
@@ -3791,7 +3791,7 @@ local function sprite_info(id, counter, table_position)
             if log_state == 1 then tmp_colour = COLOUR.warning else tmp_colour = COLOUR.positive end
             
             local timer_str = fmt("%d", u8_sram(SRAM.sprite_table21 + id_off))
-            draw_text(x_centered_screen - floor(4*string.len(timer_str)/2) + 1, y_centered_screen + sprite_half_height + 2, timer_str, tmp_colour)
+            draw_text(x_centered_screen - 4*string.len(timer_str)//2 + 1, y_centered_screen + sprite_half_height + 2, timer_str, tmp_colour)
         end
         
         -- Line guided Flatbed Ferries
@@ -4169,8 +4169,8 @@ local function overworld_mode()
     local cursor_x_pos_next = u8_wram(WRAM.OW_cursor_x_pos_next)
     local cursor_y_pos_next = u8_wram(WRAM.OW_cursor_y_pos_next)
     local cursor_level = u8_wram(WRAM.OW_cursor_level)
-    local cursor_world = u8_wram(WRAM.OW_cursor_world)/2 -- math to match what the game display
-    local world_id = u16_wram(WRAM.OW_world_id)/2 -- math to match what the game display
+    local cursor_world = u8_wram(WRAM.OW_cursor_world)//2 -- math to match what the game display
+    local world_id = u16_wram(WRAM.OW_world_id)//2 -- math to match what the game display
     local coin_counter = u16_wram(WRAM.coin_counter)
     
     -- Main info table
