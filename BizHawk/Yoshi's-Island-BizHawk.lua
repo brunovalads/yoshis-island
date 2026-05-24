@@ -3143,7 +3143,7 @@ local function player()
     draw_text(table_x, table_y + i*delta_y, "Speed (" .. x_spd_str .. ", " .. y_spd_str .. ")")
     i = i + 1
     
-    draw_text(table_x, table_y + i*delta_y, fmt("Target (%s)", egg_throw_state ~= 0 and fmt("%04X, %04X", egg_target_x, egg_target_y) or "-, -"))
+    draw_text(table_x, table_y + i*delta_y, fmt("Target (%s)", egg_throw_state ~= 0 and fmt("%04X, %04X", egg_target_x & 0xFFFF, egg_target_y & 0xFFFF) or "-, -"))
     i = i + 1
     
     draw_text(table_x, table_y + i*delta_y, fmt("Status: $%02X", status))
