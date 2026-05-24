@@ -100,7 +100,7 @@ local DEFAULT_COLOUR = {
     
     -- Counters
     counter_pipe = 0xff00FF00,
-    counter_swallow = 0xff00FF00,
+    counter_swallow = 0xffD5293D,
     counter_transform = 0xffA5A5A5,
     counter_star = 0xffFFFF00,
     counter_switch = 0xffFF0000,
@@ -144,7 +144,7 @@ local DEFAULT_COLOUR = {
     yoshi = 0xff00FFFF,
     yoshi_bg = 0x4000FFFF,
     yoshi_mounted_bg = 0x00000000,
-    tongue_line = 0xffFFA000,
+    tongue = 0xffD5293D,
     tongue_bg = 0x60000000,
     
     block = 0xff00008B,
@@ -2923,10 +2923,10 @@ local function player_hitbox(x, y, x_centered, y_centered, tongue_x_screen, tong
         end
         
         if tongue_state ~= 0 and tongue_state < 5 and ammo_in_mouth == 0  then
-            draw_box(tongue_x_screen - 14, tongue_y_screen - 10, tongue_x_screen + 13, tongue_y_screen + 9, COLOUR.positive)
+            draw_box(tongue_x_screen - 14, tongue_y_screen - 10, tongue_x_screen + 13, tongue_y_screen + 9, COLOUR.tongue)
         end
 
-        draw_cross(tongue_x_screen, tongue_y_screen, 2, COLOUR.positive)
+        draw_cross(tongue_x_screen, tongue_y_screen, 2, COLOUR.tongue)
     end
     
     --[[
