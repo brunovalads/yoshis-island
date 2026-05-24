@@ -52,6 +52,7 @@ local DEFAULT_OPTIONS = {
     dark_filter_opacity = 8,
     display_credits_warp_helper = false,
     windows_display_scale = 1.0,
+    display_lagmeter = false,
     
     -- Some extra/debug info
     display_debug_info = false,  -- shows useful info while investigating the game, but not very useful while TASing
@@ -75,6 +76,20 @@ local DEFAULT_OPTIONS = {
 
 -- Colour settings
 local DEFAULT_COLOUR = {
+    -- Primary
+    white = 0xffFFFFFF,
+    black = 0xff000000,
+    red = 0xffFF0000,
+    green = 0xff00FF00,
+    blue = 0xff0000FF,
+    yellow = 0xffFFFF00,
+    cyan = 0xff00FFFF,
+    magenta = 0xffFF00FF,
+    light_gray = 0xff404040,
+    gray = 0xff808080,
+    dark_gray = 0xffC0C0C0,
+    full_transparency = 0x00000000,
+    
     -- Text
     default_text_opacity = 1.0,
     default_bg_opacity = 0.7,
@@ -471,6 +486,7 @@ local WRAM = {  -- 7E0000~7FFFFF
 }
 
 local ROM = {
+    game_loop = 0x0080F1,
     spawn_sprite_init = 0x03A34C,
 }
 
@@ -2010,6 +2026,9 @@ local Sprite_tables_form = {}
 local Level_map_form = {}
 local Sprites_info = {}  -- keeps track of useful sprite info that might be used outside the main sprite function
 Sprites_info.selected_id = 0
+local Lagmeter = {}
+Lagmeter.callback_name = "Lagmeter_Yoshis_Island"
+Lagmeter.value = 10 -- Could be anything bigger than 2
 
 -- Initialization of main sprite tables
 for i = 0, YI.sprite_max -1 do
@@ -4065,7 +4084,6 @@ local function show_counters()
     
 end
 
-
 -- Display useful info for Credits Warp 
 local function credits_warp_helper()
     if not OPTIONS.display_credits_warp_helper then return end
@@ -4384,6 +4402,46 @@ local function read_raw_input()
     end 
 end
 
+-- Calculate how close the current frame is to lag
+function Lagmeter.calculate_value()
+    local v_max, h_max = YI.current_version_data.region ~= "E" and 261 or 311, 339
+    local v_check, h_check = 216, 86
+    local v, h = emu.getregister("V"), emu.getregister("H")
+    
+    local check_count = (v_check * h_max) + h_check
+    local current_count = (v * h_max) + h
+    local close_to_lag_ratio = (current_count*1.0) / check_count
+    if close_to_lag_ratio < Lagmeter.value then
+        Lagmeter.value = close_to_lag_ratio
+    end
+end
+
+-- Handle registering/unregistering the callback to the lagmeter calc
+function Lagmeter.handle_activation(display_lagmeter)
+    if display_lagmeter then
+        event.unregisterbyname(Lagmeter.callback_name)
+        event.onmemoryexecute(Lagmeter.calculate_value, ROM.game_loop, Lagmeter.callback_name)
+    else
+        event.unregisterbyname(Lagmeter.callback_name)
+    end
+end
+Lagmeter.handle_activation(OPTIONS.display_lagmeter)
+
+-- Display the lagmeter
+function Lagmeter.show()
+    if not OPTIONS.display_lagmeter then return end
+    
+    local colour
+    if     Lagmeter.value < 0.70 then colour = COLOUR.green
+    elseif Lagmeter.value < 0.90 then colour = COLOUR.yellow
+    elseif Lagmeter.value <= 1.00 then colour = COLOUR.red
+    else colour = COLOUR.magenta end
+    
+    draw_text(Buffer_middle_x, 0, "Lagmeter:        ", true, false, 0.5)
+    draw_text(Buffer_middle_x, 0, fmt("          %.2f%%%s", Lagmeter.value * 100, Lagmeter.value < 1 and " " or ""), colour, true, false, 0.5, 0.0)
+    
+    Lagmeter.value = 10
+end
 
 --#############################################################################
 -- CHEATS
@@ -5028,6 +5086,13 @@ function Options_form.create_window()
     
     Options_form.debug_controller_data = forms.checkbox(Options_form.form, "Controller data", xform, yform)
     forms.setproperty(Options_form.debug_controller_data, "Checked", OPTIONS.display_debug_controller_data)
+    yform = yform + delta_y
+    
+    Options_form.lagmeter = forms.checkbox(Options_form.form, "Lagmeter", xform, yform)
+    forms.setproperty(Options_form.lagmeter, "Checked", OPTIONS.display_lagmeter)
+    forms.addclick(Options_form.lagmeter, function()
+        Lagmeter.handle_activation(forms.ischecked(Options_form.lagmeter))
+    end)
     yform = yform + delta_y
     
     if yform > y_bigger then y_bigger = yform end 
@@ -5745,6 +5810,7 @@ function Options_form.evaluate_form()
     update_options("display_debug_sprite_extra", forms.ischecked(Options_form.debug_sprite_extra) or false)
     update_options("display_sprite_load_status",  forms.ischecked(Options_form.sprite_load_status) or false)
     update_options("display_debug_controller_data", forms.ischecked(Options_form.debug_controller_data) or false)
+    update_options("display_lagmeter", forms.ischecked(Options_form.lagmeter) or false)
     --- Settings -------------------------------------------------------------------------------------------
     update_options("draw_tiles_with_click", forms.ischecked(Options_form.draw_tiles_with_click) or false)
     update_options("display_mouse_coordinates", forms.ischecked(Options_form.mouse_info) or false)
@@ -5862,6 +5928,8 @@ event.onexit(function()
       os.remove(YI.image_hex[i].name)
     end
     
+    event.unregisterbyname(Lagmeter.callback_name)
+    
     print(fmt("Finishing %s script.\n------------------------------------------", YI.game_name_with_version))
 end)
 
@@ -5900,6 +5968,7 @@ while true do
     show_misc_info()
     show_controller_data()
     show_mouse_info()
+    Lagmeter.show()
     
     -- Cheats
     Cheat.main()
