@@ -4840,7 +4840,7 @@ function Options_form.create_window()
     -- Set form location based on the emu window
     local emu_window_x, emu_window_y = client.xpos(), client.ypos()
     local form_x_pos, form_y_pos = 4, 4 -- top left corner
-    if emu_window_x >= form_x_pos + form_width then form_x_pos = emu_window_x - form_width + 6 end
+    if emu_window_x >= form_x_pos + form_width then form_x_pos = emu_window_x - form_width end
     forms.setlocation(Options_form.form, form_x_pos, form_y_pos)
     
     local xform, yform, delta_x, delta_y = 4, 4, 120, 20
