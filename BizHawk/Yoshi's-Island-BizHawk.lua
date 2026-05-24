@@ -304,8 +304,8 @@ local SRAM = {  -- 700000~707FFF
     y_centered = 0x011E, -- 2 bytes
     hitbox_half_width = 0x0120,
     hitbox_half_height = 0x0122,
-    tongue_x = 0x0152, -- 2 bytes
-    tongue_y = 0x0154, -- 2 bytes
+    tongue_x_offset = 0x0152, -- 2 bytes
+    tongue_y_offset = 0x0154, -- 2 bytes
     tongue_state = 0x0150,
     tongued_slot = 0x0168, -- 2 bytes, high byte is flag for inedible
     ammo_in_mouth = 0x016A,
@@ -2643,6 +2643,16 @@ local function level_info()
             end
         end
         
+        -- Display Yoshi's tongue position in the level layout
+        local tongue_x_offset = s16_sram(SRAM.tongue_x_offset)
+        local tongue_y_offset = s16_sram(SRAM.tongue_y_offset)
+        if (tongue_x_offset ~= 0 or tongue_y_offset ~= 0) then
+            local tongue_x = s16_sram(SRAM.x_centered) + tongue_x_offset
+            local tongue_y = s16_sram(SRAM.y_centered) + tongue_y_offset
+            local tongue_x_16, tongue_y_16 = tongue_x//16, tongue_y//16
+            draw_cross(x_base + tongue_x_16, y_base + tongue_y_16, 2, COLOUR.counter_swallow)
+        end
+        
         -- Display Yoshi position in the level layout
         local x_player_16, y_player_16 = Yoshi_x//16, Yoshi_y//16
         draw_cross(x_base + x_player_16, y_base + y_player_16, 2, COLOUR.positive)
@@ -3083,8 +3093,8 @@ local function player()
     local on_sprite_platform = u16_sram(SRAM.on_sprite_platform)
     local x_centered = s16_sram(SRAM.x_centered)
     local y_centered = s16_sram(SRAM.y_centered)
-    local tongue_x = s16_sram(SRAM.tongue_x)
-    local tongue_y = s16_sram(SRAM.tongue_y)
+    local tongue_x_offset = s16_sram(SRAM.tongue_x_offset)
+    local tongue_y_offset = s16_sram(SRAM.tongue_y_offset)
     local tongued_slot = u8_sram(SRAM.tongued_slot)
     local egg_throw_state = u8_sram(SRAM.egg_throw_state)
     local egg_target_x = s16_sram(SRAM.egg_target_x)
@@ -3094,7 +3104,9 @@ local function player()
     if direction == 0 then direction = RIGHT_ARROW else direction = LEFT_ARROW end
     local x_screen, y_screen = screen_coordinates(x, y, Camera_x, Camera_y)
     local x_centered_screen, y_centered_screen = screen_coordinates(x_centered, y_centered, Camera_x, Camera_y)
-    local tongue_x_screen, tongue_y_screen = screen_coordinates(tongue_x + x_centered, tongue_y + y_centered, Camera_x, Camera_y)
+    local tongue_x = x_centered + tongue_x_offset
+    local tongue_y = y_centered + tongue_y_offset
+    local tongue_x_screen, tongue_y_screen = screen_coordinates(tongue_x, tongue_y, Camera_x, Camera_y)
     local x_display = x < 0 and fmt("-%04X", 0xFFFFFFFF - x + 1) or fmt("%04X", x) -- position in HEXADECIMAL
     local y_display = y < 0 and fmt("-%04X", 0xFFFFFFFF - y + 1) or fmt("%04X", y) -- position in HEXADECIMAL
     
@@ -3157,7 +3169,10 @@ local function player()
         i = i + 2.5*Scale_y
     end
     
-    draw_text(table_x, table_y + i*delta_y, fmt("Tongue (%+d, %+d)", tongue_x, tongue_y), COLOUR.counter_swallow)
+    draw_text(table_x, table_y + i*delta_y, fmt("Tongue (%04X, %04X)", tongue_x & 0xFFFF, tongue_y & 0xFFFF), COLOUR.counter_swallow)
+    i = i + 1
+    local is_tongue_glitched = (direction == RIGHT_ARROW and tongue_x_offset < 0) or (direction == LEFT_ARROW and tongue_x_offset > 0) or (tongue_y_offset > 0)
+    draw_text(table_x, table_y + i*delta_y, fmt("Offset (%+d, %+d) %s", tongue_x_offset, tongue_y_offset, is_tongue_glitched and "GLITCH!" or ""), COLOUR.counter_swallow)
     i = i + 1
     if tongued_slot ~= 0 then
         local tongued_type = u16_sram(SRAM.sprite_type + tongued_slot - 1)
@@ -4467,8 +4482,8 @@ function Cheat.free_movement()
     w8_sram(SRAM.invincibility_timer, 120) -- to avoid taking damage
     w16_sram(SRAM.on_sprite_platform, 1) -- to make the game think you're in a platform, so the camera scrolls vertically too
     w16_sram(SRAM.tongue_state, 0) -- to disable tongue during the cheat, preventing a possible Tongue Glitch
-    w16_sram(SRAM.tongue_x, 0) --\ to prevent displaced tongue after disabling the cheat
-    w16_sram(SRAM.tongue_y, 0) --/
+    w16_sram(SRAM.tongue_x_offset, 0) --\ to prevent displaced tongue after disabling the cheat
+    w16_sram(SRAM.tongue_y_offset, 0) --/
     
     Cheat.is_cheating = true
     Previous.under_free_move = true
