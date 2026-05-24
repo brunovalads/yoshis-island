@@ -2464,7 +2464,7 @@ local function show_misc_info()
     local RNG = u16_sram(SRAM.RNG)
     draw_text(Screen_width, 0, fmt("RNG:$%04X  Game mode:$%04X", RNG, Game_mode), true)
 
-    local camera_str = fmt("Camera (%04X, %04X)", Camera_x, Camera_y)
+    local camera_str = fmt("Camera (%04X, %04X)", Camera_x & 0xFFFF, Camera_y & 0xFFFF)
     draw_text(Buffer_middle_x, OPTIONS.top_gap - 2, camera_str, true, false, 0.5)
 
     if Game_mode ~= YI.game_mode_level or Is_paused then return end
