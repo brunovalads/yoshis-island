@@ -3266,13 +3266,13 @@ local function ambient_sprites()
             -- Prints
             
             -- Table
-            local debug_str = ""
-            local debug_address = SRAM.ambsprite_table15
-            local debug_str = fmt("[%02X,%02X,%02X,%02X] ", u8_sram(debug_address + 0 + id_off), u8_sram(debug_address + 1 + id_off), u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
-            --if ambspr_type == 0x1E1 then w16(debug_address + id_off, 0x90FF) end -- REMOVE TESTS/DEBUG
-            --w16_sram(debug_address + id_off, 0xFF) -- REMOVE TESTS/DEBUG
-            local ambspr_string = fmt("{%.2d} %.4X %s(%d.%02x, %d.%02x)", id, ambspr_type, debug_str, x, x_sub, y, y_sub)
             if OPTIONS.display_ambient_sprite_table then
+                local debug_str = ""
+                local debug_address = SRAM.ambsprite_table15
+                local debug_str = fmt("[%02X,%02X,%02X,%02X] ", u8_sram(debug_address + 0 + id_off), u8_sram(debug_address + 1 + id_off), u8_sram(debug_address + 2 + id_off), u8_sram(debug_address + 3 + id_off)) -- REMOVE TESTS/DEBUG
+                --if ambspr_type == 0x1E1 then w16(debug_address + id_off, 0x90FF) end -- REMOVE TESTS/DEBUG
+                --w16_sram(debug_address + id_off, 0xFF) -- REMOVE TESTS/DEBUG
+                local ambspr_string = fmt("{%.2d} %.4X %s(%04X.%02x, %04X.%02x)", id, ambspr_type, debug_str, x & 0xFFFF, x_sub, y & 0xFFFF, y_sub)
                 draw_text(Screen_width, y_pos + counter*height, ambspr_string, ambspr_colour, true, false)
             end
             
