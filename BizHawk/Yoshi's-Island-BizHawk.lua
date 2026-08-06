@@ -167,6 +167,19 @@ local DEFAULT_COLOUR = {
     block_bg = 0xa022CC88,
 }
 
+-- Default positions for infos displayed on screen (MUST BE UPDATED INSIDE bizhawk_screen_info)
+local INFO_POS = {
+    player = {x = 0, y = 0},
+    sprite_table = {x = 0, y = 0},
+    ambient_sprite_table = {x = 0, y = 0},
+    camera = {x = 0, y = 0},
+    level_layout = {x = 0, y = 0},
+    sprite_level_data = {x = 0, y = 0},
+    counters = {x = 0, y = 0},
+    overworld = {x = 0, y = 0},
+    movie = {x = 2, y = 0},
+}
+
 -- Font settings
 local BIZHAWK_FONT_WIDTH = 10  -- correction to the scale is done in bizhawk_screen_info()
 local BIZHAWK_FONT_HEIGHT = 18
@@ -1465,6 +1478,17 @@ local function bizhawk_screen_info()
     
     BIZHAWK_FONT_WIDTH = 10/Scale_x -- to make compatible to the scale
     BIZHAWK_FONT_HEIGHT = 18/Scale_y
+    
+    -- Update position for infos that change acoording to screen
+    INFO_POS.player = {x = 2, y = OPTIONS.top_gap}
+    INFO_POS.sprite_table = {x = Screen_width, y = OPTIONS.top_gap + BIZHAWK_FONT_HEIGHT}
+    INFO_POS.ambient_sprite_table = {x = Screen_width, y = Border_bottom_start}
+    INFO_POS.camera = {x = Buffer_middle_x, y = OPTIONS.top_gap - 2}
+    INFO_POS.level_layout = {x = OPTIONS.left_gap, y = Border_bottom_start + 1.5*BIZHAWK_FONT_HEIGHT}
+    INFO_POS.sprite_level_data = {x = Border_right_start + 1, y = Border_bottom_start - 5*BIZHAWK_FONT_HEIGHT}
+    INFO_POS.counters = {x = 2, y = OPTIONS.top_gap + 20*BIZHAWK_FONT_HEIGHT}
+    INFO_POS.overworld = {x = 2, y = OPTIONS.top_gap}
+    INFO_POS.movie = {x = 2, y = 0}
 end
 
 -- Returns the exact chosen digit of a number from the left to the right, in a given base
@@ -2411,7 +2435,7 @@ local function show_movie_info()
     Text_opacity = 1.0
     Bg_opacity = 1.0
     local width = BIZHAWK_FONT_WIDTH
-    local x_text, y_text = 2, 0
+    local x_text, y_text = INFO_POS.movie.x, INFO_POS.movie.y
     
     local rec_colour = (Readonly or not Movie_active) and COLOUR.text or COLOUR.warning
     local recording_bg = (Readonly or not Movie_active) and COLOUR.background or COLOUR.warning_bg 
@@ -2465,7 +2489,7 @@ local function show_misc_info()
     draw_text(Screen_width, 0, fmt("RNG:$%04X  Game mode:$%04X", RNG, Game_mode), true)
 
     local camera_str = fmt("Camera (%04X, %04X)", Camera_x & 0xFFFF, Camera_y & 0xFFFF)
-    draw_text(Buffer_middle_x, OPTIONS.top_gap - 2, camera_str, true, false, 0.5)
+    draw_text(INFO_POS.camera.x, INFO_POS.camera.y, camera_str, true, false, 0.5)
 
     if Game_mode ~= YI.game_mode_level or Is_paused then return end
 
@@ -2591,7 +2615,7 @@ local function level_info()
     
     --- Level layout display
     if OPTIONS.display_level_layout then
-        local x_base, y_base = OPTIONS.left_gap, Border_bottom_start + 1.5*BIZHAWK_FONT_HEIGHT
+        local x_base, y_base = INFO_POS.level_layout.x, INFO_POS.level_layout.y
         local x_temp, y_temp
         local screen_exit_table = {}
         
@@ -3041,8 +3065,8 @@ local function egg_inventory_info(i)
     
     local info_colour = COLOUR.text
     local delta_y = BIZHAWK_FONT_HEIGHT
-    local x_pos = 2
-    local y_pos = OPTIONS.top_gap + (i+1)*delta_y
+    local x_pos = INFO_POS.player.x
+    local y_pos = INFO_POS.player.y + (i+1)*delta_y
     draw_text(x_pos, y_pos - delta_y, fmt("Egg inventory: %d", egg_inventory_size), COLOUR.weak)
     
     for id = 0, egg_inventory_size - 1 do
@@ -3133,8 +3157,8 @@ local function player()
     local i = 0
     local delta_x = BIZHAWK_FONT_WIDTH
     local delta_y = BIZHAWK_FONT_HEIGHT
-    local table_x = 2
-    local table_y = OPTIONS.top_gap
+    local table_x = INFO_POS.player.x
+    local table_y = INFO_POS.player.y
     local temp_colour, x_spd_str, y_spd_str
     
     --draw_text(table_x, table_y + i*delta_y, fmt("Pos (%+d.%02x, %+d.%02x) %s", x, x_sub, y, y_sub, direction)) -- position in DECIMAL
@@ -3258,7 +3282,8 @@ local function ambient_sprites()
     -- Font
     Text_opacity = 1.0
     local height = BIZHAWK_FONT_HEIGHT*0.8
-    local y_pos = Border_bottom_start + 2*height
+    local x_table = INFO_POS.ambient_sprite_table.x
+    local y_table = INFO_POS.ambient_sprite_table.y + 2*height
     
     local counter = 0
     for id = 0, YI.ambient_sprite_max - 1 do
@@ -3307,7 +3332,7 @@ local function ambient_sprites()
                 --if ambspr_type == 0x1E1 then w16(debug_address + id_off, 0x90FF) end -- REMOVE TESTS/DEBUG
                 --w16_sram(debug_address + id_off, 0xFF) -- REMOVE TESTS/DEBUG
                 local ambspr_string = fmt("{%.2d} %.4X %s(%04X.%02x, %04X.%02x)", id, ambspr_type, debug_str, x & 0xFFFF, x_sub, y & 0xFFFF, y_sub)
-                draw_text(Screen_width, y_pos + counter*height, ambspr_string, ambspr_colour, true, false)
+                draw_text(x_table, y_table + counter*height, ambspr_string, ambspr_colour, true, false)
             end
             
             -- Prints information next to the exteded sprite
@@ -3360,14 +3385,14 @@ local function ambient_sprites()
   
     if OPTIONS.display_ambient_sprite_table then
         Text_opacity = 0.5
-        local x_pos, y_pos, length = draw_text(Screen_width, y_pos, fmt("Ambient sprites:%2d", counter), COLOUR.weak, true, false, 0.0, 1.0)
+        draw_text(x_table, y_table, fmt("Ambient sprites:%2d", counter), COLOUR.weak, true, false, 0.0, 1.0)
     end
 end
 
 
 Pinwheel_counter = 0 -- TODO: do this or scrap out
 
-local function sprite_info(id, counter, table_position)
+local function sprite_info(id, counter)
     Text_opacity = 1.0
     
     -- id to read memory correctly
@@ -3442,7 +3467,7 @@ local function sprite_info(id, counter, table_position)
     
     if sprite_status == 0 then info_colour = change_transparency(COLOUR.disabled, 0.5) end -- TODO: make an option if the player wants all visible slots or only active
     
-    -- Depawning position
+    -- Despawning position
     if is_offscreen and OPTIONS.display_sprite_spawning_areas then
         
         local x_off, y_off
@@ -3895,7 +3920,7 @@ local function sprite_info(id, counter, table_position)
     
     if OPTIONS.display_sprite_table then
         local sprite_str = fmt("<%02d> %03X %s%04X(%+d.%02x), %04X(%+d.%02x)", id, sprite_type, debug_str, bit.band(x_centered, 0xFFFF), x_speed, x_subspeed, bit.band(y_centered, 0xFFFF), y_speed, y_subspeed)
-        draw_text(Screen_width, table_position + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
+        draw_text(INFO_POS.sprite_table.x, INFO_POS.sprite_table.y + counter*BIZHAWK_FONT_HEIGHT, sprite_str, info_colour, true)
     end
     
     ---**********************************************
@@ -3926,14 +3951,13 @@ local function sprites()
     if valid_game_mode == false then return end
     
     local counter = 0
-    local table_position = OPTIONS.top_gap + BIZHAWK_FONT_HEIGHT
     for id = 0, YI.sprite_max - 1 do
-        counter = counter + sprite_info(id, counter, table_position)
+        counter = counter + sprite_info(id, counter)
     end
     
     -- Display amount of sprites
     Text_opacity = 0.8
-    draw_text(Screen_width, table_position - BIZHAWK_FONT_HEIGHT, fmt("Sprites:%.2d", counter), COLOUR.weak, true)
+    draw_text(INFO_POS.sprite_table.x, INFO_POS.sprite_table.y - BIZHAWK_FONT_HEIGHT, fmt("Sprites:%.2d", counter), COLOUR.weak, true)
 end
 
 
@@ -3959,8 +3983,8 @@ local function sprite_level_data()
     Previous.status_table = status_table
     status_table = memory.readbyterange(SRAM.sprite_load_status_table, 0x100)
     
-    local x_origin = Border_right_start + 1
-    local y_origin = Border_bottom_start - 5*BIZHAWK_FONT_HEIGHT
+    local x_origin = INFO_POS.sprite_level_data.x
+    local y_origin = INFO_POS.sprite_level_data.y
     local x, y = x_origin, y_origin
     local w, h = 9, 11
     
@@ -4051,7 +4075,6 @@ local function show_counters()
     Bg_opacity = 1.0
     local height = BIZHAWK_FONT_HEIGHT
     local text_counter = 0
-    local y_pos = OPTIONS.top_gap + 20*BIZHAWK_FONT_HEIGHT
     
     -- Read RAM
     local critical_damage_timer = u16_sram(SRAM.critical_damage_timer)
@@ -4067,7 +4090,7 @@ local function show_counters()
         text_counter = text_counter + 1
         local colour = colour or COLOUR.text
         
-        draw_text(2, y_pos + (text_counter * height), fmt("%s: %d", label, (value * mult) - frame), colour)
+        draw_text(INFO_POS.counters.x, INFO_POS.counters.y + (text_counter * height), fmt("%s: %d", label, (value * mult) - frame), colour)
     end
     
     -- List of counter calls with their conditions
@@ -4193,8 +4216,8 @@ local function overworld_mode()
     local t = 0
     local delta_x = BIZHAWK_FONT_WIDTH
     local delta_y = BIZHAWK_FONT_HEIGHT
-    local table_x = 2
-    local table_y = OPTIONS.top_gap + 2*delta_y
+    local table_x = INFO_POS.overworld.x
+    local table_y = INFO_POS.overworld.y + 2*BIZHAWK_FONT_HEIGHT
     
     -- Read ram values
     local cursor_x_pos = u8_wram(WRAM.OW_cursor_x_pos)
